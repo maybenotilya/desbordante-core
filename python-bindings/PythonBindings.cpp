@@ -1,48 +1,53 @@
-#include <boost/python/object.hpp>
-#include <boost/python/tuple.hpp>
+#include <boost/python/class.hpp>
 #include <boost/python/dict.hpp>
-#include <boost/python/str.hpp>
 #include <boost/python/extract.hpp>
+#include <boost/python/init.hpp>
 #include <boost/python/module.hpp>
+#include <boost/python/object.hpp>
+#include <boost/python/raw_function.hpp>
+#include <boost/python/str.hpp>
+#include <boost/python/tuple.hpp>
 
+#include "AlgoFactory.h"
+#include "DictToParamsMap.h"
 #include "Primitive.h"
+#include "ProgramOptionStrings.h"
 
 namespace python_bindings {
 
+namespace posr = program_option_strings;
 namespace py = boost::python;
 
 class PyPrimitive {
 public:
-    void fit(py::object obj)
+    /*void fit(py::object obj)
     {
 
-    }
+    }*/
 
     void fit(const py::str & path, const py::str & delimiter, const py::object & has_header)
     {
-        std::string delim = py::extract<std::string>(delimiter)();
-        if (delim.length() != 1)
-            throw std::runtime_error("delimiter length must be 1");
-        path_ = py::extract<std::string>(path)();
-        delimiter_ = delim[0];
-        has_header_ = py::extract<bool>(has_header)();
     }
 
-    unsigned long long execute(boost::python::tuple args, boost::python::dict kwargs)
+    static py::object execute(const py::tuple & _, const py::dict & kwargs)
     {
-        return 0;
+        auto params_map = GetParamsMap(kwargs);
+        auto prim = algos::CreateAlgorithmInstance(
+            boost::any_cast<std::string>(params_map[posr::kTask]),
+            boost::any_cast<std::string>(params_map[posr::kAlgorithm]),
+            params_map);
+        return py::object(prim->Execute());
     }
 
 private:
     std::shared_ptr<algos::Primitive> prim;
-    std::string path_;
-    char delimiter_;
-    bool has_header_;
 };
 
 BOOST_PYTHON_MODULE(desbordante)
 {
-
+    py::class_<PyPrimitive>("Primitive", py::init())
+        .def("fit", &PyPrimitive::fit)
+        .def("execute", py::raw_function(&PyPrimitive::execute, 1));
 }
 
 }  // namespace python_bindings
