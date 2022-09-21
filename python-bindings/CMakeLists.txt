@@ -7,7 +7,7 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
 
 # create the library
-add_library(desbordante SHARED PythonBindings.cpp)
+add_library(desbordante SHARED PythonBindings.cpp DictToParamsMap.cpp DictToParamsMap.h)
 
 # link
 target_link_libraries(desbordante ${Boost_LIBRARIES})
