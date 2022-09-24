@@ -7,11 +7,14 @@
 #include <boost/python/raw_function.hpp>
 #include <boost/python/str.hpp>
 #include <boost/python/tuple.hpp>
+#include <easylogging++.h>
 
 #include "AlgoFactory.h"
 #include "DictToParamsMap.h"
 #include "Primitive.h"
 #include "ProgramOptionStrings.h"
+
+INITIALIZE_EASYLOGGINGPP
 
 namespace python_bindings {
 
