@@ -35,9 +35,14 @@ public:
     static py::object execute(const py::tuple & _, const py::dict & kwargs)
     {
         auto params_map = GetParamsMap(kwargs);
+        std::string algorithm;
+        if (params_map.find(posr::kAlgorithm) != params_map.end())
+            algorithm = boost::any_cast<std::string>(params_map[posr::kAlgorithm]);
+        else
+            algorithm = "metric";
         auto prim = algos::CreateAlgorithmInstance(
             boost::any_cast<std::string>(params_map[posr::kTask]),
-            boost::any_cast<std::string>(params_map[posr::kAlgorithm]),
+            algorithm,
             params_map);
         return py::object(prim->Execute());
     }
