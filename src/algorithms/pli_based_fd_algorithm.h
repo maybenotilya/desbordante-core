@@ -12,6 +12,8 @@ private:
 protected:
     std::shared_ptr<ColumnLayoutRelationData> relation_;
 
+    void FitInternal(model::IDatasetStream &data_stream) override;
+
     ColumnLayoutRelationData const& GetRelation() const noexcept {
         // GetRelation should be called after the dataset has been parsed, i.e. after algorithm
         // execution

@@ -20,6 +20,13 @@ unsigned long long ARAlgorithm::Execute() {
     return time;
 }
 
+void ARAlgorithm::FitInternal(model::IDatasetStream& data_stream) {
+    transactional_data_ = model::TransactionalData::CreateFrom(data_stream, *input_format_);
+    if (transactional_data_->GetNumTransactions() == 0) {
+        throw std::runtime_error("Got an empty dataset: AR mining is meaningless.");
+    }
+}
+
 void ARAlgorithm::UpdatePath(std::stack<RuleNode*>& path, std::list<RuleNode>& vertices) {
     for (auto iter = vertices.rbegin(); iter != vertices.rend(); ++iter) {
         RuleNode* node_ptr = &(*iter);

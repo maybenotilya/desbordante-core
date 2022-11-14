@@ -63,6 +63,9 @@ private:
 
     void LoadData();
 
+protected:
+    void FitInternal(model::IDatasetStream &data_stream) override;
+
 public:
     explicit Aid(Config const& config);
 };

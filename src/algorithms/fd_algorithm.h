@@ -66,6 +66,7 @@ protected:
     std::list<FD> fd_collection_;
 
     virtual void Initialize() = 0;
+    void FitInternal(model::IDatasetStream &data_stream) override = 0;
     // Main logic of the algorithm
     virtual unsigned long long ExecuteInternal() = 0;
 

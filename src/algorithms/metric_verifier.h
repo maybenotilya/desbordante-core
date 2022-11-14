@@ -70,6 +70,9 @@ private:
     bool VerifyMetricFD() const;
     void ValidateParameters() const;
 
+protected:
+    void FitInternal(model::IDatasetStream &data_stream) override;
+
 public:
     struct Config {
         std::filesystem::path data{};   /* Path to input file */

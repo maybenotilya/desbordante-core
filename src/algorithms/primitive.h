@@ -30,6 +30,7 @@ protected:
     void AddProgress(double const val) noexcept;
     void SetProgress(double const val) noexcept;
     void ToNextProgressPhase() noexcept;
+    virtual void FitInternal(model::IDatasetStream& data_stream) = 0;
 
 public:
     constexpr static double kTotalProgressPercent = 100.0;
@@ -47,6 +48,8 @@ public:
     Primitive(std::filesystem::path const& path, char const separator, bool const has_header,
               std::vector<std::string_view> phase_names)
         : input_generator_(std::make_unique<CSVParser>(path, separator, has_header)), phase_names_(std::move(phase_names)) {}
+
+    virtual void Fit(model::IDatasetStream& data_stream);
 
     virtual unsigned long long Execute() = 0;
 

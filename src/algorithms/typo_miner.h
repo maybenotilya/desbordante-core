@@ -14,6 +14,9 @@ class TypoMiner : public Primitive {
 public:
     using Config = FDAlgorithm::Config;
 
+protected:
+    void FitInternal(model::IDatasetStream &data_stream) override;
+
 private:
     std::unique_ptr<FDAlgorithm> precise_algo_;
     std::unique_ptr<FDAlgorithm> approx_algo_;

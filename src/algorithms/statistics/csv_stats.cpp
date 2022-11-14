@@ -329,4 +329,9 @@ std::string CsvStats::ToString() const {
     return res.str();
 }
 
+void CsvStats::FitInternal(model::IDatasetStream& data_stream) {
+    data_stream.Reset();  // temporary
+    //col_data_ = FDAlgorithm::CreateColumnData(config_);
+}
+
 }  // namespace algos

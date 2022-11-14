@@ -18,6 +18,9 @@ public:
 
     unsigned long long ExecuteInternal() override;
 
+protected:
+    void FitInternal(model::IDatasetStream &data_stream) override;
+
 private:
     std::unique_ptr<RelationalSchema> schema_{};
 

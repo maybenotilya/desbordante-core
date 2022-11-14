@@ -50,6 +50,13 @@ MetricVerifier::MetricVerifier(Config const& config,
     }
 }
 
+void MetricVerifier::FitInternal(model::IDatasetStream& data_stream) {
+    relation_ = ColumnLayoutRelationData::CreateFrom(data_stream, true /*store this*/);
+    data_stream.Reset();
+    typed_relation_ = model::ColumnLayoutTypedRelationData::CreateFrom(data_stream, true
+                                                                       /*store this*/);
+}
+
 unsigned long long MetricVerifier::Execute() {
     auto start_time = std::chrono::system_clock::now();
 

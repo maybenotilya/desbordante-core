@@ -2,6 +2,11 @@
 
 namespace algos {
 
+void TypoMiner::FitInternal(model::IDatasetStream& data_stream) {
+    precise_algo_->Fit(data_stream);
+    approx_algo_->Fit(data_stream);
+}
+
 unsigned long long TypoMiner::Execute() {
     auto const start_time = std::chrono::system_clock::now();
 

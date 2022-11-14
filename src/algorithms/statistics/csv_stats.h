@@ -14,6 +14,9 @@ class CsvStats : public algos::Primitive {
 
     size_t MixedDistinct(size_t index) const;
 
+protected:
+    void FitInternal(model::IDatasetStream &data_stream) override;
+
 public:
     explicit CsvStats(const FDAlgorithm::Config& config);
 

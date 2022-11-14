@@ -11,6 +11,31 @@ namespace algos {
 
 FDep::FDep(Config const& config) : FDAlgorithm(config, {kDefaultPhaseName}) {}
 
+void FDep::FitInternal(model::IDatasetStream& data_stream) {
+    number_attributes_ = data_stream.GetNumberOfColumns();
+    if (number_attributes_ == 0) {
+        throw std::runtime_error("Unable to work on an empty dataset.");
+    }
+    column_names_.resize(number_attributes_);
+
+    schema_ = std::make_unique<RelationalSchema>(data_stream.GetRelationName(), true);
+
+    for (size_t i = 0; i < number_attributes_; ++i) {
+        column_names_[i] = data_stream.GetColumnName(static_cast<int>(i));
+        schema_->AppendColumn(column_names_[i]);
+    }
+
+    std::vector<std::string> next_line;
+    while (data_stream.HasNextRow()) {
+        next_line = data_stream.GetNextRow();
+        if (next_line.empty()) break;
+        tuples_.emplace_back(std::vector<size_t>(number_attributes_));
+        for (size_t i = 0; i < number_attributes_; ++i) {
+            this->tuples_.back()[i] = std::hash<std::string>{}(next_line[i]);
+        }
+    }
+}
+
 unsigned long long FDep::ExecuteInternal() {
     Initialize();
 
