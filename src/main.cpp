@@ -119,18 +119,21 @@ int main(int argc, char const* argv[]) {
         EnumToAvailableValues<algos::Metric>();
     std::string const metric_algo_desc = "MFD algorithm to use. Available algorithms:\n" +
         EnumToAvailableValues<algos::MetricAlgo>();
+    constexpr auto help = "help";
+    constexpr auto algorithm = "algorithm";
+    constexpr auto task_opt = "task";
 
     po::options_description info_options("Desbordante information options");
     info_options.add_options()
-        (onam::kHelp, "print the help message and exit")
+        (help, "print the help message and exit")
         // --version, if needed, goes here too
         ;
 
     po::options_description general_options("General options");
     general_options.add_options()
-        (onam::kTask, po::value<std::string>(&task), task_desc.c_str())
+        (task_opt, po::value<std::string>(&task), task_desc.c_str())
         (
-            onam::kAlgorithm, po::value<std::string>(&algo), algo_desc.c_str())
+            algorithm, po::value<std::string>(&algo), algo_desc.c_str())
         (
             onam::kData, po::value<std::string>(&dataset),
             "path to CSV file, relative to ./input_data")
@@ -227,7 +230,7 @@ int main(int argc, char const* argv[]) {
         return 0;
     }
 
-    if (vm.count(onam::kHelp))
+    if (vm.count(help))
     {
         std::cout << all_options << std::endl;
         return 0;
