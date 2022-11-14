@@ -11,9 +11,6 @@ namespace algos {
 
 class Pyro : public DependencyConsumer, public PliBasedFDAlgorithm {
 private:
-    constexpr static const char* kSeed = "seed";
-    constexpr static const char* kMaxError = "error";
-
     std::list<std::unique_ptr<SearchSpace>> search_spaces_;
 
     CachingMethod caching_method_ = CachingMethod::kCoin;

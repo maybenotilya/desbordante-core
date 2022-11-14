@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "options/names.h"
 #include "pli_based_fd_algorithm.h"
 #include "position_list_index.h"
 #include "relation_data.h"
@@ -10,9 +11,6 @@ namespace algos {
 
 class Tane : public PliBasedFDAlgorithm {
 private:
-    /* Special config parameters */
-    constexpr static const char* kMaxError = "error";
-
     unsigned long long ExecuteInternal() override;
 public:
     //TODO: these consts should go in class (or struct) Configuration
@@ -26,13 +24,13 @@ public:
 
     explicit Tane(Config const& config)
         : PliBasedFDAlgorithm(config, {kDefaultPhaseName}),
-          max_fd_error_(GetSpecialParam<double>(kMaxError)),
-          max_ucc_error_(GetSpecialParam<double>(kMaxError)),
+          max_fd_error_(GetSpecialParam<double>(option_names::kError)),
+          max_ucc_error_(GetSpecialParam<double>(option_names::kError)),
           max_lhs_(config_.max_lhs) {}
     explicit Tane(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config)
         : PliBasedFDAlgorithm(std::move(relation), config, {kDefaultPhaseName}),
-          max_fd_error_(GetSpecialParam<double>(kMaxError)),
-          max_ucc_error_(GetSpecialParam<double>(kMaxError)),
+          max_fd_error_(GetSpecialParam<double>(option_names::kError)),
+          max_ucc_error_(GetSpecialParam<double>(option_names::kError)),
           max_lhs_(config_.max_lhs) {}
 
     static double CalculateZeroAryFdError(ColumnData const* rhs,

@@ -8,6 +8,7 @@
 
 #include "fd_g1_strategy.h"
 #include "key_g1_strategy.h"
+#include "options/names.h"
 
 namespace algos {
 
@@ -130,9 +131,9 @@ void Pyro::init() {
         this->DiscoverFd(fd);
         this->FDAlgorithm::RegisterFd(fd.lhs_, fd.rhs_);
     };
-    configuration_.seed = GetSpecialParam<int>(kSeed);
-    configuration_.max_ucc_error = GetSpecialParam<double>(kMaxError);
-    configuration_.max_ucc_error = GetSpecialParam<double>(kMaxError);
+    configuration_.seed = GetSpecialParam<int>(option_names::kSeed);
+    configuration_.max_ucc_error = GetSpecialParam<double>(option_names::kError);
+    configuration_.max_ucc_error = GetSpecialParam<double>(option_names::kError);
     configuration_.max_lhs = config_.max_lhs;
     configuration_.parallelism = config_.parallelism;
 }
