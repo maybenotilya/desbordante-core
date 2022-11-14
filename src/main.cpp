@@ -13,28 +13,14 @@
 #include <vector>
 
 #include "algo_factory.h"
+#include "enum_to_available_values.h"
+#include "options/descriptions.h"
 #include "options/names.h"
 
 namespace po = boost::program_options;
 namespace onam = option_names;
 
 INITIALIZE_EASYLOGGINGPP
-
-template<typename BetterEnumType>
-static std::string EnumToAvailableValues() {
-    std::stringstream avail_values;
-
-    avail_values << '[';
-
-    for (auto const& name : BetterEnumType::_names()) {
-        avail_values << name << '|';
-    }
-
-    avail_values.seekp(-1, avail_values.cur);
-    avail_values << ']';
-
-    return avail_values.str();
-}
 
 static bool CheckOptions(std::string const& task, std::string const& alg, std::string const& metric,
                          std::string const& metric_alg, size_t rhs_indices_count, double error) {
@@ -110,22 +96,19 @@ int main(int argc, char const* argv[]) {
     unsigned int q = 2;
     bool dist_to_null_infinity = false;
 
-    std::string const algo_desc = "algorithm to use. Available algorithms:\n" +
+    std::string const algo_desc = "algorithm to use\n" +
                                   EnumToAvailableValues<algos::Algo>() +
                                   " for FD mining.";
-    std::string const task_desc = "type of dependency to mine. Available tasks:\n" +
+    std::string const task_desc = "type of dependency to mine\n" +
                                   EnumToAvailableValues<algos::AlgoMiningType>();
-    std::string const metric_desc = "metric to use. Available metrics:\n" +
-        EnumToAvailableValues<algos::Metric>();
-    std::string const metric_algo_desc = "MFD algorithm to use. Available algorithms:\n" +
-        EnumToAvailableValues<algos::MetricAlgo>();
-    constexpr auto help = "help";
-    constexpr auto algorithm = "algorithm";
+    constexpr auto help_opt = "help";
+    constexpr auto algorithm_opt = "algorithm";
     constexpr auto task_opt = "task";
+    std::string const separator_opt = std::string(onam::kSeparator) + ",s";
 
     po::options_description info_options("Desbordante information options");
     info_options.add_options()
-        (help, "print the help message and exit")
+        (help_opt, "print the help message and exit")
         // --version, if needed, goes here too
         ;
 
@@ -133,86 +116,71 @@ int main(int argc, char const* argv[]) {
     general_options.add_options()
         (task_opt, po::value<std::string>(&task), task_desc.c_str())
         (
-            algorithm, po::value<std::string>(&algo), algo_desc.c_str())
+            algorithm_opt, po::value<std::string>(&algo), algo_desc.c_str())
+        (onam::kData, po::value<std::string>(&dataset), option_descriptions::kDData)
         (
-            onam::kData, po::value<std::string>(&dataset),
-            "path to CSV file, relative to ./input_data")
-        ((std::string(onam::kSeparator) + ",s").c_str(), po::value<char>(&separator)->default_value(separator),
-            "CSV separator")
-        (
-            onam::kHasHeader, po::value<bool>(&has_header)->default_value(has_header),
-         "CSV header presence flag [true|false]")
-        (
-            onam::kEqualNulls, po::value<bool>(&is_null_equal_null)->default_value(true),
-         "specify whether two NULLs should be considered equal")
-        (
-            onam::kThreads, po::value<ushort>(&threads)->default_value(threads),
-         "number of threads to use. If 0, then as many threads are used as "
-         "the hardware can handle concurrently.")
+            separator_opt.c_str(), po::value<char>(&separator)->default_value(separator),
+            option_descriptions::kDSeparator)
+        (onam::kHasHeader, po::value<bool>(&has_header)->default_value(has_header),
+            option_descriptions::kDHasHeader)
+        (onam::kEqualNulls, po::value<bool>(&is_null_equal_null)->default_value(true),
+            option_descriptions::kDEqualNulls)
+        (onam::kThreads, po::value<ushort>(&threads)->default_value(threads),
+            option_descriptions::kDThreads)
         ;
 
     po::options_description typos_fd_options("Typo mining/FD options");
     typos_fd_options.add_options()
         (onam::kError, po::value<double>(&error)->default_value(error),
-         "error value for AFD algorithms")
-        (
-            onam::kMaximumLhs, po::value<unsigned int>(&max_lhs)->default_value(max_lhs),
-         "max considered LHS size")
-        (onam::kSeed, po::value<int>(&seed)->default_value(seed), "RNG seed")
+             option_descriptions::kDError)
+        (onam::kMaximumLhs, po::value<unsigned int>(&max_lhs)->default_value(max_lhs),
+            option_descriptions::kDMaximumLhs)
+        (onam::kSeed, po::value<int>(&seed)->default_value(seed), option_descriptions::kDSeed)
         ;
 
     po::options_description ar_options("AR options");
     ar_options.add_options()
-        (onam::kMinimumSupport, po::value<double>(&minsup),
-            "minimum support value (between 0 and 1)")
-        (
-            onam::kMinimumConfidence, po::value<double>(&minconf),
-            "minimum confidence value (between 0 and 1)")
-        (
-            onam::kInputFormat, po::value<string>(&ar_input_format),
-         "format of the input dataset. [singular|tabular] for AR mining")
+        (onam::kMinimumSupport, po::value<double>(&minsup), option_descriptions::kDMinimumSupport)
+        (onam::kMinimumConfidence, po::value<double>(&minconf),
+            option_descriptions::kDMinimumConfidence)
+        (onam::kInputFormat, po::value<string>(&ar_input_format),
+            option_descriptions::kDInputFormat)
         ;
 
     po::options_description ar_singular_options("AR \"singular\" input format options");
     ar_singular_options.add_options()
         (onam::kTIdColumnIndex, po::value<unsigned>(&tid_column_index)->default_value(0),
-         "index of the column where a TID is stored")
-        (
-            onam::kItemColumnIndex, po::value<unsigned>(&item_column_index)->default_value(1),
-         "index of the column where an item name is stored")
+            option_descriptions::kDTIdColumnIndex)
+        (onam::kItemColumnIndex, po::value<unsigned>(&item_column_index)->default_value(1),
+            option_descriptions::kDItemColumnIndex)
         ;
 
     po::options_description ar_tabular_options("AR \"tabular\" input format options");
     ar_tabular_options.add_options()
-        (
-            onam::kFirstColumnTId, po::bool_switch(&has_transaction_id),
-         "indicates that the first column contains the transaction IDs")
+        (onam::kFirstColumnTId, po::bool_switch(&has_transaction_id),
+             option_descriptions::kDFirstColumnTId)
         ;
 
     ar_options.add(ar_singular_options).add(ar_tabular_options);
 
     po::options_description mfd_options("MFD options");
     mfd_options.add_options()
-        (onam::kMetric, po::value<std::string>(&metric), metric_desc.c_str())
-        (
-            onam::kMetricAlgorithm, po::value<std::string>(&metric_algo), metric_algo_desc.c_str())
-        (
-            onam::kLhsIndices, po::value<std::vector<unsigned int>>(&lhs_indices)->multitoken(),
-         "LHS column indices for metric FD verification")
-        (
-            onam::kRhsIndices, po::value<std::vector<unsigned int>>(&rhs_indices)->multitoken(),
-         "RHS column indices for metric FD verification")
-        (
-            onam::kParameter, po::value<long double>(&parameter), "metric FD parameter")
-        (
-            onam::kDistToNullIsInfinity, po::bool_switch(&dist_to_null_infinity),
-         "specify whether distance to NULL value is infinity (otherwise it is 0)")
+        (onam::kMetric, po::value<std::string>(&metric), option_descriptions::kDMetric)
+        (onam::kMetricAlgorithm, po::value<std::string>(&metric_algo),
+            option_descriptions::kDMetricAlgorithm)
+        (onam::kLhsIndices, po::value<std::vector<unsigned int>>(&lhs_indices)->multitoken(),
+            option_descriptions::kDLhsIndices)
+        (onam::kRhsIndices, po::value<std::vector<unsigned int>>(&rhs_indices)->multitoken(),
+            option_descriptions::kDRhsIndices)
+        (onam::kParameter, po::value<long double>(&parameter), option_descriptions::kDParameter)
+        (onam::kDistToNullIsInfinity, po::bool_switch(&dist_to_null_infinity),
+            option_descriptions::kDDistToNullIsInfinity)
         ;
 
     po::options_description cosine_options("Cosine metric options");
     cosine_options.add_options()
         (onam::kQGramLength, po::value<unsigned int>(&q)->default_value(2),
-         "q-gram length for cosine metric")
+            option_descriptions::kDQGramLength)
         ;
 
     mfd_options.add(cosine_options);
@@ -230,7 +198,7 @@ int main(int argc, char const* argv[]) {
         return 0;
     }
 
-    if (vm.count(help))
+    if (vm.count(help_opt))
     {
         std::cout << all_options << std::endl;
         return 0;
@@ -251,8 +219,8 @@ int main(int argc, char const* argv[]) {
         };
         remove_duplicates(lhs_indices);
         remove_duplicates(rhs_indices);
-        vm.at("rhs_indices").value() = rhs_indices;
-        vm.at("lhs_indices").value() = lhs_indices;
+        vm.at(option_names::kRhsIndices).value() = rhs_indices;
+        vm.at(option_names::kLhsIndices).value() = lhs_indices;
     }
 
     if (!CheckOptions(task, algo, metric, metric_algo, rhs_indices.size(), error)) {
