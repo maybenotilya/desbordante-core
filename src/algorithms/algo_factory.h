@@ -6,7 +6,7 @@
 #include <boost/mp11/algorithm.hpp>
 
 #include "algorithms.h"
-#include "option_names.h"
+#include "options/names.h"
 #include "typo_miner.h"
 
 namespace algos {

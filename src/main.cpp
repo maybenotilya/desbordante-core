@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "algo_factory.h"
-#include "option_names.h"
+#include "options/names.h"
 
 namespace po = boost::program_options;
 namespace onam = option_names;

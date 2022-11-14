@@ -6,7 +6,7 @@
 
 #include "datasets.h"
 #include "fd_algorithm.h"
-#include "option_names.h"
+#include "options/names.h"
 
 template <typename T>
 class AlgorithmTest : public LightDatasets, public HeavyDatasets, public ::testing::Test {
