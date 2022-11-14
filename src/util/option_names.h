@@ -5,15 +5,12 @@
 
 #pragma once
 
-namespace program_option_strings {
+namespace option_names {
 constexpr auto kHelp = "help";
 constexpr auto kTask = "task";
 constexpr auto kAlgorithm = "algorithm";
 constexpr auto kData = "data";
-#define SEPARATOR "separator"
-constexpr auto kSeparatorConfig = SEPARATOR;
-constexpr auto kSeparatorLibArg = SEPARATOR ",s";
-#undef SEPARATOR
+constexpr auto kSeparator = "separator";
 constexpr auto kHasHeader = "has_header";
 constexpr auto kEqualNulls = "is_null_equal_null";
 constexpr auto kThreads = "threads";
@@ -35,4 +32,4 @@ constexpr auto kQGramLength = "q";
 constexpr auto kMetricAlgorithm = "metric_algorithm";
 constexpr auto kRadius = "radius";
 constexpr auto kRatio = "ratio";
-}  // namespace program_option_strings
+}  // namespace option_names

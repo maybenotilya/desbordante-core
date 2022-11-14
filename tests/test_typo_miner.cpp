@@ -1,16 +1,16 @@
-#include <functional>
-#include <utility>
-
-#include <boost/functional/hash.hpp>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <boost/functional/hash.hpp>
+#include <functional>
+#include <utility>
+
 #include "algo_factory.h"
+#include "option_names.h"
 #include "typo_miner.h"
-#include "program_option_strings.h"
 
 namespace tests {
-namespace posr = program_option_strings;
+namespace onam = option_names;
 
 struct TestingParam {
     algos::StdParamsMap params;
@@ -18,14 +18,14 @@ struct TestingParam {
     TestingParam(std::string const& dataset,
                  char const separator, bool const has_header, bool const is_null_equal_null,
                  unsigned const max_lhs, double const error, ushort const threads)
-        : params({{posr::kData, dataset},
-                  {posr::kSeparatorConfig, separator},
-                  {posr::kHasHeader, has_header},
-                  {posr::kEqualNulls, is_null_equal_null},
-                  {posr::kMaximumLhs, max_lhs},
-                  {posr::kError, error},
-                  {posr::kThreads, threads},
-                  {posr::kSeed, 0}}) {}
+        : params({{onam::kData, dataset},
+                  {onam::kSeparator, separator},
+                  {onam::kHasHeader, has_header},
+                  {onam::kEqualNulls, is_null_equal_null},
+                  {onam::kMaximumLhs, max_lhs},
+                  {onam::kError, error},
+                  {onam::kThreads, threads},
+                  {onam::kSeed, 0}}) {}
 };
 
 /* FD represented as vector where all elements except last are lhs indices and
