@@ -27,9 +27,9 @@ private:
     std::unordered_map<std::string_view, std::vector<std::string_view>> opt_parents_{};
 
     void MakeOptionsAvailable(std::string_view parent_name,
-                              std::vector<std::string_view> option_names);
+                              std::vector<std::string_view> const& option_names);
 
-    void ExcludeOptions(std::string_view parent_option);
+    void ExcludeOptions(std::string_view parent_option) noexcept;
     void UnsetOption(std::string_view option_name) noexcept;
 
 protected:

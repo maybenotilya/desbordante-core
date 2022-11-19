@@ -47,12 +47,7 @@ void Primitive::SetOption(const std::string& option_name,
         UnsetOption(it->first);
     }
 
-    if (value.has_value()) {
-        it->second->SetAny(value.value());
-    }
-    else {
-        it->second->SetDefault();
-    }
+    it->second->Set(value);
 }
 
 void Primitive::UnsetOption(const std::string& option_name) noexcept {
@@ -94,7 +89,7 @@ void Primitive::MakeOptionsAvailable(const std::vector<std::string_view>& option
 }
 
 void Primitive::MakeOptionsAvailable(std::string_view parent_name,
-                                     std::vector<std::string_view> option_names) {
+                                     std::vector<std::string_view> const& option_names) {
     MakeOptionsAvailable(option_names);
     auto it = possible_options_.find(parent_name);
     assert(it != possible_options_.end());
@@ -103,7 +98,7 @@ void Primitive::MakeOptionsAvailable(std::string_view parent_name,
     }
 }
 
-void Primitive::ExcludeOptions(std::string_view parent_option) {
+void Primitive::ExcludeOptions(std::string_view parent_option) noexcept {
     auto it = opt_parents_.find(parent_option);
     if (it == opt_parents_.end()) return;
 
@@ -113,7 +108,7 @@ void Primitive::ExcludeOptions(std::string_view parent_option) {
         available_options.erase(possible_opt_it->first);
         UnsetOption(possible_opt_it->first);
     }
-    opt_parents_.erase(parent_option);
+    opt_parents_.erase(it);
 }
 
 std::function<void(const std::string_view &, const std::vector<std::string_view>&)>
