@@ -36,20 +36,23 @@ void Primitive::Fit(model::IDatasetStream& data_stream) {
     FitInternal(data_stream);
 }
 
-void Primitive::SetOption(const std::string& option_name) {
+void Primitive::SetOption(const std::string& option_name,
+                          boost::optional<boost::any> const& value) {
     auto it = possible_options_.find(option_name);
     if (it == possible_options_.end()
         || available_options.find(it->first) == available_options.end())
         throw std::invalid_argument("Invalid option");
-    it->second->SetDefault();
-}
 
-void Primitive::SetOption(const std::string& option_name, const boost::any& value) {
-    auto it = possible_options_.find(option_name);
-    if (it == possible_options_.end()
-        || available_options.find(it->first) == available_options.end())
-        throw std::invalid_argument("Invalid option");
-    it->second->SetAny(value);
+    if (it->second->IsSet()) {
+        UnsetOption(it->first);
+    }
+
+    if (value.has_value()) {
+        it->second->SetAny(value.value());
+    }
+    else {
+        it->second->SetDefault();
+    }
 }
 
 void Primitive::UnsetOption(const std::string& option_name) noexcept {

@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include "boost/any.hpp"
+#include "boost/optional.hpp"
 #include "csv_parser.h"
 #include "idataset_stream.h"
 #include "options/option.h"
@@ -77,9 +79,7 @@ public:
 
     virtual unsigned long long Execute() = 0;
 
-    void SetOption(std::string const& option_name, boost::any const& value);
-
-    void SetOption(std::string const& option_name);
+    void SetOption(std::string const& option_name, boost::optional<boost::any> const& value = {});
 
     [[nodiscard]] std::unordered_set<std::string_view> GetNeededOptions() const;
 
