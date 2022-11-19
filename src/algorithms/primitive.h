@@ -3,11 +3,15 @@
 #include <filesystem>
 #include <mutex>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
-#include "idataset_stream.h"
 #include "csv_parser.h"
+#include "idataset_stream.h"
+#include "options/option.h"
+#include "options/ioption.h"
 
 namespace algos {
 
@@ -16,6 +20,15 @@ private:
     std::mutex mutable progress_mutex_;
     double cur_phase_progress_ = 0;
     uint8_t cur_phase_id_ = 0;
+    std::unordered_map<std::string_view, std::unique_ptr<config::IOption>> possible_options_{};
+    std::unordered_set<std::string_view> available_options;
+    std::unordered_map<std::string_view, std::vector<std::string_view>> opt_parents_{};
+
+    void MakeOptionsAvailable(std::string_view parent_name,
+                              std::vector<std::string_view> option_names);
+
+    void ExcludeOptions(std::string_view parent_option);
+    void UnsetOption(std::string_view option_name) noexcept;
 
 protected:
     std::unique_ptr<model::IDatasetStream> input_generator_;
@@ -31,6 +44,17 @@ protected:
     void SetProgress(double const val) noexcept;
     void ToNextProgressPhase() noexcept;
     virtual void FitInternal(model::IDatasetStream& data_stream) = 0;
+    void MakeOptionsAvailable(std::vector<std::string_view> const& option_names);
+
+    template<typename T>
+    void RegisterOption(config::Option<T> option) {
+        possible_options_[option.GetName()] = std::make_shared<config::Option<T>>(option);
+    }
+
+    void ClearOptions() noexcept;
+
+    std::function<void(std::string_view const&, std::vector<std::string_view> const&)>
+            GetOptAvailFunc();
 
 public:
     constexpr static double kTotalProgressPercent = 100.0;
@@ -52,6 +76,14 @@ public:
     virtual void Fit(model::IDatasetStream& data_stream);
 
     virtual unsigned long long Execute() = 0;
+
+    void SetOption(std::string const& option_name, boost::any const& value);
+
+    void SetOption(std::string const& option_name);
+
+    [[nodiscard]] std::unordered_set<std::string_view> GetNeededOptions() const;
+
+    void UnsetOption(std::string const& option_name) noexcept;
 
     /* Returns pair with current progress state.
      * Pair has the form <current phase id, current phase progess>

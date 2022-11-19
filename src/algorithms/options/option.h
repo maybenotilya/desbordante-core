@@ -13,7 +13,8 @@ struct Option : public IOption {
 private:
     using OptCondVector =
             std::vector<std::pair<std::function<bool(T const& val)>, std::vector<std::string>>>;
-    using OptAddFunc = std::function<void(std::string const&, std::vector<std::string> const&)>;
+    using OptAddFunc =
+            std::function<void(std::string_view const&, std::vector<std::string_view> const&)>;
 
 public:
     Option(OptionInfo const info, T* value_ptr, std::function<void(T&)> value_check,
