@@ -27,6 +27,7 @@ private:
     double radius_ = -1; /* Maximal distance between two values to consider one of them a typo */
     double ratio_;       /* Maximal fraction of deviations per cluster to flag the cluster as
                           * containing typos */
+    bool is_null_equal_null_ = true;
 
     static bool FDLess(FD const& l, FD const& r);
     static auto MakeTuplesByIndicesComparator(std::map<int, unsigned> const& frequency_map);

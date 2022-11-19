@@ -39,7 +39,7 @@ void Primitive::Fit(model::IDatasetStream& data_stream) {
 void Primitive::SetOption(const std::string& option_name) {
     auto it = possible_options_.find(option_name);
     if (it == possible_options_.end()
-        || available_options.find(option_name) == available_options.end())
+        || available_options.find(it->first) == available_options.end())
         throw std::invalid_argument("Invalid option");
     it->second->SetDefault();
 }
@@ -59,7 +59,7 @@ void Primitive::UnsetOption(const std::string& option_name) noexcept {
 void Primitive::UnsetOption(std::string_view option_name) noexcept {
     auto it = possible_options_.find(option_name);
     if (it == possible_options_.end()
-        || available_options.find(option_name) == available_options.end())
+        || available_options.find(it->first) == available_options.end())
         return;
     it->second->Unset();
     ExcludeOptions(it->first);

@@ -1,9 +1,7 @@
 #include "pli_based_fd_algorithm.h"
 
 void PliBasedFDAlgorithm::FitInternal(model::IDatasetStream& data_stream) {
-    if (relation_ == nullptr) {
-        relation_ = ColumnLayoutRelationData::CreateFrom(data_stream, config_.is_null_equal_null);
-    }
+    relation_ = ColumnLayoutRelationData::CreateFrom(data_stream, config_.is_null_equal_null);
 
     if (relation_->GetColumnData().empty()) {
         throw std::runtime_error("Got an empty dataset: FD mining is meaningless.");
@@ -33,3 +31,8 @@ std::vector<Column const*> PliBasedFDAlgorithm::GetKeys() const {
 
     return keys;
 }
+
+void PliBasedFDAlgorithm::SetRelation(std::shared_ptr<ColumnLayoutRelationData> relation) {
+    relation_ = relation;
+}
+

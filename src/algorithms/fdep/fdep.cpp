@@ -31,7 +31,7 @@ void FDep::FitInternal(model::IDatasetStream& data_stream) {
         if (next_line.empty()) break;
         tuples_.emplace_back(std::vector<size_t>(number_attributes_));
         for (size_t i = 0; i < number_attributes_; ++i) {
-            this->tuples_.back()[i] = std::hash<std::string>{}(next_line[i]);
+            tuples_.back()[i] = std::hash<std::string>{}(next_line[i]);
         }
     }
 }

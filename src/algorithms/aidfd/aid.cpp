@@ -23,7 +23,7 @@ void Aid::FitInternal(model::IDatasetStream& data_stream) {
             break;
         }
 
-        this->tuples_.emplace_back(std::vector<size_t>(number_of_attributes_));
+        tuples_.emplace_back(std::vector<size_t>(number_of_attributes_));
         for (size_t i = 0; i < number_of_attributes_; ++i) {
             tuples_.back()[i] = std::hash<std::string>{}(next_line[i]);
         }
