@@ -12,9 +12,11 @@ namespace mo = model;
 CsvStats::CsvStats(const FDAlgorithm::Config& config)
     : Primitive(config.data, config.separator, config.has_header, {"Calculating statistics"}),
       config_(config),
-      col_data_(FDAlgorithm::CreateColumnData(config)),
+      col_data_(mo::CreateColumnData(*input_generator_, config.is_null_equal_null)),
       all_stats_(col_data_.size()),
-      threads_num_(config_.parallelism) {}
+      threads_num_(config.parallelism),
+      is_null_equal_null_(config.is_null_equal_null) {
+}
 
 Statistic CsvStats::GetMin(size_t index, mo::CompareResult order) const {
     const mo::TypedColumnData& col = col_data_[index];
@@ -330,8 +332,8 @@ std::string CsvStats::ToString() const {
 }
 
 void CsvStats::FitInternal(model::IDatasetStream& data_stream) {
-    data_stream.Reset();  // temporary
-    //col_data_ = FDAlgorithm::CreateColumnData(config_);
+    col_data_ = mo::CreateColumnData(data_stream, is_null_equal_null_);
+    all_stats_ = std::vector<ColumnStats>{col_data_.size()};
 }
 
 }  // namespace algos

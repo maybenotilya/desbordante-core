@@ -68,13 +68,3 @@ std::vector<Column const*> FDAlgorithm::GetKeys() const {
 
     return keys;
 }
-
-std::vector<model::TypedColumnData> FDAlgorithm::CreateColumnData(
-        const FDAlgorithm::Config& config) {
-    CSVParser input_generator(config.data, config.separator, config.has_header);
-    std::unique_ptr<model::ColumnLayoutTypedRelationData> relation_data =
-            model::ColumnLayoutTypedRelationData::CreateFrom(input_generator,
-                                                             config.is_null_equal_null, -1, -1);
-    std::vector<model::TypedColumnData> col_data = std::move(relation_data->GetColumnData());
-    return col_data;
-}

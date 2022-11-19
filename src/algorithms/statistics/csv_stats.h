@@ -8,9 +8,10 @@ namespace algos {
 
 class CsvStats : public algos::Primitive {
     FDAlgorithm::Config config_;
-    const std::vector<model::TypedColumnData> col_data_;
+    std::vector<model::TypedColumnData> col_data_;
     std::vector<ColumnStats> all_stats_;
     ushort threads_num_;
+    bool is_null_equal_null_;
 
     size_t MixedDistinct(size_t index) const;
 

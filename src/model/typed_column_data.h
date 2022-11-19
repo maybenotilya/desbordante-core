@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "abstract_column_data.h"
+#include "idataset_stream.h"
 #include "relation_data.h"
 #include "types/types.h"
 
@@ -193,5 +194,8 @@ public:
         return f.CreateFrom();
     }
 };
+
+std::vector<TypedColumnData> CreateColumnData(IDatasetStream& dataset_stream,
+                                              bool is_null_equal_null);
 
 }  // namespace model

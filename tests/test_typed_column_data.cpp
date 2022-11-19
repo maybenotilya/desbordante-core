@@ -34,8 +34,10 @@ static FDAlgorithm::Config MakeConfig(std::string_view dataset, char sep, bool h
 
 TEST_P(TestTypeParsing, DefaultTest) {
     TypeParsingParams const& p = GetParam();
-    std::vector<mo::TypedColumnData> column_data =
-            FDAlgorithm::CreateColumnData(MakeConfig(p.dataset, p.sep, p.has_header));
+    FDAlgorithm::Config config{MakeConfig(p.dataset, p.sep, p.has_header)};
+    CSVParser parser{config.data, config.separator, config.has_header};
+    std::vector<mo::TypedColumnData> column_data{mo::CreateColumnData(parser,
+                                                                      config.is_null_equal_null)};
 
     ASSERT_EQ(column_data.size(), p.expected.size());
 
@@ -81,8 +83,10 @@ INSTANTIATE_TEST_SUITE_P(
                           "SimpleTypes.csv")));
 
 TEST(TypeSystem, SumColumnDoubles) {
-    std::vector<mo::TypedColumnData> col_data =
-            FDAlgorithm::CreateColumnData(MakeConfig("iris.csv", ',', false));
+    FDAlgorithm::Config config = MakeConfig("iris.csv", ',', false);
+    CSVParser parser{config.data, config.separator, config.has_header};
+    std::vector<mo::TypedColumnData> col_data{mo::CreateColumnData(parser,
+                                                                   config.is_null_equal_null)};
     ASSERT_EQ(col_data.size(), 5);
     mo::TypedColumnData const& col = col_data.front();
     ASSERT_EQ(col.GetTypeId(), static_cast<TypeId>(TypeId::kDouble));

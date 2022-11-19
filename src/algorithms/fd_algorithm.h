@@ -147,6 +147,4 @@ public:
         result += "]}";
         return result;
     }
-
-    static std::vector<model::TypedColumnData> CreateColumnData(const Config& config);
 };
