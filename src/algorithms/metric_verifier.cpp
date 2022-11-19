@@ -21,7 +21,8 @@ MetricVerifier::MetricVerifier(Config const& config)
       rhs_indices_(config.rhs_indices),
       parameter_(config.parameter),
       q_(config.q),
-      dist_to_null_infinity_(config.dist_to_null_infinity) {
+      dist_to_null_infinity_(config.dist_to_null_infinity),
+      is_null_equal_null_(config.is_null_equal_null) {
     if (metric_ != +Metric::euclidean || rhs_indices_.size() != 1) {
         algo_ = MetricAlgo::_from_string(config.algo.c_str());
     }
@@ -43,6 +44,7 @@ MetricVerifier::MetricVerifier(Config const& config,
       parameter_(config.parameter),
       q_(config.q),
       dist_to_null_infinity_(config.dist_to_null_infinity),
+      is_null_equal_null_(config.is_null_equal_null),
       typed_relation_(std::move(typed_relation)),
       relation_(std::move(relation)) {
     if (metric_ != +Metric::euclidean || rhs_indices_.size() != 1) {
@@ -51,10 +53,10 @@ MetricVerifier::MetricVerifier(Config const& config,
 }
 
 void MetricVerifier::FitInternal(model::IDatasetStream& data_stream) {
-    relation_ = ColumnLayoutRelationData::CreateFrom(data_stream, true /*store this*/);
+    relation_ = ColumnLayoutRelationData::CreateFrom(data_stream, is_null_equal_null_);
     data_stream.Reset();
-    typed_relation_ = model::ColumnLayoutTypedRelationData::CreateFrom(data_stream, true
-                                                                       /*store this*/);
+    typed_relation_ = model::ColumnLayoutTypedRelationData::CreateFrom(data_stream,
+                                                                       is_null_equal_null_);
 }
 
 unsigned long long MetricVerifier::Execute() {

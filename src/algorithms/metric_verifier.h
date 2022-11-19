@@ -46,6 +46,7 @@ private:
     long double parameter_;
     unsigned int q_;
     bool dist_to_null_infinity_;
+    bool is_null_equal_null_;
 
     bool metric_fd_holds_ = false;
 
