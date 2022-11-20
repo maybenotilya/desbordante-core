@@ -34,6 +34,10 @@ MetricVerifier::MetricVerifier(Config const& config)
                                                          config.is_null_equal_null);
 }
 
+void MetricVerifier::RegisterOptions() {
+    RegisterOption({});
+}
+
 MetricVerifier::MetricVerifier(Config const& config,
                                std::shared_ptr<model::ColumnLayoutTypedRelationData> typed_relation,
                                std::shared_ptr<ColumnLayoutRelationData> relation)
@@ -59,7 +63,7 @@ void MetricVerifier::FitInternal(model::IDatasetStream& data_stream) {
                                                                        is_null_equal_null_);
 }
 
-unsigned long long MetricVerifier::Execute() {
+unsigned long long MetricVerifier::ExecuteInternal() {
     auto start_time = std::chrono::system_clock::now();
 
     ValidateParameters();

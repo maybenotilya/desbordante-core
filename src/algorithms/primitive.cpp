@@ -116,4 +116,13 @@ std::function<void(const std::string_view &, const std::vector<std::string_view>
     return [this](auto parent_opt, auto children) { MakeOptionsAvailable(parent_opt, children); };
 }
 
+unsigned long long Primitive::Execute() {
+    if (!processing_completed_) {
+        throw std::logic_error("Data must be processed before execution.");
+    }
+    if (!GetNeededOptions().empty())
+        throw std::logic_error("All options need to be set before execution.");
+    return ExecuteInternal();
+}
+
 }  // namespace algos

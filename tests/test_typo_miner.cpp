@@ -10,7 +10,7 @@
 #include "typo_miner.h"
 
 namespace tests {
-namespace onam = option_names;
+namespace onam = algos::config::names;
 
 struct TestingParam {
     algos::StdParamsMap params;

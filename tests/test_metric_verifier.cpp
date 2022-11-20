@@ -10,7 +10,7 @@
 #include "options/names.h"
 
 namespace tests {
-namespace onam = option_names;
+namespace onam = algos::config::names;
 
 struct MetricVerifyingParams {
     algos::StdParamsMap params;

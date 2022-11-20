@@ -3,7 +3,7 @@
 #include "enum_to_available_values.h"
 #include "metric_verifier.h"
 
-namespace option_descriptions {
+namespace algos::config::descriptions {
 constexpr auto kDData = "path to CSV file, relative to ./input_data";
 constexpr auto kDSeparator = "CSV separator";
 constexpr auto kDHasHeader = "CSV header presence flag [true|false]";

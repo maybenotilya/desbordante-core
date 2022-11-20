@@ -24,13 +24,13 @@ public:
 
     explicit Tane(Config const& config)
         : PliBasedFDAlgorithm(config, {kDefaultPhaseName}),
-          max_fd_error_(GetSpecialParam<double>(option_names::kError)),
-          max_ucc_error_(GetSpecialParam<double>(option_names::kError)),
+          max_fd_error_(GetSpecialParam<double>(config::names::kError)),
+          max_ucc_error_(GetSpecialParam<double>(config::names::kError)),
           max_lhs_(config_.max_lhs) {}
     explicit Tane(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config)
         : PliBasedFDAlgorithm(std::move(relation), config, {kDefaultPhaseName}),
-          max_fd_error_(GetSpecialParam<double>(option_names::kError)),
-          max_ucc_error_(GetSpecialParam<double>(option_names::kError)),
+          max_fd_error_(GetSpecialParam<double>(config::names::kError)),
+          max_ucc_error_(GetSpecialParam<double>(config::names::kError)),
           max_lhs_(config_.max_lhs) {}
 
     static double CalculateZeroAryFdError(ColumnData const* rhs,

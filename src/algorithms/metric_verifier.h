@@ -72,7 +72,9 @@ private:
     void ValidateParameters() const;
 
 protected:
+    void RegisterOptions() override;
     void FitInternal(model::IDatasetStream &data_stream) override;
+    unsigned long long ExecuteInternal() override;
 
 public:
     struct Config {
@@ -90,8 +92,6 @@ public:
                                          * or zero */
         unsigned int q;                 /* Q-gram length for cosine metric */
     };
-
-    unsigned long long Execute() override;
 
     bool GetResult() const {
         return metric_fd_holds_;

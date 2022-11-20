@@ -64,7 +64,7 @@ using ArAlgorithmTuplesType = std::tuple<Apriori>;
 
 namespace details {
 
-namespace onam = option_names;
+namespace onam = algos::config::names;
 
 template <typename AlgorithmBase = Primitive, typename AlgorithmsToSelect = AlgorithmTypesTuple,
           typename EnumType, typename... Args>

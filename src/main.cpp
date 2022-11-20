@@ -18,7 +18,8 @@
 #include "options/names.h"
 
 namespace po = boost::program_options;
-namespace onam = option_names;
+namespace onam = algos::config::names;
+namespace descriptions = algos::config::descriptions;
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -117,70 +118,67 @@ int main(int argc, char const* argv[]) {
         (task_opt, po::value<std::string>(&task), task_desc.c_str())
         (
             algorithm_opt, po::value<std::string>(&algo), algo_desc.c_str())
-        (onam::kData, po::value<std::string>(&dataset), option_descriptions::kDData)
+        (onam::kData, po::value<std::string>(&dataset), descriptions::kDData)
         (
             separator_opt.c_str(), po::value<char>(&separator)->default_value(separator),
-            option_descriptions::kDSeparator)
+            descriptions::kDSeparator)
         (onam::kHasHeader, po::value<bool>(&has_header)->default_value(has_header),
-            option_descriptions::kDHasHeader)
+            descriptions::kDHasHeader)
         (onam::kEqualNulls, po::value<bool>(&is_null_equal_null)->default_value(true),
-            option_descriptions::kDEqualNulls)
+            descriptions::kDEqualNulls)
         (onam::kThreads, po::value<ushort>(&threads)->default_value(threads),
-            option_descriptions::kDThreads)
+            descriptions::kDThreads)
         ;
 
     po::options_description typos_fd_options("Typo mining/FD options");
     typos_fd_options.add_options()
-        (onam::kError, po::value<double>(&error)->default_value(error),
-             option_descriptions::kDError)
+        (onam::kError, po::value<double>(&error)->default_value(error), descriptions::kDError)
         (onam::kMaximumLhs, po::value<unsigned int>(&max_lhs)->default_value(max_lhs),
-            option_descriptions::kDMaximumLhs)
-        (onam::kSeed, po::value<int>(&seed)->default_value(seed), option_descriptions::kDSeed)
+            descriptions::kDMaximumLhs)
+        (onam::kSeed, po::value<int>(&seed)->default_value(seed), descriptions::kDSeed)
         ;
 
     po::options_description ar_options("AR options");
     ar_options.add_options()
-        (onam::kMinimumSupport, po::value<double>(&minsup), option_descriptions::kDMinimumSupport)
-        (onam::kMinimumConfidence, po::value<double>(&minconf),
-            option_descriptions::kDMinimumConfidence)
-        (onam::kInputFormat, po::value<string>(&ar_input_format),
-            option_descriptions::kDInputFormat)
+        (onam::kMinimumSupport, po::value<double>(&minsup), descriptions::kDMinimumSupport)
+        (onam::kMinimumConfidence, po::value<double>(&minconf), descriptions::kDMinimumConfidence)
+        (onam::kInputFormat, po::value<string>(&ar_input_format), descriptions::kDInputFormat)
         ;
 
     po::options_description ar_singular_options("AR \"singular\" input format options");
     ar_singular_options.add_options()
         (onam::kTIdColumnIndex, po::value<unsigned>(&tid_column_index)->default_value(0),
-            option_descriptions::kDTIdColumnIndex)
+            descriptions::kDTIdColumnIndex)
         (onam::kItemColumnIndex, po::value<unsigned>(&item_column_index)->default_value(1),
-            option_descriptions::kDItemColumnIndex)
+            descriptions::kDItemColumnIndex)
         ;
 
     po::options_description ar_tabular_options("AR \"tabular\" input format options");
     ar_tabular_options.add_options()
         (onam::kFirstColumnTId, po::bool_switch(&has_transaction_id),
-             option_descriptions::kDFirstColumnTId)
+             descriptions::kDFirstColumnTId)
         ;
 
     ar_options.add(ar_singular_options).add(ar_tabular_options);
 
     po::options_description mfd_options("MFD options");
     mfd_options.add_options()
-        (onam::kMetric, po::value<std::string>(&metric), option_descriptions::kDMetric)
+        (onam::kMetric, po::value<std::string>(&metric), descriptions::kDMetric)
         (onam::kMetricAlgorithm, po::value<std::string>(&metric_algo),
-            option_descriptions::kDMetricAlgorithm)
+            descriptions::kDMetricAlgorithm)
         (onam::kLhsIndices, po::value<std::vector<unsigned int>>(&lhs_indices)->multitoken(),
-            option_descriptions::kDLhsIndices)
+            descriptions::kDLhsIndices)
         (onam::kRhsIndices, po::value<std::vector<unsigned int>>(&rhs_indices)->multitoken(),
-            option_descriptions::kDRhsIndices)
-        (onam::kParameter, po::value<long double>(&parameter), option_descriptions::kDParameter)
+            descriptions::kDRhsIndices)
+        (onam::kParameter, po::value<long double>(&parameter), descriptions::kDParameter)
         (onam::kDistToNullIsInfinity, po::bool_switch(&dist_to_null_infinity),
-            option_descriptions::kDDistToNullIsInfinity)
+            descriptions::kDDistToNullIsInfinity)
         ;
 
     po::options_description cosine_options("Cosine metric options");
     cosine_options.add_options()
         (onam::kQGramLength, po::value<unsigned int>(&q)->default_value(2),
-            option_descriptions::kDQGramLength)
+            descriptions::kDQGramLength)
         ;
 
     mfd_options.add(cosine_options);
@@ -219,8 +217,8 @@ int main(int argc, char const* argv[]) {
         };
         remove_duplicates(lhs_indices);
         remove_duplicates(rhs_indices);
-        vm.at(option_names::kRhsIndices).value() = rhs_indices;
-        vm.at(option_names::kLhsIndices).value() = lhs_indices;
+        vm.at(onam::kRhsIndices).value() = rhs_indices;
+        vm.at(onam::kLhsIndices).value() = lhs_indices;
     }
 
     if (!CheckOptions(task, algo, metric, metric_algo, rhs_indices.size(), error)) {

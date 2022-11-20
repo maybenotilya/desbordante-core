@@ -14,7 +14,7 @@ template <typename T>
 struct Option : public IOption {
 private:
     using OptCondVector =
-            std::vector<std::pair<std::function<bool(T const& val)>, std::vector<std::string>>>;
+            std::vector<std::pair<std::function<bool(T const& val)>, std::vector<std::string_view>>>;
     using OptAddFunc =
             std::function<void(std::string_view const&, std::vector<std::string_view> const&)>;
 
@@ -88,10 +88,10 @@ public:
 private:
     bool is_set_ = false;
     OptionInfo const info_;
-    boost::optional<T> default_value_{};
-    std::function<void(T&)> value_check_{};
-    std::function<void(T&)> instance_check_{};
     T* value_ptr_;
+    std::function<void(T&)> value_check_{};
+    boost::optional<T> default_value_{};
+    std::function<void(T&)> instance_check_{};
     OptCondVector opt_cond_{};
     OptAddFunc opt_add_func_{};
 };

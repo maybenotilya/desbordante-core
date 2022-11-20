@@ -148,7 +148,7 @@ std::unique_ptr<TypoMiner> TypoMiner::CreateFrom(Config const& config) {
     static_assert(std::is_base_of_v<PliBasedFDAlgorithm, ApproxAlgo>,
                   "Approximate algorithm must be relation based");
 
-    namespace onam = option_names;
+    namespace onam = algos::config::names;
 
     if (config.GetSpecialParam<double>(onam::kError) == 0.0) {
         throw std::invalid_argument("Typo mining with error = 0 is meaningless");

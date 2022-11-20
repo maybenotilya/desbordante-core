@@ -122,7 +122,7 @@ void MinimizeFDs(std::list<FD>& fd_collection) {
 }
 
 TEST_F(AlgorithmTest, FD_Mine_ReturnsSameAsPyro) {
-    namespace onam = option_names;
+    namespace onam = algos::config::names;
 
     auto path = std::filesystem::current_path() / "input_data";
 

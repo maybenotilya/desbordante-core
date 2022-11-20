@@ -25,6 +25,7 @@ private:
     std::unordered_map<std::string_view, std::unique_ptr<config::IOption>> possible_options_{};
     std::unordered_set<std::string_view> available_options;
     std::unordered_map<std::string_view, std::vector<std::string_view>> opt_parents_{};
+    bool processing_completed_ = false;
 
     void MakeOptionsAvailable(std::string_view parent_name,
                               std::vector<std::string_view> const& option_names);
@@ -40,7 +41,7 @@ protected:
      * Use empty vector to intialize this field if your algorithm does not have
      * implemented progress bar.
      */
-    std::vector<std::string_view> const phase_names_;
+    std::vector<std::string_view> const phase_names_{};
 
     void AddProgress(double const val) noexcept;
     void SetProgress(double const val) noexcept;
@@ -58,7 +59,10 @@ protected:
     std::function<void(std::string_view const&, std::vector<std::string_view> const&)>
             GetOptAvailFunc();
 
+    virtual void RegisterOptions() = 0;
     virtual bool FitAlternative(boost::any data);
+    virtual void MakeExecuteOptsAvailable() = 0;
+    virtual unsigned long long ExecuteInternal() = 0;
 
 public:
     constexpr static double kTotalProgressPercent = 100.0;
@@ -79,6 +83,8 @@ public:
 
     template <typename T>
     void Fit(T& data) {
+        if (!GetNeededOptions().empty()) throw std::logic_error(
+                "All options need to be set before starting processing.");
         if constexpr (std::is_convertible<T&, model::IDatasetStream&>{}) {
             FitInternal(data);
         }
@@ -87,9 +93,13 @@ public:
                 throw std::invalid_argument("Incorrect data type for non-stream Fit");
             }
         }
+        processing_completed_ = true;
+        available_options.clear();
+        opt_parents_.clear();
+        MakeExecuteOptsAvailable();
     }
 
-    virtual unsigned long long Execute() = 0;
+    unsigned long long Execute();
 
     void SetOption(std::string const& option_name, boost::optional<boost::any> const& value = {});
 

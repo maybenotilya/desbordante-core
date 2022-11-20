@@ -18,9 +18,24 @@ struct OptionType {
     }
 
 private:
-    boost::optional<T> const default_value_;
     OptionInfo const info_;
+    boost::optional<T> const default_value_;
     std::function<void(T&)> const value_check_;
 };
+
+template <typename T, typename... Options>
+void AddNames(std::vector<std::string>& names, OptionType<T> opt, Options... options) {
+    names.emplace_back(opt.GetName());
+    if constexpr (sizeof...(options) != 0) {
+        AddNames(names, options...);
+    }
+}
+
+template <typename T, typename... Options>
+std::vector<std::string> GetOptionNames(OptionType<T> opt, Options... options) {
+    std::vector<std::string> names{};
+    AddNames(names, opt, options...);
+    return names;
+}
 
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace option_names {
+namespace algos::config::names {
 constexpr auto kData = "data";
 constexpr auto kSeparator = "separator";
 constexpr auto kHasHeader = "has_header";
@@ -24,4 +24,4 @@ constexpr auto kQGramLength = "q";
 constexpr auto kMetricAlgorithm = "metric_algorithm";
 constexpr auto kRadius = "radius";
 constexpr auto kRatio = "ratio";
-}  // namespace option_names
+}  // namespace algos::config::names

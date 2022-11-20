@@ -13,7 +13,7 @@ class AlgorithmTest : public LightDatasets, public HeavyDatasets, public ::testi
 protected:
     std::unique_ptr<FDAlgorithm> CreateAlgorithmInstance(
         std::filesystem::path const& path, char separator = ',', bool has_header = true) {
-        namespace onam = option_names;
+        namespace onam = algos::config::names;
 
         FDAlgorithm::Config c{ .data = path, .separator = separator, .has_header = has_header };
         c.special_params[onam::kError] = 0.0;
