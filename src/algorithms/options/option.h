@@ -20,7 +20,7 @@ private:
 
 public:
     Option(OptionInfo const info, T* value_ptr, std::function<void(T&)> value_check,
-           std::optional<T> default_value)
+           boost::optional<T> default_value)
         : info_(info),
           value_ptr_(value_ptr),
           value_check_(value_check),
@@ -88,7 +88,7 @@ public:
 private:
     bool is_set_ = false;
     OptionInfo const info_;
-    std::optional<T> default_value_{};
+    boost::optional<T> default_value_{};
     std::function<void(T&)> value_check_{};
     std::function<void(T&)> instance_check_{};
     T* value_ptr_;

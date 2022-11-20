@@ -12,8 +12,8 @@
 #include "boost/optional.hpp"
 #include "csv_parser.h"
 #include "idataset_stream.h"
-#include "options/option.h"
 #include "options/ioption.h"
+#include "options/option.h"
 
 namespace algos {
 
