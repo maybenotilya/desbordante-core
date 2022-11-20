@@ -156,8 +156,8 @@ ARAlgorithm::Config CreateArAlgorithmConfigFromMap(ParamsMap params) {
             ExtractParamFromMap<unsigned>(params, onam::kItemColumnIndex);
         input_format = std::make_shared<model::Singular>(tid_column_index, item_column_index);
     } else if (input_format_arg == "tabular") {
-        bool const has_header = ExtractParamFromMap<bool>(params, onam::kHasHeader);
-        input_format = std::make_shared<model::Tabular>(has_header);
+        bool const first_column_tid = ExtractParamFromMap<bool>(params, onam::kFirstColumnTId);
+        input_format = std::make_shared<model::Tabular>(first_column_tid);
     } else {
         throw std::invalid_argument("\"" + input_format_arg + "\"" +
                                     " format is not supported in AR mining");
