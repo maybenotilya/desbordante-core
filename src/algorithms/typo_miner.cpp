@@ -8,8 +8,8 @@ void TypoMiner::FitInternal(model::IDatasetStream& data_stream) {
     if (precise_pli != nullptr && approx_pli != nullptr) {
         std::shared_ptr<ColumnLayoutRelationData> relation =
                 ColumnLayoutRelationData::CreateFrom(data_stream, is_null_equal_null_);
-        precise_pli->SetRelation(relation);
-        approx_pli->SetRelation(relation);
+        precise_pli->Fit(relation);
+        approx_pli->Fit(relation);
     } else {
         precise_algo_->Fit(data_stream);
         approx_algo_->Fit(data_stream);

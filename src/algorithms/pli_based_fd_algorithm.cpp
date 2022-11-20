@@ -32,7 +32,13 @@ std::vector<Column const*> PliBasedFDAlgorithm::GetKeys() const {
     return keys;
 }
 
-void PliBasedFDAlgorithm::SetRelation(std::shared_ptr<ColumnLayoutRelationData> relation) {
-    relation_ = relation;
+bool PliBasedFDAlgorithm::FitAlternative(boost::any data) {
+    try {
+        relation_ = boost::any_cast<std::shared_ptr<ColumnLayoutRelationData>>(data);
+        return true;
+    }
+    catch (boost::bad_any_cast&) {
+        return false;
+    }
 }
 

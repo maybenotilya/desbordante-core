@@ -58,6 +58,8 @@ protected:
     std::function<void(std::string_view const&, std::vector<std::string_view> const&)>
             GetOptAvailFunc();
 
+    virtual bool FitAlternative(boost::any data);
+
 public:
     constexpr static double kTotalProgressPercent = 100.0;
 
@@ -75,7 +77,17 @@ public:
               std::vector<std::string_view> phase_names)
         : input_generator_(std::make_unique<CSVParser>(path, separator, has_header)), phase_names_(std::move(phase_names)) {}
 
-    virtual void Fit(model::IDatasetStream& data_stream);
+    template <typename T>
+    void Fit(T& data) {
+        if constexpr (std::is_convertible<T&, model::IDatasetStream&>{}) {
+            FitInternal(data);
+        }
+        else {
+            if (!FitAlternative(T(data))) {
+                throw std::invalid_argument("Incorrect data type for non-stream Fit");
+            }
+        }
+    }
 
     virtual unsigned long long Execute() = 0;
 

@@ -21,6 +21,8 @@ protected:
         return *relation_;
     }
 
+    bool FitAlternative(boost::any data) override;
+
 public:
     explicit PliBasedFDAlgorithm(Config const& config, std::vector<std::string_view> phase_names)
         : FDAlgorithm(config, std::move(phase_names)) {}
@@ -28,8 +30,6 @@ public:
     explicit PliBasedFDAlgorithm(std::shared_ptr<ColumnLayoutRelationData> relation,
                                  Config const& config, std::vector<std::string_view> phase_names)
         : FDAlgorithm(config, std::move(phase_names)), relation_(std::move(relation)) {}
-
-    void SetRelation(std::shared_ptr<ColumnLayoutRelationData> relation);
 
     std::vector<Column const*> GetKeys() const override;
 };

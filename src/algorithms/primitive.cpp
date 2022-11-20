@@ -32,8 +32,8 @@ void Primitive::ToNextProgressPhase() noexcept {
     cur_phase_progress_ = 0;
 }
 
-void Primitive::Fit(model::IDatasetStream& data_stream) {
-    FitInternal(data_stream);
+bool Primitive::FitAlternative([[maybe_unused]] boost::any data) {
+    return false;
 }
 
 void Primitive::SetOption(const std::string& option_name,
