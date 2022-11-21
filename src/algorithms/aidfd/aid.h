@@ -39,7 +39,7 @@ private:
     boost::dynamic_bitset<> constant_columns_;
 
     void Initialize() override;
-    unsigned long long ExecuteInternal() override;
+    unsigned long long ExecuteFd() override;
 
     void BuildClusters();
     void CreateNegativeCover();

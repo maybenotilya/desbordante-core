@@ -16,10 +16,9 @@ public:
 
     ~FDep() override = default;
 
-    unsigned long long ExecuteInternal() override;
-
 protected:
     void FitInternal(model::IDatasetStream &data_stream) override;
+    unsigned long long ExecuteFd() override;
 
 private:
     std::unique_ptr<RelationalSchema> schema_{};

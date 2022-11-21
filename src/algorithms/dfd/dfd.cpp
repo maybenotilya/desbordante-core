@@ -10,7 +10,7 @@
 
 namespace algos {
 
-unsigned long long DFD::ExecuteInternal() {
+unsigned long long DFD::ExecuteFd() {
     partition_storage_ = std::make_unique<PartitionStorage>(relation_.get(),
                                                             CachingMethod::kAllCaching,
                                                             CacheEvictionMethod::kMedainUsage);

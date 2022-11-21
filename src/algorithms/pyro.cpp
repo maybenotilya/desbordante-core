@@ -14,7 +14,15 @@ namespace algos {
 
 std::mutex searchSpacesMutex;
 
-unsigned long long Pyro::ExecuteInternal() {
+void Pyro::RegisterAdditionalOptions() {
+
+}
+
+void Pyro::MakeMoreExecuteOptsAvailable() {
+
+}
+
+unsigned long long Pyro::ExecuteFd() {
     auto start_time = std::chrono::system_clock::now();
 
     auto schema = relation_->GetSchema();
@@ -132,7 +140,6 @@ void Pyro::init() {
         this->FDAlgorithm::RegisterFd(fd.lhs_, fd.rhs_);
     };
     configuration_.seed = GetSpecialParam<int>(config::names::kSeed);
-    configuration_.max_ucc_error = GetSpecialParam<double>(config::names::kError);
     configuration_.max_ucc_error = GetSpecialParam<double>(config::names::kError);
     configuration_.max_lhs = config_.max_lhs;
     configuration_.parallelism = config_.parallelism;

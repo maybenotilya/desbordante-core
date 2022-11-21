@@ -1,5 +1,7 @@
 #include "pli_based_fd_algorithm.h"
 
+#include <utility>
+
 void PliBasedFDAlgorithm::FitInternal(model::IDatasetStream& data_stream) {
     relation_ = ColumnLayoutRelationData::CreateFrom(data_stream, config_.is_null_equal_null);
 
@@ -32,13 +34,8 @@ std::vector<Column const*> PliBasedFDAlgorithm::GetKeys() const {
     return keys;
 }
 
-bool PliBasedFDAlgorithm::FitAlternative(boost::any data) {
-    try {
-        relation_ = boost::any_cast<std::shared_ptr<ColumnLayoutRelationData>>(data);
-        return true;
-    }
-    catch (boost::bad_any_cast&) {
-        return false;
-    }
+void PliBasedFDAlgorithm::Fit(std::shared_ptr<ColumnLayoutRelationData> data) {
+    relation_ = std::move(data);
+    ExecutePrepare();  // TODO: this method has to be repeated for every "alternative" Fit
 }
 

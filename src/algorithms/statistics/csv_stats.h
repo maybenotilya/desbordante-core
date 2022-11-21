@@ -17,6 +17,9 @@ class CsvStats : public algos::Primitive {
 
 protected:
     void FitInternal(model::IDatasetStream &data_stream) override;
+    void RegisterOptions() override;
+    void MakeExecuteOptsAvailable() override;
+    unsigned long long ExecuteInternal() override;
 
 public:
     explicit CsvStats(const FDAlgorithm::Config& config);
@@ -65,7 +68,6 @@ public:
     const ColumnStats& GetAllStats(size_t index) const;
     const std::vector<ColumnStats>& GetAllStats() const;
     std::string ToString() const;
-    unsigned long long Execute();
 };
 
 }  // namespace algos

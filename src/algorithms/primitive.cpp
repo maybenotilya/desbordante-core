@@ -32,8 +32,17 @@ void Primitive::ToNextProgressPhase() noexcept {
     cur_phase_progress_ = 0;
 }
 
-bool Primitive::FitAlternative([[maybe_unused]] boost::any data) {
-    return false;
+void Primitive::Fit(model::IDatasetStream& data) {
+    if (!GetNeededOptions().empty()) throw std::logic_error(
+            "All options need to be set before starting processing.");
+    FitInternal(data);
+    ExecutePrepare();
+}
+
+void Primitive::ExecutePrepare() {
+    processing_completed_ = true;
+    ClearOptions();
+    MakeExecuteOptsAvailable();
 }
 
 void Primitive::SetOption(const std::string& option_name,

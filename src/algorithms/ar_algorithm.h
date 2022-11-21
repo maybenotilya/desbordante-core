@@ -57,7 +57,10 @@ protected:
     virtual double GetSupport(std::vector<unsigned> const& frequent_itemset) const = 0;
     virtual unsigned long long GenerateAllRules() = 0;
     virtual unsigned long long FindFrequent() = 0;
+    void RegisterOptions() override;
     void FitInternal(model::IDatasetStream &data_stream) override;
+    void MakeExecuteOptsAvailable() override;
+    unsigned long long ExecuteInternal() override;
 
 public:
     explicit ARAlgorithm(Config const& config, std::vector<std::string_view> phase_names)
@@ -74,7 +77,6 @@ public:
     virtual std::list<std::set<std::string>> GetFrequentList() const = 0;  // for debugging and testing
     std::list<model::ARStrings> GetArStringsList() const;
 
-    unsigned long long Execute() override;
     virtual ~ARAlgorithm() = default;
 };
 

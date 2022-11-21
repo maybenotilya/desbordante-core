@@ -19,6 +19,9 @@ private:
 
     double progress_step_ = 0;
 
+protected:
+    unsigned long long ExecuteFd() final;
+
 public:
     explicit Depminer(Config const& config)
         : PliBasedFDAlgorithm(config, {"AgreeSets generation", "Finding CMAXSets", "Finding LHS"}) {
@@ -26,8 +29,6 @@ public:
     explicit Depminer(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config)
         : PliBasedFDAlgorithm(std::move(relation), config,
                               {"AgreeSets generation", "Finding CMAXSets", "Finding LHS"}) {}
-
-    unsigned long long ExecuteInternal() override;
 
     const RelationalSchema* schema_ = nullptr;
 };

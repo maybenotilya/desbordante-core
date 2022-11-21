@@ -19,7 +19,9 @@ private:
 
     Configuration configuration_;
 
-    unsigned long long ExecuteInternal() override;
+    void RegisterAdditionalOptions() override;
+    void MakeMoreExecuteOptsAvailable() override;
+    unsigned long long ExecuteFd() final;
     void init();
 
 public:

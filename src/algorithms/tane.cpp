@@ -15,6 +15,14 @@
 
 namespace algos {
 
+void Tane::RegisterAdditionalOptions() {
+
+}
+
+void Tane::MakeMoreExecuteOptsAvailable() {
+
+}
+
 double Tane::CalculateZeroAryFdError(ColumnData const* rhs,
                                      ColumnLayoutRelationData const* relation_data) {
     return 1 - rhs->GetPositionListIndex()->GetNepAsLong() /
@@ -53,7 +61,7 @@ void Tane::RegisterUcc([[maybe_unused]] Vertical const& key,
     count_of_ucc_++;
 }
 
-unsigned long long Tane::ExecuteInternal() {
+unsigned long long Tane::ExecuteFd() {
     RelationalSchema const* schema = relation_->GetSchema();
 
     LOG(INFO) << schema->GetName() << " has " << relation_->GetNumColumns() << " columns, "

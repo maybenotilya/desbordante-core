@@ -16,7 +16,7 @@ private:
 
     unsigned int number_of_threads_;
 
-    unsigned long long ExecuteInternal() override;
+    unsigned long long ExecuteFd() override;
 
 public:
     explicit DFD(Config const& config);

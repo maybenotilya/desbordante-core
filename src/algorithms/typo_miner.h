@@ -15,7 +15,10 @@ public:
     using Config = FDAlgorithm::Config;
 
 protected:
+    void RegisterOptions() override;
     void FitInternal(model::IDatasetStream &data_stream) override;
+    void MakeExecuteOptsAvailable() override;
+    unsigned long long ExecuteInternal() override;
 
 private:
     std::unique_ptr<FDAlgorithm> precise_algo_;
@@ -80,8 +83,6 @@ public:
         unsigned amount;  /* The number of tuples equal to the given and
                            * following immediately after the given */
     };
-
-    unsigned long long Execute() override;
 
     std::vector<util::PLI::Cluster> FindClustersWithTypos(FD const& typos_fd,
                                                           bool const sort_clusters = true);

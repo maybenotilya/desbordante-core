@@ -19,7 +19,7 @@ private:
     using OrderingComparator = std::function<bool(Column const&, Column const&)>;
     using DiffSet = Vertical;
 
-    unsigned long long ExecuteInternal() override;
+    unsigned long long ExecuteFd() final;
 
     // Computes all difference sets of `relation_` by complementing agree sets
     void GenDiffSets();

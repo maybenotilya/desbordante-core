@@ -7,8 +7,6 @@
 #include <easylogging++.h>
 
 #include "column_combination.h"
-#include "column_data.h"
-#include "column_layout_relation_data.h"
 #include "relational_schema.h"
 #include "agree_set_factory.h"
 
@@ -16,7 +14,7 @@ namespace algos {
 
 using boost::dynamic_bitset, std::make_shared, std::shared_ptr, std::setw, std::vector, std::list, std::dynamic_pointer_cast;
 
-unsigned long long Depminer::ExecuteInternal() {
+unsigned long long Depminer::ExecuteFd() {
 
     const auto start_time = std::chrono::system_clock::now();
     schema_ = relation_->GetSchema();

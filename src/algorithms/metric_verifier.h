@@ -10,6 +10,7 @@
 
 #include "column_layout_relation_data.h"
 #include "column_layout_typed_relation_data.h"
+#include "options/option_type.h"
 #include "primitive.h"
 #include "qgram_vector.h"
 
@@ -50,6 +51,13 @@ private:
 
     bool metric_fd_holds_ = false;
 
+    static const config::OptionType<decltype(parameter_)> Parameter;
+    static const config::OptionType<decltype(lhs_indices_)> LhsIndices;
+    static const config::OptionType<decltype(rhs_indices_)> RhsIndices;
+    static const config::OptionType<decltype(metric_)> MetricType;
+    static const config::OptionType<decltype(algo_)> Algo;
+    static const config::OptionType<decltype(q_)> QGramLength;
+
     std::shared_ptr<model::ColumnLayoutTypedRelationData> typed_relation_;
     std::shared_ptr<ColumnLayoutRelationData> relation_; // temporarily parsing twice
 
@@ -74,6 +82,7 @@ private:
 protected:
     void RegisterOptions() override;
     void FitInternal(model::IDatasetStream &data_stream) override;
+    void MakeExecuteOptsAvailable() override;
     unsigned long long ExecuteInternal() override;
 
 public:

@@ -11,7 +11,10 @@ namespace algos {
 
 class Tane : public PliBasedFDAlgorithm {
 private:
-    unsigned long long ExecuteInternal() override;
+    void RegisterAdditionalOptions() final;
+    void MakeMoreExecuteOptsAvailable() final;
+    unsigned long long ExecuteFd() final;
+
 public:
     //TODO: these consts should go in class (or struct) Configuration
     const double max_fd_error_ = 0.01;

@@ -11,8 +11,41 @@
 #include <easylogging++.h>
 
 #include "convex_hull.h"
+#include "options/common_options.h"
+#include "options/names.h"
+#include "options/descriptions.h"
+#include "options/option_type.h"
 
 namespace algos {
+
+void TransformIndices(std::vector<unsigned int>& value) {
+    if (value.empty()) {
+        throw std::invalid_argument("Indices cannot be empty");
+    }
+    std::sort(value.begin(), value.end());
+    value.erase(std::unique(value.begin(), value.end()), value.end());
+}
+
+decltype(MetricVerifier::LhsIndices) MetricVerifier::LhsIndices{
+        {config::names::kLhsIndices, config::descriptions::kDLhsIndices}, TransformIndices
+};
+
+decltype(MetricVerifier::RhsIndices) MetricVerifier::RhsIndices{
+        {config::names::kRhsIndices, config::descriptions::kDRhsIndices}, TransformIndices
+};
+
+decltype(MetricVerifier::MetricType) MetricVerifier::MetricType{
+        {config::names::kMetric, config::descriptions::kDMetric}
+};
+
+decltype(MetricVerifier::Algo) MetricVerifier::Algo{
+        {config::names::kMetricAlgorithm, config::descriptions::kDMetricAlgorithm},
+        MetricAlgo::_values()[0]
+};
+
+decltype(MetricVerifier::QGramLength) MetricVerifier::QGramLength{
+        {config::names::kQGramLength, config::descriptions::kDQGramLength}, 2
+};
 
 MetricVerifier::MetricVerifier(Config const& config)
     : Primitive(config.data, config.separator, config.has_header, {}),
@@ -35,7 +68,13 @@ MetricVerifier::MetricVerifier(Config const& config)
 }
 
 void MetricVerifier::RegisterOptions() {
-    RegisterOption({});
+    RegisterOption(config::EqualNulls.GetOption(&is_null_equal_null_));
+    RegisterOption(config::NullDistInf.GetOption(&dist_to_null_infinity_));
+
+}
+
+void MetricVerifier::MakeExecuteOptsAvailable() {
+
 }
 
 MetricVerifier::MetricVerifier(Config const& config,

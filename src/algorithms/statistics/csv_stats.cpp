@@ -18,6 +18,14 @@ CsvStats::CsvStats(const FDAlgorithm::Config& config)
       is_null_equal_null_(config.is_null_equal_null) {
 }
 
+void CsvStats::RegisterOptions() {
+
+}
+
+void CsvStats::MakeExecuteOptsAvailable() {
+
+}
+
 Statistic CsvStats::GetMin(size_t index, mo::CompareResult order) const {
     const mo::TypedColumnData& col = col_data_[index];
     if (!mo::Type::IsOrdered(col.GetTypeId())) return {};
@@ -267,7 +275,7 @@ Statistic CsvStats::GetQuantile(double part, size_t index, bool calc_all) {
     return Statistic(data[quantile], &col.GetType(), true);
 }
 
-unsigned long long CsvStats::Execute() {
+unsigned long long CsvStats::ExecuteInternal() {
     auto start_time = std::chrono::system_clock::now();
     double percent_per_col = kTotalProgressPercent / all_stats_.size();
     auto task = [percent_per_col, this](size_t index) {

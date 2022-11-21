@@ -51,7 +51,7 @@ protected:
 
     template<typename T>
     void RegisterOption(config::Option<T> option) {
-        possible_options_[option.GetName()] = std::make_shared<config::Option<T>>(option);
+        possible_options_[option.GetName()] = std::make_unique<config::Option<T>>(option);
     }
 
     void ClearOptions() noexcept;
@@ -60,7 +60,7 @@ protected:
             GetOptAvailFunc();
 
     virtual void RegisterOptions() = 0;
-    virtual bool FitAlternative(boost::any data);
+    void ExecutePrepare();
     virtual void MakeExecuteOptsAvailable() = 0;
     virtual unsigned long long ExecuteInternal() = 0;
 
@@ -81,23 +81,7 @@ public:
               std::vector<std::string_view> phase_names)
         : input_generator_(std::make_unique<CSVParser>(path, separator, has_header)), phase_names_(std::move(phase_names)) {}
 
-    template <typename T>
-    void Fit(T& data) {
-        if (!GetNeededOptions().empty()) throw std::logic_error(
-                "All options need to be set before starting processing.");
-        if constexpr (std::is_convertible<T&, model::IDatasetStream&>{}) {
-            FitInternal(data);
-        }
-        else {
-            if (!FitAlternative(T(data))) {
-                throw std::invalid_argument("Incorrect data type for non-stream Fit");
-            }
-        }
-        processing_completed_ = true;
-        available_options.clear();
-        opt_parents_.clear();
-        MakeExecuteOptsAvailable();
-    }
+    void Fit(model::IDatasetStream & data_stream);
 
     unsigned long long Execute();
 

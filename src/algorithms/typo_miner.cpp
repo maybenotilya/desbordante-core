@@ -16,7 +16,15 @@ void TypoMiner::FitInternal(model::IDatasetStream& data_stream) {
     }
 }
 
-unsigned long long TypoMiner::Execute() {
+void TypoMiner::RegisterOptions() {
+
+}
+
+void TypoMiner::MakeExecuteOptsAvailable() {
+
+}
+
+unsigned long long TypoMiner::ExecuteInternal() {
     auto const start_time = std::chrono::system_clock::now();
 
     precise_algo_->Execute();

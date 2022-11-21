@@ -36,7 +36,7 @@ void FDep::FitInternal(model::IDatasetStream& data_stream) {
     }
 }
 
-unsigned long long FDep::ExecuteInternal() {
+unsigned long long FDep::ExecuteFd() {
     Initialize();
 
     auto start_time = std::chrono::system_clock::now();

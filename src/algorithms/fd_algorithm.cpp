@@ -2,11 +2,23 @@
 
 #include <thread>
 
-unsigned long long FDAlgorithm::Execute() {
+unsigned long long FDAlgorithm::ExecuteInternal() {
     Initialize();
 
-    return ExecuteInternal();
+    return ExecuteFd();
 }
+
+void FDAlgorithm::RegisterOptions() {
+    RegisterAdditionalOptions();
+}
+
+void FDAlgorithm::RegisterAdditionalOptions() {}
+
+void FDAlgorithm::MakeExecuteOptsAvailable() {
+    MakeMoreExecuteOptsAvailable();
+}
+
+void FDAlgorithm::MakeMoreExecuteOptsAvailable() {}
 
 void FDAlgorithm::InitConfigParallelism() {
     if (config_.parallelism == 0) {

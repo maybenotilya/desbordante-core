@@ -31,7 +31,7 @@ private:
     void Reconstruct();
     void Display();
 
-    unsigned long long ExecuteInternal() override;
+    unsigned long long ExecuteFd() final;
 public:
     Fd_mine(Config const& config) : PliBasedFDAlgorithm(config, {kDefaultPhaseName}) {}
     explicit Fd_mine(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config)

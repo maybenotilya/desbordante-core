@@ -7,7 +7,15 @@
 
 namespace algos {
 
-unsigned long long ARAlgorithm::Execute() {
+void ARAlgorithm::RegisterOptions() {
+
+}
+
+void ARAlgorithm::MakeExecuteOptsAvailable() {
+
+}
+
+unsigned long long ARAlgorithm::ExecuteInternal() {
     transactional_data_ = model::TransactionalData::CreateFrom(*input_generator_, *input_format_);
     if (transactional_data_->GetNumTransactions() == 0) {
         throw std::runtime_error("Got an empty dataset: AR mining is meaningless.");

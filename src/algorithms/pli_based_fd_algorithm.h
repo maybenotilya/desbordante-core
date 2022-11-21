@@ -12,16 +12,14 @@ private:
 protected:
     std::shared_ptr<ColumnLayoutRelationData> relation_;
 
-    void FitInternal(model::IDatasetStream &data_stream) override;
+    void FitInternal(model::IDatasetStream &data_stream) final;
 
     ColumnLayoutRelationData const& GetRelation() const noexcept {
-        // GetRelation should be called after the dataset has been parsed, i.e. after algorithm
-        // execution
+        // GetRelation should be called after the dataset has been parsed, i.e.
+        // after calling Fit
         assert(relation_ != nullptr);
         return *relation_;
     }
-
-    bool FitAlternative(boost::any data) override;
 
 public:
     explicit PliBasedFDAlgorithm(Config const& config, std::vector<std::string_view> phase_names)
@@ -32,4 +30,6 @@ public:
         : FDAlgorithm(config, std::move(phase_names)), relation_(std::move(relation)) {}
 
     std::vector<Column const*> GetKeys() const override;
+
+    void Fit(std::shared_ptr<ColumnLayoutRelationData> data);
 };

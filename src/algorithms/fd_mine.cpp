@@ -6,7 +6,7 @@
 #include <boost/unordered_map.hpp>
 #include <easylogging++.h>
 
-unsigned long long Fd_mine::ExecuteInternal() {
+unsigned long long Fd_mine::ExecuteFd() {
     // 1
     schema_ = relation_->GetSchema();
     auto start_time = std::chrono::system_clock::now();

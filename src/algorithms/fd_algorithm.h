@@ -65,10 +65,15 @@ protected:
      * */
     std::list<FD> fd_collection_;
 
+    void RegisterOptions() final;
+    virtual void RegisterAdditionalOptions();
     virtual void Initialize() = 0;
     void FitInternal(model::IDatasetStream &data_stream) override = 0;
+    void MakeExecuteOptsAvailable() final;
+    virtual void MakeMoreExecuteOptsAvailable();
+    unsigned long long ExecuteInternal() final;
     // Main logic of the algorithm
-    virtual unsigned long long ExecuteInternal() = 0;
+    virtual unsigned long long ExecuteFd() = 0;
 
     template <typename ParamType>
     ParamType GetSpecialParam(std::string const& param_name) const {
@@ -125,8 +130,6 @@ public:
 
     // считает контрольную сумму Флетчера - нужно для тестирования по хешу
     unsigned int Fletcher16();
-
-    unsigned long long Execute();
 
     virtual ~FDAlgorithm() = default;
 

@@ -37,7 +37,7 @@ void Aid::FitInternal(model::IDatasetStream& data_stream) {
     sum_ = static_cast<double>(window_size_);
 }
 
-unsigned long long Aid::ExecuteInternal() {
+unsigned long long Aid::ExecuteFd() {
     Initialize();
 
     auto start_time = std::chrono::system_clock::now();

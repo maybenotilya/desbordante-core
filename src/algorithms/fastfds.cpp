@@ -28,7 +28,7 @@ FastFDs::FastFDs(std::shared_ptr<ColumnLayoutRelationData> relation, Config cons
       threads_num_(config_.parallelism),
       max_lhs_(config_.max_lhs) {}
 
-unsigned long long FastFDs::ExecuteInternal() {
+unsigned long long FastFDs::ExecuteFd() {
     schema_ = relation_->GetSchema();
     percent_per_col_ = kTotalProgressPercent / schema_->GetNumColumns();
 
