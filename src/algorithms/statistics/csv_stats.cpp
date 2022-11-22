@@ -11,7 +11,6 @@ namespace mo = model;
 
 CsvStats::CsvStats(const FDAlgorithm::Config& config)
     : Primitive(config.data, config.separator, config.has_header, {"Calculating statistics"}),
-      config_(config),
       col_data_(mo::CreateColumnData(*input_generator_, config.is_null_equal_null)),
       all_stats_(col_data_.size()),
       threads_num_(config.parallelism),
@@ -166,7 +165,7 @@ static size_t inline CountDistinctInSortedData(const std::vector<const std::byte
 size_t CsvStats::MixedDistinct(size_t index) const {
     const mo::TypedColumnData& col = col_data_[index];
     const std::vector<const std::byte*>& data = col.GetData();
-    mo::MixedType mixed_type(config_.is_null_equal_null);
+    mo::MixedType mixed_type(is_null_equal_null_);
 
     std::vector<std::vector<const std::byte*>> values_by_type_id(mo::TypeId::_size());
 
@@ -222,7 +221,7 @@ std::vector<std::vector<std::string>> CsvStats::ShowSample(size_t start_row, siz
     for (size_t j = start_col - 1; j < end_col; ++j) {
         const mo::TypedColumnData& col = col_data_[j];
         const auto& type = col.GetType();
-        mo::NullType null_type(config_.is_null_equal_null);
+        mo::NullType null_type(is_null_equal_null_);
         mo::EmptyType empty_type;
         for (size_t i = start_row - 1; i < end_row; ++i) {
             res[i][j] = cut_str(col.GetDataAsString(i), get_max_len(type.GetTypeId()));

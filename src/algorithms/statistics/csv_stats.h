@@ -7,7 +7,6 @@
 namespace algos {
 
 class CsvStats : public algos::Primitive {
-    FDAlgorithm::Config config_;
     std::vector<model::TypedColumnData> col_data_;
     std::vector<ColumnStats> all_stats_;
     ushort threads_num_;
