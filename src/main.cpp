@@ -23,16 +23,25 @@ namespace onam = algos::config::names;
 namespace descriptions = algos::config::descriptions;
 
 INITIALIZE_EASYLOGGINGPP
+
 namespace algos {
 
 void validate(boost::any& v, const std::vector<std::string>& values, Metric*, int) {
     const std::string& s = po::validators::get_single_string(values);
-    v = boost::any(Metric::_from_string(s.c_str()));
+    try {
+        v = boost::any(Metric::_from_string(s.c_str()));
+    } catch (std::runtime_error&e) {
+        throw po::validation_error(po::validation_error::invalid_option_value);
+    }
 }
 
 void validate(boost::any& v, const std::vector<std::string>& values, MetricAlgo*, int) {
     const std::string& s = po::validators::get_single_string(values);
-    v = boost::any(MetricAlgo::_from_string(s.c_str()));
+    try {
+        v = boost::any(MetricAlgo::_from_string(s.c_str()));
+    } catch (std::runtime_error &e) {
+        throw po::validation_error(po::validation_error::invalid_option_value);
+    }
 }
 
 }  // namespace algos
