@@ -6,7 +6,6 @@
 #include <cmath>
 #include <numeric>
 #include <stdexcept>
-#include <utility>
 
 #include <easylogging++.h>
 
@@ -26,86 +25,125 @@ void TransformIndices(std::vector<unsigned int>& value) {
     value.erase(std::unique(value.begin(), value.end()), value.end());
 }
 
-decltype(MetricVerifier::LhsIndices) MetricVerifier::LhsIndices{
+decltype(MetricVerifier::ParameterOpt) MetricVerifier::ParameterOpt{
+        {config::names::kParameter, config::descriptions::kDParameter}, [](auto value) {
+            if (!(value >= 0 && value <= 1)) throw std::invalid_argument("Parameter out of range");
+        }
+};
+
+decltype(MetricVerifier::LhsIndicesOpt) MetricVerifier::LhsIndicesOpt{
         {config::names::kLhsIndices, config::descriptions::kDLhsIndices}, TransformIndices
 };
 
-decltype(MetricVerifier::RhsIndices) MetricVerifier::RhsIndices{
+decltype(MetricVerifier::RhsIndicesOpt) MetricVerifier::RhsIndicesOpt{
         {config::names::kRhsIndices, config::descriptions::kDRhsIndices}, TransformIndices
 };
 
-decltype(MetricVerifier::MetricType) MetricVerifier::MetricType{
+decltype(MetricVerifier::MetricOpt) MetricVerifier::MetricOpt{
         {config::names::kMetric, config::descriptions::kDMetric}
 };
 
-decltype(MetricVerifier::Algo) MetricVerifier::Algo{
+decltype(MetricVerifier::AlgoOpt) MetricVerifier::AlgoOpt{
         {config::names::kMetricAlgorithm, config::descriptions::kDMetricAlgorithm},
         MetricAlgo::_values()[0]
 };
 
-decltype(MetricVerifier::QGramLength) MetricVerifier::QGramLength{
+decltype(MetricVerifier::QGramLengthOpt) MetricVerifier::QGramLengthOpt{
         {config::names::kQGramLength, config::descriptions::kDQGramLength}, 2
 };
 
-MetricVerifier::MetricVerifier(Config const& config)
-    : Primitive(config.data, config.separator, config.has_header, {}),
-      metric_(Metric::_from_string(config.metric.c_str())),
-      lhs_indices_(config.lhs_indices),
-      rhs_indices_(config.rhs_indices),
-      parameter_(config.parameter),
-      q_(config.q),
-      dist_to_null_infinity_(config.dist_to_null_infinity),
-      is_null_equal_null_(config.is_null_equal_null) {
-    if (metric_ != +Metric::euclidean || rhs_indices_.size() != 1) {
-        algo_ = MetricAlgo::_from_string(config.algo.c_str());
+MetricVerifier::MetricVerifier() : Primitive({}) {
+    RegisterOptions();
+    MakeOptionsAvailable(config::GetOptionNames(config::EqualNulls));
+}
+
+void MetricVerifier::ValidateIndices(decltype(MetricVerifier::lhs_indices_)& value) const {
+    size_t cols_count = relation_->GetSchema()->GetNumColumns();
+    auto value_out_of_range = [cols_count](unsigned int i) { return i >= cols_count; };
+    if (std::any_of(value.begin(), value.end(), value_out_of_range)) {
+        throw std::runtime_error(
+                "Column index should be less than the number of columns in the dataset.");
     }
-    relation_ =
-        ColumnLayoutRelationData::CreateFrom(*input_generator_, config.is_null_equal_null);
-    input_generator_->Reset();
-    typed_relation_ =
-        model::ColumnLayoutTypedRelationData::CreateFrom(*input_generator_,
-                                                         config.is_null_equal_null);
+}
+
+void MetricVerifier::ValidateRhs(decltype(MetricVerifier::rhs_indices_)& value) {
+    ValidateIndices(value);
+    for (unsigned i : value) {
+        model::TypedColumnData const& col = typed_relation_->GetColumnData(i);
+        auto type_id = col.GetTypeId();
+        if (type_id == +model::TypeId::kUndefined) {
+            throw std::runtime_error(
+                    "Column with index \"" + std::to_string(i) + "\" type undefined.");
+        }
+        if (type_id == +model::TypeId::kMixed) {
+            throw std::runtime_error("Column with index \"" + std::to_string(i)
+                                     + "\" contains values of different types.");
+        }
+        if (value.size() > 1 && !col.IsNumeric()) {
+            throw std::runtime_error(
+                    R"("euclidean" metric does not match RHS column type with index ")"
+                    + std::to_string(i) + "\".");
+        }
+    }
 }
 
 void MetricVerifier::RegisterOptions() {
+    auto check_lhs = [this](auto& value) { ValidateIndices(value); };
+    auto check_rhs = [this](auto& value) { ValidateRhs(value); };
+    auto true_func = [](...) { return true; };
+    auto need_algo_and_q = [](Metric value) { return value == +Metric::cosine; };
+    auto need_algo_only = [this](Metric value) {
+        return value == +Metric::levenshtein
+               || (value == +Metric::euclidean && rhs_indices_.size() == 1);
+    };
+    auto metric_check = [this](Metric value) {
+        if (rhs_indices_.size() != 1 && value != +Metric::euclidean) {
+            throw std::invalid_argument("Can't use this metric");
+        }
+    };
+    auto algo_check = [this](MetricAlgo value) {
+        const auto algo_unusable = "Can't use this algorithm with this metric and RHS indices.";
+        if (value == +MetricAlgo::approx) {
+            if (metric_ == +Metric::euclidean && rhs_indices_.size() == 1)
+                throw std::invalid_argument(algo_unusable);
+        }
+        else if (value == +MetricAlgo::calipers) {
+            if (!(metric_ == +Metric::euclidean && rhs_indices_.size() == 2))
+                throw std::invalid_argument(algo_unusable);
+        }
+    };
+
     RegisterOption(config::EqualNulls.GetOption(&is_null_equal_null_));
     RegisterOption(config::NullDistInf.GetOption(&dist_to_null_infinity_));
-
+    RegisterOption(ParameterOpt.GetOption(&parameter_));
+    RegisterOption(LhsIndicesOpt.GetOption(&lhs_indices_).SetInstanceCheck(check_lhs));
+    RegisterOption(RhsIndicesOpt.GetOption(&rhs_indices_).SetInstanceCheck(check_rhs)
+                           .SetConditionalOpts(GetOptAvailFunc(),
+                                               {{true_func, config::GetOptionNames(MetricOpt)}}));
+    RegisterOption(MetricOpt.GetOption(&metric_).SetInstanceCheck(metric_check).SetConditionalOpts(
+            GetOptAvailFunc(), {{need_algo_and_q, config::GetOptionNames(AlgoOpt, QGramLengthOpt)},
+                                {need_algo_only, config::GetOptionNames(MetricOpt)}}));
+    RegisterOption(AlgoOpt.GetOption(&algo_).SetInstanceCheck(algo_check));
+    RegisterOption(QGramLengthOpt.GetOption(&q_));
 }
 
 void MetricVerifier::MakeExecuteOptsAvailable() {
-
-}
-
-MetricVerifier::MetricVerifier(Config const& config,
-                               std::shared_ptr<model::ColumnLayoutTypedRelationData> typed_relation,
-                               std::shared_ptr<ColumnLayoutRelationData> relation)
-    : Primitive(config.data, config.separator, config.has_header, {}),
-      metric_(Metric::_from_string(config.metric.c_str())),
-      lhs_indices_(config.lhs_indices),
-      rhs_indices_(config.rhs_indices),
-      parameter_(config.parameter),
-      q_(config.q),
-      dist_to_null_infinity_(config.dist_to_null_infinity),
-      is_null_equal_null_(config.is_null_equal_null),
-      typed_relation_(std::move(typed_relation)),
-      relation_(std::move(relation)) {
-    if (metric_ != +Metric::euclidean || rhs_indices_.size() != 1) {
-        algo_ = MetricAlgo::_from_string(config.algo.c_str());
-    }
+    MakeOptionsAvailable(config::GetOptionNames(config::NullDistInf, ParameterOpt, LhsIndicesOpt,
+                                                RhsIndicesOpt, MetricOpt, AlgoOpt, QGramLengthOpt));
 }
 
 void MetricVerifier::FitInternal(model::IDatasetStream& data_stream) {
     relation_ = ColumnLayoutRelationData::CreateFrom(data_stream, is_null_equal_null_);
     data_stream.Reset();
+    if (relation_->GetColumnData().empty()) {
+        throw std::runtime_error("Got an empty dataset: metric FD verifying is meaningless.");
+    }
     typed_relation_ = model::ColumnLayoutTypedRelationData::CreateFrom(data_stream,
                                                                        is_null_equal_null_);
 }
 
 unsigned long long MetricVerifier::ExecuteInternal() {
     auto start_time = std::chrono::system_clock::now();
-
-    ValidateParameters();
 
     metric_fd_holds_ = VerifyMetricFD();
     if (metric_fd_holds_) {
@@ -117,41 +155,6 @@ unsigned long long MetricVerifier::ExecuteInternal() {
     auto elapsed_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now() - start_time);
     return elapsed_milliseconds.count();
-}
-
-void MetricVerifier::ValidateParameters() const {
-    if (relation_->GetColumnData().empty()) {
-        throw std::runtime_error("Got an empty dataset: metric FD verifying is meaningless.");
-    }
-
-    size_t cols_count = relation_->GetSchema()->GetNumColumns();
-    auto value_out_of_range = [cols_count](unsigned int i) { return i >= cols_count; };
-    bool indices_out_of_range =
-        std::any_of(rhs_indices_.begin(), rhs_indices_.end(), value_out_of_range)
-            || std::any_of(lhs_indices_.begin(), lhs_indices_.end(), value_out_of_range);
-    if (indices_out_of_range) {
-        throw std::runtime_error(
-            "Column index should be less than the number of columns in the dataset.");
-    }
-
-    assert(rhs_indices_.size() == 1 || metric_ == +Metric::euclidean);
-    for (unsigned i : rhs_indices_) {
-        model::TypedColumnData const& col = typed_relation_->GetColumnData(i);
-        auto type_id = col.GetTypeId();
-        if (type_id == +model::TypeId::kUndefined) {
-            throw std::runtime_error(
-                "Column with index \"" + std::to_string(i) + "\" type undefined.");
-        }
-        if (type_id == +model::TypeId::kMixed) {
-            throw std::runtime_error("Column with index \"" + std::to_string(i)
-                                         + "\" contains values of different types.");
-        }
-        if (rhs_indices_.size() > 1 && !col.IsNumeric()) {
-            throw std::runtime_error(
-                "\"euclidean\" metric does not match RHS column type with index \""
-                    + std::to_string(i) + "\".");
-        }
-    }
 }
 
 bool MetricVerifier::VerifyMetricFD() const {

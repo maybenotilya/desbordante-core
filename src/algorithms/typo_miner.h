@@ -15,7 +15,6 @@ public:
     using Config = FDAlgorithm::Config;
 
 protected:
-    void RegisterOptions() override;
     void FitInternal(model::IDatasetStream &data_stream) override;
     void MakeExecuteOptsAvailable() override;
     unsigned long long ExecuteInternal() override;
@@ -73,6 +72,7 @@ private:
           typed_relation_(std::move(typed_relation)),
           radius_(radius),
           ratio_(ratio) {}
+    void RegisterOptions();
 
 public:
     using TyposVec = std::vector<util::PLI::Cluster::value_type>;

@@ -47,6 +47,7 @@ private:
                            double support, unsigned level_number);
     bool MergeRules(std::vector<unsigned> const& frequent_itemset, double support, RuleNode* node);
     static void UpdatePath(std::stack<RuleNode*>& path, std::list<RuleNode>& vertices);
+    void RegisterOptions();
 
 protected:
     std::unique_ptr<model::TransactionalData> transactional_data_;
@@ -57,7 +58,6 @@ protected:
     virtual double GetSupport(std::vector<unsigned> const& frequent_itemset) const = 0;
     virtual unsigned long long GenerateAllRules() = 0;
     virtual unsigned long long FindFrequent() = 0;
-    void RegisterOptions() override;
     void FitInternal(model::IDatasetStream &data_stream) override;
     void MakeExecuteOptsAvailable() override;
     unsigned long long ExecuteInternal() override;

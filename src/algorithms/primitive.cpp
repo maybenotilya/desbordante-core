@@ -4,6 +4,9 @@
 
 namespace algos {
 
+Primitive::Primitive(std::vector<std::string_view> phase_names)
+    : phase_names_(std::move(phase_names)) {}
+
 void Primitive::AddProgress(double const val) noexcept {
     assert(val >= 0);
     std::scoped_lock lock(progress_mutex_);
@@ -72,13 +75,13 @@ void Primitive::UnsetOption(std::string_view option_name) noexcept {
     ExcludeOptions(it->first);
 }
 
-std::unordered_set<std::string_view> Primitive::GetNeededOptions() const {
-    std::unordered_set<std::string_view> needed{};
+std::unordered_set<std::string> Primitive::GetNeededOptions() const {
+    std::unordered_set<std::string> needed{};
     for (std::string_view const& name : available_options) {
         auto it = possible_options_.find(name);
         assert(it != possible_options_.end());
         if (!it->second->IsSet()) {
-            needed.insert(it->first);
+            needed.insert(std::string(it->first));
         }
     }
     return needed;

@@ -56,6 +56,7 @@ private:
     std::mutex mutable register_mutex_;
 
     void InitConfigParallelism();
+    void RegisterOptions();
 
 protected:
     /* Algorithm configuration */
@@ -65,7 +66,6 @@ protected:
      * */
     std::list<FD> fd_collection_;
 
-    void RegisterOptions() final;
     virtual void RegisterAdditionalOptions();
     virtual void Initialize() = 0;
     void FitInternal(model::IDatasetStream &data_stream) override = 0;

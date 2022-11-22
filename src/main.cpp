@@ -14,6 +14,7 @@
 
 #include "algo_factory.h"
 #include "enum_to_available_values.h"
+#include "metric_verifier_enums.h"
 #include "options/descriptions.h"
 #include "options/names.h"
 
@@ -22,36 +23,26 @@ namespace onam = algos::config::names;
 namespace descriptions = algos::config::descriptions;
 
 INITIALIZE_EASYLOGGINGPP
+namespace algos {
 
-static bool CheckOptions(std::string const& task, std::string const& alg, std::string const& metric,
-                         std::string const& metric_alg, size_t rhs_indices_count, double error) {
+void validate(boost::any& v, const std::vector<std::string>& values, Metric*, int) {
+    const std::string& s = po::validators::get_single_string(values);
+    v = boost::any(Metric::_from_string(s.c_str()));
+}
+
+void validate(boost::any& v, const std::vector<std::string>& values, MetricAlgo*, int) {
+    const std::string& s = po::validators::get_single_string(values);
+    v = boost::any(MetricAlgo::_from_string(s.c_str()));
+}
+
+}  // namespace algos
+
+static bool CheckOptions(std::string const& task, std::string const& alg, double error) {
     if (!algos::AlgoMiningType::_is_valid(task.c_str())) {
         std::cout << "ERROR: no matching task."
                      " Available tasks (primitives to mine) are:\n" +
                      EnumToAvailableValues<algos::AlgoMiningType>() + '\n';
         return false;
-    }
-
-    if (task == "metric") {
-        if (!algos::Metric::_is_valid(metric.c_str())) {
-            std::cout << "ERROR: no matching metric."
-                         " Available metrics are:\n" +
-                         EnumToAvailableValues<algos::Metric>() + '\n';
-            return false;
-        }
-        if (rhs_indices_count == 1 && metric == "euclidean") {
-            if (!metric_alg.empty()) {
-                std::cout << "metric_algo is ignored for one-dimensional euclidean metric.\n";
-            }
-            return true;
-        }
-        if (!algos::MetricAlgo::_is_valid(metric_alg.c_str())) {
-            std::cout << "ERROR: no matching MFD algorithm."
-                         " Available MFD algorithms are:\n" +
-                         EnumToAvailableValues<algos::MetricAlgo>() + '\n';
-            return false;
-        }
-        return true;
     }
 
     if (!algos::Algo::_is_valid(alg.c_str())) {
@@ -89,8 +80,8 @@ int main(int argc, char const* argv[]) {
     bool has_transaction_id = false;
 
     /*Options for metric verifier algorithm*/
-    std::string metric;
-    std::string metric_algo;
+    algos::Metric metric = algos::Metric::_values()[0];
+    algos::MetricAlgo metric_algo = algos::MetricAlgo::_values()[0];
     std::vector<unsigned int> lhs_indices;
     std::vector<unsigned int> rhs_indices;
     long double parameter = 0;
@@ -163,8 +154,8 @@ int main(int argc, char const* argv[]) {
 
     po::options_description mfd_options("MFD options");
     mfd_options.add_options()
-        (onam::kMetric, po::value<std::string>(&metric), descriptions::kDMetric)
-        (onam::kMetricAlgorithm, po::value<std::string>(&metric_algo),
+        (onam::kMetric, po::value<algos::Metric>(&metric), descriptions::kDMetric)
+        (onam::kMetricAlgorithm, po::value<algos::MetricAlgo>(&metric_algo),
             descriptions::kDMetricAlgorithm)
         (onam::kLhsIndices, po::value<std::vector<unsigned int>>(&lhs_indices)->multitoken(),
             descriptions::kDLhsIndices)
@@ -207,21 +198,7 @@ int main(int argc, char const* argv[]) {
     std::transform(algo.begin(), algo.end(), algo.begin(),
                    [](unsigned char c) { return std::tolower(c); });
 
-    if (task == "metric") {
-        auto remove_duplicates = [](std::vector<unsigned>& vec) {
-            if (vec.empty()) {
-                throw std::invalid_argument("Index vector should not be empty.");
-            }
-            std::sort(vec.begin(), vec.end());
-            vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
-        };
-        remove_duplicates(lhs_indices);
-        remove_duplicates(rhs_indices);
-        vm.at(onam::kRhsIndices).value() = rhs_indices;
-        vm.at(onam::kLhsIndices).value() = lhs_indices;
-    }
-
-    if (!CheckOptions(task, algo, metric, metric_algo, rhs_indices.size(), error)) {
+    if (!CheckOptions(task, algo, error)) {
         std::cout << all_options << std::endl;
         return 1;
     }
@@ -252,7 +229,7 @@ int main(int argc, char const* argv[]) {
             return lhs_indices_str;
         };
         std::cout << "Input metric \"" << metric;
-        if (metric == "cosine") std::cout << "\" with q \"" << q;
+        if (metric == +algos::Metric::cosine) std::cout << "\" with q \"" << q;
         std::cout << "\" with parameter \"" << parameter
                   << "\" with LHS indices \"" << get_str(lhs_indices)
                   << "\" with RHS indices \"" << get_str(rhs_indices)
@@ -264,6 +241,15 @@ int main(int argc, char const* argv[]) {
     std::unique_ptr<algos::Primitive> algorithm_instance =
         algos::CreateAlgorithmInstance(task, algo, vm);
 
+    try {
+        algos::ConfigureFromMap(*algorithm_instance, vm);
+        auto parser = CSVParser(dataset, separator, has_header);
+        algorithm_instance->Fit(parser);
+        algos::ConfigureFromMap(*algorithm_instance, vm);
+    } catch (std::exception& e) {
+        std::cout << e.what() << std::endl;
+        return 1;
+    }
     try {
         unsigned long long elapsed_time = algorithm_instance->Execute();
         std::cout << "> ELAPSED TIME: " << elapsed_time << std::endl;

@@ -59,7 +59,6 @@ protected:
     std::function<void(std::string_view const&, std::vector<std::string_view> const&)>
             GetOptAvailFunc();
 
-    virtual void RegisterOptions() = 0;
     void ExecutePrepare();
     virtual void MakeExecuteOptsAvailable() = 0;
     virtual unsigned long long ExecuteInternal() = 0;
@@ -73,8 +72,7 @@ public:
     Primitive& operator=(Primitive&& other) = delete;
     virtual ~Primitive() = default;
 
-    explicit Primitive(std::vector<std::string_view> phase_names)
-        : phase_names_(std::move(phase_names)) {}
+    explicit Primitive(std::vector<std::string_view> phase_names);
     Primitive(std::unique_ptr<model::IDatasetStream> input_generator_ptr, std::vector<std::string_view> phase_names)
         : input_generator_(std::move(input_generator_ptr)), phase_names_(std::move(phase_names)) {}
     Primitive(std::filesystem::path const& path, char const separator, bool const has_header,
@@ -87,7 +85,7 @@ public:
 
     void SetOption(std::string const& option_name, boost::optional<boost::any> const& value = {});
 
-    [[nodiscard]] std::unordered_set<std::string_view> GetNeededOptions() const;
+    [[nodiscard]] std::unordered_set<std::string> GetNeededOptions() const;
 
     void UnsetOption(std::string const& option_name) noexcept;
 

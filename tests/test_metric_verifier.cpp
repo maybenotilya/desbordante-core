@@ -44,7 +44,11 @@ struct MetricVerifyingParams {
 class TestMetricVerifying : public ::testing::TestWithParam<MetricVerifyingParams> {};
 
 static std::unique_ptr<algos::MetricVerifier> CreateMetricVerifier(algos::StdParamsMap const& map) {
-    auto verifier = algos::details::CreateMetricVerifierInstance(map);
+    auto verifier = std::make_unique<algos::MetricVerifier>();
+    algos::ConfigureFromMap(*verifier, map);
+    auto parser = CSVParser(boost::any_cast<std::string>(map.at("dataset")),
+            boost::any_cast<char>(map.at("separator")),
+                    boost::any_cast<bool>(map.at("has_header")));
     auto casted = dynamic_cast<algos::MetricVerifier*>(verifier.release());
     return std::unique_ptr<algos::MetricVerifier>(casted);
 }

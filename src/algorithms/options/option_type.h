@@ -17,6 +17,10 @@ struct OptionType {
         return {info_, value_ptr, value_check_, default_value_};
     }
 
+    [[nodiscard]] std::string_view GetName() const {
+        return info_.GetName();
+    }
+
 private:
     OptionInfo const info_;
     boost::optional<T> const default_value_;
@@ -24,7 +28,7 @@ private:
 };
 
 template <typename T, typename... Options>
-void AddNames(std::vector<std::string>& names, OptionType<T> opt, Options... options) {
+void AddNames(std::vector<std::string_view>& names, OptionType<T> opt, Options... options) {
     names.emplace_back(opt.GetName());
     if constexpr (sizeof...(options) != 0) {
         AddNames(names, options...);
@@ -32,8 +36,8 @@ void AddNames(std::vector<std::string>& names, OptionType<T> opt, Options... opt
 }
 
 template <typename T, typename... Options>
-std::vector<std::string> GetOptionNames(OptionType<T> opt, Options... options) {
-    std::vector<std::string> names{};
+std::vector<std::string_view> GetOptionNames(OptionType<T> opt, Options... options) {
+    std::vector<std::string_view> names{};
     AddNames(names, opt, options...);
     return names;
 }

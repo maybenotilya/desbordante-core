@@ -27,18 +27,8 @@ public:
           default_value_(default_value) {}
 
     void Set(boost::optional<boost::any> value_holder) override {
-        std::string const no_value_no_default =
-                std::string("No value was provided to an option without a default value (")
-                + info_.GetName().data() + ")";
-        if (is_set_) Unset();
-
-        T value;
-        if (!value_holder.has_value()) {
-            if (!default_value_.has_value()) throw std::logic_error(no_value_no_default);
-            value = default_value_.value();
-        } else {
-            value = boost::any_cast<T>(value_holder.value());
-        }
+        assert(!is_set_);
+        T value = GetValue(value_holder);
         if (value_check_) value_check_(value);
         if (instance_check_) instance_check_(value);
 
@@ -53,6 +43,19 @@ public:
                     break;
                 }
             }
+        }
+    }
+
+    T GetValue(boost::optional<boost::any> value_holder) const {
+        std::string const no_value_no_default =
+                std::string("No value was provided to an option without a default value (")
+                + info_.GetName().data() + ")";
+
+        if (!value_holder.has_value()) {
+            if (!default_value_.has_value()) throw std::logic_error(no_value_no_default);
+            return default_value_.value();
+        } else {
+            return boost::any_cast<T>(value_holder.value());
         }
     }
 

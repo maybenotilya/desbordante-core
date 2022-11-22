@@ -168,41 +168,6 @@ ARAlgorithm::Config CreateArAlgorithmConfigFromMap(ParamsMap params) {
 }
 
 template <typename ParamsMap>
-MetricVerifier::Config CreateMetricVerifierConfigFromMap(ParamsMap params) {
-    MetricVerifier::Config c;
-
-    c.parameter = ExtractParamFromMap<long double>(params, onam::kParameter);
-    if (c.parameter < 0) {
-        throw std::invalid_argument("Parameter should not be less than zero.");
-    }
-    c.q = ExtractParamFromMap<unsigned>(params, onam::kQGramLength);
-    if (c.q <= 0) {
-        throw std::invalid_argument("Q-gram length should be greater than zero.");
-    }
-    c.data = std::filesystem::current_path() / "input_data" /
-        ExtractParamFromMap<std::string>(params, onam::kData);
-    c.separator = ExtractParamFromMap<char>(params, onam::kSeparator);
-    c.has_header = ExtractParamFromMap<bool>(params, onam::kHasHeader);
-    c.is_null_equal_null = ExtractParamFromMap<bool>(params, onam::kEqualNulls);
-    c.lhs_indices = ExtractParamFromMap<std::vector<unsigned int>>(params, onam::kLhsIndices);
-    c.rhs_indices = ExtractParamFromMap<std::vector<unsigned int>>(params, onam::kRhsIndices);
-    
-    c.metric = ExtractParamFromMap<std::string>(params, onam::kMetric);
-    if (c.rhs_indices.size() > 1 && c.metric != "euclidean") {
-        throw std::invalid_argument(
-            "More than one RHS columns are only allowed for \"euclidean\" metric.");
-    }
-    if (c.metric != "euclidean" || c.rhs_indices.size() != 1) {
-        c.algo = ExtractParamFromMap<std::string>(params, onam::kMetricAlgorithm);
-    }
-    if (c.rhs_indices.size() != 2 && c.algo == "calipers") {
-        throw std::invalid_argument("\"calipers\" algo is only available for 2 dimensions.");
-    }
-    c.dist_to_null_infinity = ExtractParamFromMap<bool>(params, onam::kDistToNullIsInfinity);
-    return c;
-}
-
-template <typename ParamsMap>
 std::unique_ptr<Primitive> CreateFDAlgorithmInstance(Algo const algo, ParamsMap&& params) {
     FDAlgorithm::Config const config =
         CreateFDAlgorithmConfigFromMap(std::forward<ParamsMap>(params));
@@ -238,13 +203,6 @@ std::unique_ptr<Primitive> CreateArAlgorithmInstance(/*Algo const algo, */ Param
 }
 
 template <typename ParamsMap>
-std::unique_ptr<Primitive> CreateMetricVerifierInstance(ParamsMap&& params) {
-    MetricVerifier::Config const config =
-        CreateMetricVerifierConfigFromMap(std::forward<ParamsMap>(params));
-    return std::make_unique<MetricVerifier>(config);
-}
-
-template <typename ParamsMap>
 std::unique_ptr<Primitive> CreateCsvStatsInstance(ParamsMap&& params) {
     FDAlgorithm::Config const config =
         CreateFDAlgorithmConfigFromMap(std::forward<ParamsMap>(params));
@@ -264,7 +222,7 @@ std::unique_ptr<Primitive> CreateAlgorithmInstance(AlgoMiningType const task, Al
     case AlgoMiningType::ar:
         return details::CreateArAlgorithmInstance(/*algo, */ std::forward<ParamsMap>(params));
     case AlgoMiningType::metric:
-        return details::CreateMetricVerifierInstance(std::forward<ParamsMap>(params));
+        return std::make_unique<MetricVerifier>();
     case AlgoMiningType::stats:
         return details::CreateCsvStatsInstance(std::forward<ParamsMap>(params));
     default:
@@ -279,6 +237,26 @@ std::unique_ptr<Primitive> CreateAlgorithmInstance(std::string const& task_name,
     AlgoMiningType const task = AlgoMiningType::_from_string(task_name.c_str());
     Algo const algo = Algo::_from_string(algo_name.c_str());
     return CreateAlgorithmInstance(task, algo, std::forward<ParamsMap>(params));
+}
+
+template <typename ParamsMap>
+void ConfigureFromMap(Primitive& primitive, ParamsMap const& params) {
+    std::unordered_set<std::string> needed;
+    while (!(needed = primitive.GetNeededOptions()).empty()) {
+        for (std::string const& el : needed) {
+            auto it = params.find(el);
+            if (it == params.end()) {
+                primitive.SetOption(el);
+            }
+            else {
+                if constexpr (std::is_same_v<ParamsMap, StdParamsMap>) {
+                    primitive.SetOption(el, it->second);
+                } else {  // po map
+                    primitive.SetOption(el, params.at(el).value());
+                }
+            }
+        }
+    }
 }
 
 }  // namespace algos

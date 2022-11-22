@@ -14,10 +14,10 @@ class CsvStats : public algos::Primitive {
     bool is_null_equal_null_;
 
     size_t MixedDistinct(size_t index) const;
+    void RegisterOptions();
 
 protected:
     void FitInternal(model::IDatasetStream &data_stream) override;
-    void RegisterOptions() override;
     void MakeExecuteOptsAvailable() override;
     unsigned long long ExecuteInternal() override;
 
