@@ -4,25 +4,25 @@
 #include <boost/asio/thread_pool.hpp>
 #include <boost/thread.hpp>
 
+#include "options/common_options.h"
+
 namespace algos {
 
 namespace fs = std::filesystem;
 namespace mo = model;
 
-CsvStats::CsvStats(const FDAlgorithm::Config& config)
-    : Primitive(config.data, config.separator, config.has_header, {"Calculating statistics"}),
-      col_data_(mo::CreateColumnData(*input_generator_, config.is_null_equal_null)),
-      all_stats_(col_data_.size()),
-      threads_num_(config.parallelism),
-      is_null_equal_null_(config.is_null_equal_null) {
+CsvStats::CsvStats() : Primitive({"Calculating statistics"}) {
+    RegisterOptions();
+    MakeOptionsAvailable(config::GetOptionNames(config::EqualNulls));
 }
 
 void CsvStats::RegisterOptions() {
-
+    RegisterOption(config::EqualNulls.GetOption(&is_null_equal_null_));
+    RegisterOption(config::ThreadNumber.GetOption(&threads_num_));
 }
 
 void CsvStats::MakeExecuteOptsAvailable() {
-
+    MakeOptionsAvailable(config::GetOptionNames(config::ThreadNumber));
 }
 
 Statistic CsvStats::GetMin(size_t index, mo::CompareResult order) const {

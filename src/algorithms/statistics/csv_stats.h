@@ -2,15 +2,16 @@
 
 #include "column_layout_typed_relation_data.h"
 #include "fd_algorithm.h"
+#include "options/common_options.h"
 #include "statistic.h"
 
 namespace algos {
 
 class CsvStats : public algos::Primitive {
+    config::EqNullsType is_null_equal_null_;
+    config::ThreadNumType threads_num_;
     std::vector<model::TypedColumnData> col_data_;
     std::vector<ColumnStats> all_stats_;
-    ushort threads_num_;
-    bool is_null_equal_null_;
 
     size_t MixedDistinct(size_t index) const;
     void RegisterOptions();
@@ -21,7 +22,7 @@ protected:
     unsigned long long ExecuteInternal() override;
 
 public:
-    explicit CsvStats(const FDAlgorithm::Config& config);
+    CsvStats();
 
     const std::vector<model::TypedColumnData>& GetData() const noexcept;
 
