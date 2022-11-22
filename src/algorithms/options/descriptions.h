@@ -1,7 +1,7 @@
 #pragma once
 
 #include "enum_to_available_values.h"
-#include "metric_verifier.h"
+#include "metric_verifier_enums.h"
 
 namespace algos::config::descriptions {
 constexpr auto kDData = "path to CSV file, relative to ./input_data";

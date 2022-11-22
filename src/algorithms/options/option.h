@@ -19,17 +19,17 @@ private:
             std::function<void(std::string_view const&, std::vector<std::string_view> const&)>;
 
 public:
-    Option(OptionInfo const info, T* value_ptr, std::function<void(T&)> value_check,
+    Option(OptionInfo const info, T* value_ptr, std::function<void(T&)> normalize,
            boost::optional<T> default_value)
         : info_(info),
           value_ptr_(value_ptr),
-          value_check_(value_check),
+          normalize_(normalize),
           default_value_(default_value) {}
 
     void Set(boost::optional<boost::any> value_holder) override {
         assert(!is_set_);
         T value = GetValue(value_holder);
-        if (value_check_) value_check_(value);
+        if (normalize_) normalize_(value);
         if (instance_check_) instance_check_(value);
 
         assert(value_ptr_ != nullptr);
@@ -92,7 +92,7 @@ private:
     bool is_set_ = false;
     OptionInfo const info_;
     T* value_ptr_;
-    std::function<void(T&)> value_check_{};
+    std::function<void(T&)> normalize_{};
     boost::optional<T> default_value_{};
     std::function<void(T&)> instance_check_{};
     OptCondVector opt_cond_{};

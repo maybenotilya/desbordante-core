@@ -247,14 +247,9 @@ int main(int argc, char const* argv[]) {
                   << "\'. Header is " << (has_header ? "" : "not ") << "present. " << std::endl;
     }
 
-    std::unique_ptr<algos::Primitive> algorithm_instance =
-        algos::CreateAlgorithmInstance(task, algo, vm);
-
+    std::unique_ptr<algos::Primitive> algorithm_instance;
     try {
-        algos::ConfigureFromMap(*algorithm_instance, vm);
-        auto parser = CSVParser(dataset, separator, has_header);
-        algorithm_instance->Fit(parser);
-        algos::ConfigureFromMap(*algorithm_instance, vm);
+        algorithm_instance = algos::CreateAlgorithmInstance(task, algo, vm);
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;
         return 1;

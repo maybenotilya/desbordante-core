@@ -4,6 +4,7 @@
 
 #include <boost/any.hpp>
 #include <boost/mp11/algorithm.hpp>
+#include <boost/program_options.hpp>
 
 #include "algorithms.h"
 #include "options/names.h"
@@ -209,6 +210,45 @@ std::unique_ptr<Primitive> CreateCsvStatsInstance(ParamsMap&& params) {
     return std::make_unique<CsvStats>(config);
 }
 
+template <typename ParamsMap>
+boost::any GetParamFromMap(ParamsMap const& params, std::string const& param_name) {
+    if constexpr (std::is_same_v<ParamsMap, boost::program_options::variables_map>) {
+        return params.at(param_name).value();
+    }
+    else {
+        return params.at(param_name);
+    }
+}
+
+template <typename ParamsMap>
+void ConfigureFromMap(Primitive& primitive, ParamsMap const& params) {
+    std::unordered_set<std::string> needed;
+    while (!(needed = primitive.GetNeededOptions()).empty()) {
+        for (std::string const& el : needed) {
+            auto it = params.find(el);
+            if (it == params.end()) {
+                primitive.SetOption(el);
+            }
+            else {
+                primitive.SetOption(el, GetParamFromMap<ParamsMap>(params, el));
+            }
+        }
+    }
+}
+
+template <typename PrimitiveType, typename ParamsMap>
+std::unique_ptr<Primitive> CreateAndLoadPrimitive(ParamsMap&& params) {
+    auto prim = std::make_unique<PrimitiveType>();
+    ConfigureFromMap(*prim, params);
+    auto parser = CSVParser(
+            boost::any_cast<std::string>(GetParamFromMap<ParamsMap>(params, config::names::kData)),
+            boost::any_cast<char>(GetParamFromMap<ParamsMap>(params, config::names::kSeparator)),
+            boost::any_cast<bool>(GetParamFromMap<ParamsMap>(params, config::names::kHasHeader)));
+    prim->Fit(parser);
+    ConfigureFromMap(*prim, params);
+    return prim;
+}
+
 }  // namespace details
 
 template <typename ParamsMap>
@@ -222,9 +262,9 @@ std::unique_ptr<Primitive> CreateAlgorithmInstance(AlgoMiningType const task, Al
     case AlgoMiningType::ar:
         return details::CreateArAlgorithmInstance(/*algo, */ std::forward<ParamsMap>(params));
     case AlgoMiningType::metric:
-        return std::make_unique<MetricVerifier>();
+        return details::CreateAndLoadPrimitive<MetricVerifier>(std::forward<ParamsMap>(params));
     case AlgoMiningType::stats:
-        return details::CreateCsvStatsInstance(std::forward<ParamsMap>(params));
+        return details::CreateAndLoadPrimitive<CsvStats>(std::forward<ParamsMap>(params));
     default:
         throw std::logic_error(task._to_string() + std::string(" task type is not supported yet."));
     }
@@ -237,26 +277,6 @@ std::unique_ptr<Primitive> CreateAlgorithmInstance(std::string const& task_name,
     AlgoMiningType const task = AlgoMiningType::_from_string(task_name.c_str());
     Algo const algo = Algo::_from_string(algo_name.c_str());
     return CreateAlgorithmInstance(task, algo, std::forward<ParamsMap>(params));
-}
-
-template <typename ParamsMap>
-void ConfigureFromMap(Primitive& primitive, ParamsMap const& params) {
-    std::unordered_set<std::string> needed;
-    while (!(needed = primitive.GetNeededOptions()).empty()) {
-        for (std::string const& el : needed) {
-            auto it = params.find(el);
-            if (it == params.end()) {
-                primitive.SetOption(el);
-            }
-            else {
-                if constexpr (std::is_same_v<ParamsMap, StdParamsMap>) {
-                    primitive.SetOption(el, it->second);
-                } else {  // po map
-                    primitive.SetOption(el, params.at(el).value());
-                }
-            }
-        }
-    }
 }
 
 }  // namespace algos

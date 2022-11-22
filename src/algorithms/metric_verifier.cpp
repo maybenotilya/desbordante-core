@@ -26,17 +26,17 @@ void TransformIndices(std::vector<unsigned int>& value) {
 }
 
 decltype(MetricVerifier::ParameterOpt) MetricVerifier::ParameterOpt{
-        {config::names::kParameter, config::descriptions::kDParameter}, [](auto value) {
+        {config::names::kParameter, config::descriptions::kDParameter}, {}, [](auto value) {
             if (!(value >= 0 && value <= 1)) throw std::invalid_argument("Parameter out of range");
         }
 };
 
 decltype(MetricVerifier::LhsIndicesOpt) MetricVerifier::LhsIndicesOpt{
-        {config::names::kLhsIndices, config::descriptions::kDLhsIndices}, TransformIndices
+        {config::names::kLhsIndices, config::descriptions::kDLhsIndices}, {}, TransformIndices
 };
 
 decltype(MetricVerifier::RhsIndicesOpt) MetricVerifier::RhsIndicesOpt{
-        {config::names::kRhsIndices, config::descriptions::kDRhsIndices}, TransformIndices
+        {config::names::kRhsIndices, config::descriptions::kDRhsIndices}, {}, TransformIndices
 };
 
 decltype(MetricVerifier::MetricOpt) MetricVerifier::MetricOpt{

@@ -7,14 +7,11 @@ namespace algos::config {
 template <typename T>
 struct OptionType {
     explicit OptionType(OptionInfo const info, boost::optional<T> default_value = {},
-                        std::function<void(T &)> value_check = {}) : info_(info),
-          default_value_(std::move(default_value)), value_check_(std::move(value_check)) {}
-
-    OptionType(OptionInfo const info, std::function<void(T &)> value_check)
-        : OptionType(info, {}, value_check) {}
+                        std::function<void(T &)> normalize = {}) : info_(info),
+          default_value_(std::move(default_value)), normalize_(std::move(normalize)) {}
 
     [[nodiscard]] Option<T> GetOption(T* value_ptr) const {
-        return {info_, value_ptr, value_check_, default_value_};
+        return {info_, value_ptr, normalize_, default_value_};
     }
 
     [[nodiscard]] std::string_view GetName() const {
@@ -24,7 +21,7 @@ struct OptionType {
 private:
     OptionInfo const info_;
     boost::optional<T> const default_value_;
-    std::function<void(T&)> const value_check_;
+    std::function<void(T&)> const normalize_;
 };
 
 template <typename T, typename... Options>

@@ -11,6 +11,7 @@
 #include "column_layout_relation_data.h"
 #include "column_layout_typed_relation_data.h"
 #include "metric_verifier_enums.h"
+#include "options/common_options.h"
 #include "options/option_type.h"
 #include "primitive.h"
 #include "qgram_vector.h"
@@ -28,8 +29,8 @@ private:
     std::vector<unsigned int> rhs_indices_;
     long double parameter_;
     unsigned int q_;
-    bool dist_to_null_infinity_;
-    bool is_null_equal_null_;
+    config::NullDIstInfType dist_to_null_infinity_;
+    config::EqNullsType is_null_equal_null_;
 
     bool metric_fd_holds_ = false;
 
