@@ -3,7 +3,7 @@
 #include "algo_factory.h"
 #include "csv_stats.h"
 #include "easylogging++.h"
-#include "options/names.h"
+#include "option_names.h"
 
 namespace tests {
 namespace mo = model;

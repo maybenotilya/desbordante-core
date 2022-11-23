@@ -3,7 +3,7 @@
 #include "column_layout_typed_relation_data.h"
 #include "csv_parser.h"
 #include "idataset_stream.h"
-#include "options/names.h"
+#include "option_names.h"
 #include "primitive.h"
 #include "pyro.h"
 #include "types.h"

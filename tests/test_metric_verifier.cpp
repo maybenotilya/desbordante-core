@@ -7,7 +7,7 @@
 
 #include "algo_factory.h"
 #include "metric_verifier.h"
-#include "options/names.h"
+#include "option_names.h"
 
 namespace tests {
 namespace onam = algos::config::names;

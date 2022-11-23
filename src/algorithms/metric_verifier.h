@@ -10,9 +10,9 @@
 
 #include "column_layout_relation_data.h"
 #include "column_layout_typed_relation_data.h"
+#include "common_options.h"
 #include "metric_verifier_enums.h"
-#include "options/common_options.h"
-#include "options/option_type.h"
+#include "option_type.h"
 #include "primitive.h"
 #include "qgram_vector.h"
 

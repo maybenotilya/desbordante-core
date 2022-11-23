@@ -3,10 +3,10 @@
 #include <algorithm>
 #include <cassert>
 
+#include "common_functions.h"
 #include "easylogging++.h"
-#include "options/common_functions.h"
-#include "options/descriptions.h"
-#include "options/names.h"
+#include "option_descriptions.h"
+#include "option_names.h"
 
 namespace algos {
 

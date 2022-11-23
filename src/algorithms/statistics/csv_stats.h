@@ -2,7 +2,7 @@
 
 #include "column_layout_typed_relation_data.h"
 #include "fd_algorithm.h"
-#include "options/common_options.h"
+#include "common_options.h"
 #include "statistic.h"
 
 namespace algos {

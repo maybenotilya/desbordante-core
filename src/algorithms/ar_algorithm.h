@@ -9,7 +9,7 @@
 
 #include "ar.h"
 #include "ar_algorithm_enums.h"
-#include "options/option_type.h"
+#include "option_type.h"
 #include "primitive.h"
 #include "transactional_data.h"
 

@@ -9,12 +9,12 @@
 
 #include <easylogging++.h>
 
+#include "common_functions.h"
+#include "common_options.h"
 #include "convex_hull.h"
-#include "options/common_functions.h"
-#include "options/common_options.h"
-#include "options/names.h"
-#include "options/descriptions.h"
-#include "options/option_type.h"
+#include "option_descriptions.h"
+#include "option_names.h"
+#include "option_type.h"
 
 namespace algos {
 

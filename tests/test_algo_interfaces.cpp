@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-#include "options/names.h"
+#include "option_names.h"
 #include "pyro.h"
 
 namespace tests {

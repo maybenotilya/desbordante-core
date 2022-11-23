@@ -2,8 +2,8 @@
 
 #include <thread>
 
-#include "names.h"
-#include "descriptions.h"
+#include "option_descriptions.h"
+#include "option_names.h"
 #include "option_type.h"
 
 namespace algos::config {

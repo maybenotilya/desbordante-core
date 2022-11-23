@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "options/names.h"
+#include "option_names.h"
 #include "pli_based_fd_algorithm.h"
 #include "position_list_index.h"
 #include "relation_data.h"

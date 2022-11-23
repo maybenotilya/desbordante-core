@@ -9,7 +9,7 @@
 #include "algorithms/fd_mine.h"
 #include "algorithms/tane.h"
 #include "datasets.h"
-#include "options/names.h"
+#include "option_names.h"
 #include "pyro.h"
 #include "relational_schema.h"
 

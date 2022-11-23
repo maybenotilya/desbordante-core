@@ -6,8 +6,8 @@
 
 #include "boost/any.hpp"
 #include "boost/optional.hpp"
-#include "info.h"
 #include "ioption.h"
+#include "option_info.h"
 
 namespace algos::config {
 template <typename T>

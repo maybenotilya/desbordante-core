@@ -4,7 +4,7 @@
 #include <boost/asio/thread_pool.hpp>
 #include <boost/thread.hpp>
 
-#include "options/common_options.h"
+#include "common_options.h"
 
 namespace algos {
 

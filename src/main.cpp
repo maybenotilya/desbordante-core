@@ -15,8 +15,8 @@
 #include "algo_factory.h"
 #include "enum_to_available_values.h"
 #include "metric_verifier_enums.h"
-#include "options/descriptions.h"
-#include "options/names.h"
+#include "option_descriptions.h"
+#include "option_names.h"
 
 namespace po = boost::program_options;
 namespace onam = algos::config::names;

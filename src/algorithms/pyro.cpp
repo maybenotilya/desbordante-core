@@ -8,7 +8,7 @@
 
 #include "fd_g1_strategy.h"
 #include "key_g1_strategy.h"
-#include "options/names.h"
+#include "option_names.h"
 
 namespace algos {
 

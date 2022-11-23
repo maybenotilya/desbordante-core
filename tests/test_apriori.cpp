@@ -1,11 +1,10 @@
 #include <filesystem>
 
-#include "gtest/gtest.h"
-
 #include "algo_factory.h"
 #include "apriori.h"
-#include "names.h"
 #include "datasets.h"
+#include "gtest/gtest.h"
+#include "option_names.h"
 
 namespace fs = std::filesystem;
 
