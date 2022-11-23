@@ -25,7 +25,7 @@ private:
 };
 
 template <typename T, typename... Options>
-void AddNames(std::vector<std::string_view>& names, OptionType<T> opt, Options... options) {
+void AddNames(std::vector<std::string_view>& names, OptionType<T> const& opt, Options&... options) {
     names.emplace_back(opt.GetName());
     if constexpr (sizeof...(options) != 0) {
         AddNames(names, options...);
@@ -33,7 +33,7 @@ void AddNames(std::vector<std::string_view>& names, OptionType<T> opt, Options..
 }
 
 template <typename T, typename... Options>
-std::vector<std::string_view> GetOptionNames(OptionType<T> opt, Options... options) {
+std::vector<std::string_view> GetOptionNames(OptionType<T> const& opt, Options const&... options) {
     std::vector<std::string_view> names{};
     AddNames(names, opt, options...);
     return names;

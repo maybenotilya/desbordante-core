@@ -22,21 +22,7 @@ static std::unique_ptr<algos::CsvStats> MakeStatPrimitive(std::string_view datas
             {algos::config::names::kSeparator, separator},
             {algos::config::names::kEqualNulls, is_null_equal_null},
             {algos::config::names::kThreads, thread_num}};
-    return std::unique_ptr<algos::CsvStats>(dynamic_cast<algos::CsvStats*>(
-            algos::details::CreateAndLoadPrimitive<algos::CsvStats>(params).release()));
-}
-
-static FDAlgorithm::Config MakeConfig(std::string_view dataset, char const sep = ',',
-                                      bool const has_header = true,
-                                      bool const is_null_equal_null = true,
-                                      unsigned thread_num = 1) {
-    FDAlgorithm::Config config;
-    config.data = std::filesystem::current_path() / "input_data" / dataset;
-    config.has_header = has_header;
-    config.separator = sep;
-    config.is_null_equal_null = is_null_equal_null;
-    config.parallelism = thread_num;
-    return config;
+    return algos::details::CreateAndLoadPrimitive<algos::CsvStats>(params);
 }
 
 class TestCsvStats : public ::testing::TestCase{};

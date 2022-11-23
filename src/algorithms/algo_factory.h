@@ -139,36 +139,6 @@ FDAlgorithm::Config CreateFDAlgorithmConfigFromMap(ParamsMap params) {
 }
 
 template <typename ParamsMap>
-ARAlgorithm::Config CreateArAlgorithmConfigFromMap(ParamsMap params) {
-    ARAlgorithm::Config c;
-
-    c.data = std::filesystem::current_path() / "input_data" /
-             ExtractParamFromMap<std::string>(params, onam::kData);
-    c.separator = ExtractParamFromMap<char>(params, onam::kSeparator);
-    c.has_header = ExtractParamFromMap<bool>(params, onam::kHasHeader);
-    c.minsup = ExtractParamFromMap<double>(params, onam::kMinimumSupport);
-    c.minconf = ExtractParamFromMap<double>(params, onam::kMinimumConfidence);
-
-    std::shared_ptr<model::InputFormat> input_format;
-    auto const input_format_arg = ExtractParamFromMap<std::string>(params, onam::kInputFormat);
-    if (input_format_arg == "singular") {
-        unsigned const tid_column_index = ExtractParamFromMap<unsigned>(params, onam::kTIdColumnIndex);
-        unsigned const item_column_index =
-            ExtractParamFromMap<unsigned>(params, onam::kItemColumnIndex);
-        input_format = std::make_shared<model::Singular>(tid_column_index, item_column_index);
-    } else if (input_format_arg == "tabular") {
-        bool const first_column_tid = ExtractParamFromMap<bool>(params, onam::kFirstColumnTId);
-        input_format = std::make_shared<model::Tabular>(first_column_tid);
-    } else {
-        throw std::invalid_argument("\"" + input_format_arg + "\"" +
-                                    " format is not supported in AR mining");
-    }
-    c.input_format = std::move(input_format);
-
-    return c;
-}
-
-template <typename ParamsMap>
 std::unique_ptr<Primitive> CreateFDAlgorithmInstance(Algo const algo, ParamsMap&& params) {
     FDAlgorithm::Config const config =
         CreateFDAlgorithmConfigFromMap(std::forward<ParamsMap>(params));
@@ -183,24 +153,6 @@ std::unique_ptr<Primitive> CreateTypoMinerInstance(Algo const algo, ParamsMap&& 
         CreateFDAlgorithmConfigFromMap(std::forward<ParamsMap>(params));
 
     return details::CreateAlgoWrapperInstanceImpl<TypoMiner>(algo, config);
-}
-
-template <typename ParamsMap>
-std::unique_ptr<Primitive> CreateArAlgorithmInstance(/*Algo const algo, */ ParamsMap&& params) {
-    ARAlgorithm::Config const config =
-        CreateArAlgorithmConfigFromMap(std::forward<ParamsMap>(params));
-
-    // return details::CreatePrimitiveInstanceImpl<Primitive, ArAlgorithmTuplesType>(algo, config);
-
-    /* Temporary fix. Template function CreatePrimitiveInstanceImpl does not compile with the new
-     * config type ARAlgorithm::Config, even though Apriori algo has been added to Algo enum.
-     * So I can suggest two solutions. The first is to implement some base class for the configs
-     * (but I'm  not sure if it will work properly) or for Algo enum (I think it is complicated
-     * too). The other solution is to add a new ArAlgo enum with an AR algorithms and change
-     * CreateAlgorithmInstance function such that it could create enum instance depending on
-     * the passed task type.
-     */
-    return std::make_unique<Apriori>(config);
 }
 
 template <typename ParamsMap>
@@ -237,7 +189,7 @@ void ConfigureFromMap(Primitive& primitive, ParamsMap const& params) {
 }
 
 template <typename PrimitiveType, typename ParamsMap>
-std::unique_ptr<Primitive> CreateAndLoadPrimitive(ParamsMap&& params) {
+std::unique_ptr<PrimitiveType> CreateAndLoadPrimitive(ParamsMap&& params) {
     auto prim = std::make_unique<PrimitiveType>();
     ConfigureFromMap(*prim, params);
     auto parser = CSVParser(
@@ -260,7 +212,7 @@ std::unique_ptr<Primitive> CreateAlgorithmInstance(AlgoMiningType const task, Al
     case AlgoMiningType::typos:
         return details::CreateTypoMinerInstance(algo, std::forward<ParamsMap>(params));
     case AlgoMiningType::ar:
-        return details::CreateArAlgorithmInstance(/*algo, */ std::forward<ParamsMap>(params));
+        return details::CreateAndLoadPrimitive<Apriori>(std::forward<ParamsMap>(params)); // temporary
     case AlgoMiningType::metric:
         return details::CreateAndLoadPrimitive<MetricVerifier>(std::forward<ParamsMap>(params));
     case AlgoMiningType::stats:

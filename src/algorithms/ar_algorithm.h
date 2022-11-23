@@ -8,26 +8,29 @@
 #include <boost/any.hpp>
 
 #include "ar.h"
+#include "ar_algorithm_enums.h"
+#include "options/option_type.h"
 #include "primitive.h"
 #include "transactional_data.h"
 
 namespace algos {
 
 class ARAlgorithm : public algos::Primitive {
-public:
-    struct Config {
-        std::filesystem::path data{}; /* Path to input file */
-        char separator = ',';         /* Separator for csv */
-        bool has_header = true;       /* Indicates if input file has header */
-        std::shared_ptr<model::InputFormat> input_format;
-        double minsup = 0;
-        double minconf = 0;
-    };
-
 private:
     double minconf_;
+    InputFormat input_format_ = InputFormat::_values()[0];
+    unsigned tid_column_index_;
+    unsigned item_column_index_;
+    bool first_column_tid_;
     std::list<model::ArIDs> ar_collection_;
-    std::shared_ptr<model::InputFormat> input_format_;
+    std::shared_ptr<model::InputFormat> format_ptr_;
+
+    static const config::OptionType<InputFormat> InputFormatOpt;
+    static const config::OptionType<unsigned int> TidColumnIndexOpt;
+    static const config::OptionType<unsigned int> ItemColumnIndexOpt;
+    static const config::OptionType<bool> FirstColumnTidOpt;
+    static const config::OptionType<double> MinSupportOpt;
+    static const config::OptionType<double> MinConfidenceOpt;
 
     struct RuleNode {
         model::ArIDs rule;
@@ -63,11 +66,7 @@ protected:
     unsigned long long ExecuteInternal() override;
 
 public:
-    explicit ARAlgorithm(Config const& config, std::vector<std::string_view> phase_names)
-        : Primitive(config.data, config.separator, config.has_header, std::move(phase_names)),
-          minconf_(config.minconf),
-          input_format_(config.input_format),
-          minsup_(config.minsup) {}
+    explicit ARAlgorithm(std::vector<std::string_view> phase_names);
 
     std::list<model::ArIDs> const& GetArIDsList() const noexcept { return ar_collection_; };
     std::vector<std::string> const& GetItemNamesVector() const noexcept {

@@ -10,6 +10,7 @@
 #include <easylogging++.h>
 
 #include "convex_hull.h"
+#include "options/common_functions.h"
 #include "options/common_options.h"
 #include "options/names.h"
 #include "options/descriptions.h"
@@ -90,8 +91,6 @@ void MetricVerifier::ValidateRhs(decltype(MetricVerifier::rhs_indices_)& value) 
 void MetricVerifier::RegisterOptions() {
     auto check_lhs = [this](auto& value) { ValidateIndices(value); };
     auto check_rhs = [this](auto& value) { ValidateRhs(value); };
-    auto true_func = [](...) { return true; };
-    auto need_algo_and_q = [](Metric value) { return value == +Metric::cosine; };
     auto need_algo_only = [this](Metric value) {
         return value == +Metric::levenshtein
                || (value == +Metric::euclidean && rhs_indices_.size() == 1);
@@ -121,7 +120,8 @@ void MetricVerifier::RegisterOptions() {
                            .SetConditionalOpts(GetOptAvailFunc(),
                                                {{true_func, config::GetOptionNames(MetricOpt)}}));
     RegisterOption(MetricOpt.GetOption(&metric_).SetInstanceCheck(metric_check).SetConditionalOpts(
-            GetOptAvailFunc(), {{need_algo_and_q, config::GetOptionNames(AlgoOpt, QGramLengthOpt)},
+            GetOptAvailFunc(), {{equals(+Metric::cosine),
+                                 config::GetOptionNames(AlgoOpt, QGramLengthOpt)},
                                 {need_algo_only, config::GetOptionNames(MetricOpt)}}));
     RegisterOption(AlgoOpt.GetOption(&algo_).SetInstanceCheck(algo_check));
     RegisterOption(QGramLengthOpt.GetOption(&q_));

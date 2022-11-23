@@ -4,23 +4,58 @@
 #include <cassert>
 
 #include "easylogging++.h"
+#include "options/common_functions.h"
+#include "options/descriptions.h"
+#include "options/names.h"
 
 namespace algos {
 
-void ARAlgorithm::RegisterOptions() {
+decltype(ARAlgorithm::InputFormatOpt) ARAlgorithm::InputFormatOpt{
+        {config::names::kInputFormat, config::descriptions::kDInputFormat}};
 
+decltype(ARAlgorithm::TidColumnIndexOpt) ARAlgorithm::TidColumnIndexOpt{
+        {config::names::kTIdColumnIndex, config::descriptions::kDTIdColumnIndex}, 0};
+
+decltype(ARAlgorithm::ItemColumnIndexOpt) ARAlgorithm::ItemColumnIndexOpt{
+        {config::names::kItemColumnIndex, config::descriptions::kDItemColumnIndex}, 1};
+
+decltype(ARAlgorithm::FirstColumnTidOpt) ARAlgorithm::FirstColumnTidOpt{
+        {config::names::kFirstColumnTId, config::descriptions::kDFirstColumnTId}, false};
+
+decltype(ARAlgorithm::MinSupportOpt) ARAlgorithm::MinSupportOpt{
+        {config::names::kMinimumSupport, config::descriptions::kDMinimumSupport}, 0.0};
+
+decltype(ARAlgorithm::MinConfidenceOpt) ARAlgorithm::MinConfidenceOpt{
+        {config::names::kMinimumConfidence, config::descriptions::kDMinimumConfidence}, 0.0};
+
+ARAlgorithm::ARAlgorithm(std::vector<std::string_view> phase_names)
+    : Primitive(std::move(phase_names)) {
+    RegisterOptions();
+    MakeOptionsAvailable(config::GetOptionNames(InputFormatOpt));
+}
+
+void ARAlgorithm::RegisterOptions() {
+    using config::GetOptionNames;
+    const auto& tid_col_ind = TidColumnIndexOpt;
+    const auto& item_col_ind = ItemColumnIndexOpt;
+    RegisterOption(InputFormatOpt.GetOption(&input_format_).SetConditionalOpts(
+            GetOptAvailFunc(),
+            {
+                    {equals(+InputFormat::singular), GetOptionNames(tid_col_ind, item_col_ind)},
+                    {equals(+InputFormat::tabular), GetOptionNames(FirstColumnTidOpt)},
+            }));
+    RegisterOption(TidColumnIndexOpt.GetOption(&tid_column_index_));
+    RegisterOption(ItemColumnIndexOpt.GetOption(&item_column_index_));
+    RegisterOption(FirstColumnTidOpt.GetOption(&first_column_tid_));
+    RegisterOption(MinSupportOpt.GetOption(&minsup_));
+    RegisterOption(MinConfidenceOpt.GetOption(&minconf_));
 }
 
 void ARAlgorithm::MakeExecuteOptsAvailable() {
-
+    MakeOptionsAvailable(config::GetOptionNames(MinSupportOpt, MinConfidenceOpt));
 }
 
 unsigned long long ARAlgorithm::ExecuteInternal() {
-    transactional_data_ = model::TransactionalData::CreateFrom(*input_generator_, *input_format_);
-    if (transactional_data_->GetNumTransactions() == 0) {
-        throw std::runtime_error("Got an empty dataset: AR mining is meaningless.");
-    }
-
     auto time = FindFrequent();
     time += GenerateAllRules();
 
@@ -29,7 +64,18 @@ unsigned long long ARAlgorithm::ExecuteInternal() {
 }
 
 void ARAlgorithm::FitInternal(model::IDatasetStream& data_stream) {
-    transactional_data_ = model::TransactionalData::CreateFrom(data_stream, *input_format_);
+    switch (input_format_) {
+        case InputFormat::singular:
+            transactional_data_ = model::TransactionalData::CreateFromSingular(
+                    data_stream, tid_column_index_, item_column_index_);
+            break;
+        case InputFormat::tabular:
+            transactional_data_ =
+                    model::TransactionalData::CreateFromTabular(data_stream, first_column_tid_);
+            break;
+        default:
+            assert(0);
+    }
     if (transactional_data_->GetNumTransactions() == 0) {
         throw std::runtime_error("Got an empty dataset: AR mining is meaningless.");
     }

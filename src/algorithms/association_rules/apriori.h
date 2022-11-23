@@ -37,8 +37,7 @@ private:
     unsigned long long FindFrequent() override;
 
 public:
-    explicit Apriori(Config const& config)
-        : ARAlgorithm(config, {}) {}
+    explicit Apriori() : ARAlgorithm({}) {}
 
     std::list<std::set<std::string>> GetFrequentList() const override;
 };
