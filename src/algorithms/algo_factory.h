@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include <enum.h>
 
 #include <boost/any.hpp>
@@ -164,7 +165,8 @@ std::unique_ptr<Primitive> CreateCsvStatsInstance(ParamsMap&& params) {
 
 template <typename ParamsMap>
 boost::any GetParamFromMap(ParamsMap const& params, std::string const& param_name) {
-    if constexpr (std::is_same_v<ParamsMap, boost::program_options::variables_map>) {
+    if constexpr (std::is_same_v<typename std::decay<ParamsMap>::type,
+                                 boost::program_options::variables_map>) {
         return params.at(param_name).value();
     }
     else {

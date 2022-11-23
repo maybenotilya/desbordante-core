@@ -115,12 +115,10 @@ int main(int argc, char const* argv[]) {
 
     po::options_description general_options("General options");
     general_options.add_options()
-        (task_opt, po::value<std::string>(&task), task_desc.c_str())
-        (
-            algorithm_opt, po::value<std::string>(&algo), algo_desc.c_str())
-        (onam::kData, po::value<std::string>(&dataset), descriptions::kDData)
-        (
-            separator_opt.c_str(), po::value<char>(&separator)->default_value(separator),
+        (task_opt, po::value<std::string>(&task)->required(), task_desc.c_str())
+        (algorithm_opt, po::value<std::string>(&algo)->required(), algo_desc.c_str())
+        (onam::kData, po::value<std::string>(&dataset)->required(), descriptions::kDData)
+        (separator_opt.c_str(), po::value<char>(&separator)->default_value(separator),
             descriptions::kDSeparator)
         (onam::kHasHeader, po::value<bool>(&has_header)->default_value(has_header),
             descriptions::kDHasHeader)
@@ -190,15 +188,19 @@ int main(int argc, char const* argv[]) {
     po::variables_map vm;
     try {
         po::store(po::parse_command_line(argc, argv, all_options), vm);
-        po::notify(vm);
     } catch (po::error &e) {
         std::cout << e.what() << std::endl;
         return 0;
     }
-
     if (vm.count(help_opt))
     {
         std::cout << all_options << std::endl;
+        return 0;
+    }
+    try {
+        po::notify(vm);
+    } catch (po::error &e) {
+        std::cout << e.what() << std::endl;
         return 0;
     }
 
