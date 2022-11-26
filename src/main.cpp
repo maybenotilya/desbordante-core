@@ -69,31 +69,6 @@ static bool CheckOptions(std::string const& prim) {
 
 int main(int argc, char const* argv[]) {
     algos::Primitives primitive = algos::Primitives::_values()[0];
-    std::string dataset;
-    char separator = ',';
-    bool has_header = true;
-    int seed = 0;
-    double error = 0.0;
-    unsigned int max_lhs = -1;
-    ushort threads = 0;
-    bool is_null_equal_null = true;
-
-    /*Options for association rule mining algorithms*/
-    double minsup = 0.0;
-    double minconf = 0.0;
-    std::string ar_input_format;
-    unsigned tid_column_index = 0;
-    unsigned item_column_index = 1;
-    bool has_transaction_id = false;
-
-    /*Options for metric verifier algorithm*/
-    algos::Metric metric = algos::Metric::_values()[0];
-    algos::MetricAlgo metric_algo = algos::MetricAlgo::_values()[0];
-    std::vector<unsigned int> lhs_indices;
-    std::vector<unsigned int> rhs_indices;
-    long double parameter = 0;
-    unsigned int q = 2;
-    bool dist_to_null_infinity = false;
 
     std::string const algo_desc = "algorithm to use for data profiling\n" +
                                   EnumToAvailableValues<algos::Primitives>();
@@ -109,66 +84,55 @@ int main(int argc, char const* argv[]) {
     po::options_description general_options("General options");
     general_options.add_options()
         (primitive_opt, po::value<algos::Primitives>(&primitive)->required(), algo_desc.c_str())
-        (onam::kData, po::value<std::string>(&dataset)->required(), descriptions::kDData)
-        (separator_opt.c_str(), po::value<char>(&separator)->default_value(separator),
-            descriptions::kDSeparator)
-        (onam::kHasHeader, po::value<bool>(&has_header)->default_value(has_header),
-            descriptions::kDHasHeader)
-        (onam::kEqualNulls, po::value<bool>(&is_null_equal_null)->default_value(true),
-            descriptions::kDEqualNulls)
-        (onam::kThreads, po::value<ushort>(&threads)->default_value(threads),
-            descriptions::kDThreads)
+        (onam::kData, po::value<std::string>()->required(), descriptions::kDData)
+        (separator_opt.c_str(), po::value<char>()->default_value(','), descriptions::kDSeparator)
+        (onam::kHasHeader, po::value<bool>()->default_value(true), descriptions::kDHasHeader)
+        (onam::kEqualNulls, po::value<bool>(), descriptions::kDEqualNulls)
+        (onam::kThreads, po::value<ushort>(), descriptions::kDThreads)
         ;
 
     po::options_description typos_fd_options("Typo mining/FD options");
     typos_fd_options.add_options()
-        (onam::kError, po::value<double>(&error)->default_value(error), descriptions::kDError)
-        (onam::kMaximumLhs, po::value<unsigned int>(&max_lhs)->default_value(max_lhs),
-            descriptions::kDMaximumLhs)
-        (onam::kSeed, po::value<int>(&seed)->default_value(seed), descriptions::kDSeed)
+        (onam::kError, po::value<double>(), descriptions::kDError)
+        (onam::kMaximumLhs, po::value<unsigned int>(), descriptions::kDMaximumLhs)
+        (onam::kSeed, po::value<int>(), descriptions::kDSeed)
         ;
 
     po::options_description ar_options("AR options");
     ar_options.add_options()
-        (onam::kMinimumSupport, po::value<double>(&minsup), descriptions::kDMinimumSupport)
-        (onam::kMinimumConfidence, po::value<double>(&minconf), descriptions::kDMinimumConfidence)
-        (onam::kInputFormat, po::value<string>(&ar_input_format), descriptions::kDInputFormat)
+        (onam::kMinimumSupport, po::value<double>(), descriptions::kDMinimumSupport)
+        (onam::kMinimumConfidence, po::value<double>(), descriptions::kDMinimumConfidence)
+        (onam::kInputFormat, po::value<string>(), descriptions::kDInputFormat)
         ;
 
     po::options_description ar_singular_options("AR \"singular\" input format options");
     ar_singular_options.add_options()
-        (onam::kTIdColumnIndex, po::value<unsigned>(&tid_column_index)->default_value(0),
-            descriptions::kDTIdColumnIndex)
-        (onam::kItemColumnIndex, po::value<unsigned>(&item_column_index)->default_value(1),
-            descriptions::kDItemColumnIndex)
+        (onam::kTIdColumnIndex, po::value<unsigned>(), descriptions::kDTIdColumnIndex)
+        (onam::kItemColumnIndex, po::value<unsigned>(), descriptions::kDItemColumnIndex)
         ;
 
     po::options_description ar_tabular_options("AR \"tabular\" input format options");
     ar_tabular_options.add_options()
-        (onam::kFirstColumnTId, po::bool_switch(&has_transaction_id),
-             descriptions::kDFirstColumnTId)
+        (onam::kFirstColumnTId, po::bool_switch(), descriptions::kDFirstColumnTId)
         ;
 
     ar_options.add(ar_singular_options).add(ar_tabular_options);
 
     po::options_description mfd_options("MFD options");
     mfd_options.add_options()
-        (onam::kMetric, po::value<algos::Metric>(&metric), descriptions::kDMetric)
-        (onam::kMetricAlgorithm, po::value<algos::MetricAlgo>(&metric_algo),
-            descriptions::kDMetricAlgorithm)
-        (onam::kLhsIndices, po::value<std::vector<unsigned int>>(&lhs_indices)->multitoken(),
+        (onam::kMetric, po::value<algos::Metric>(), descriptions::kDMetric)
+        (onam::kMetricAlgorithm, po::value<algos::MetricAlgo>(), descriptions::kDMetricAlgorithm)
+        (onam::kLhsIndices, po::value<std::vector<unsigned int>>()->multitoken(),
             descriptions::kDLhsIndices)
-        (onam::kRhsIndices, po::value<std::vector<unsigned int>>(&rhs_indices)->multitoken(),
+        (onam::kRhsIndices, po::value<std::vector<unsigned int>>()->multitoken(),
             descriptions::kDRhsIndices)
-        (onam::kParameter, po::value<long double>(&parameter), descriptions::kDParameter)
-        (onam::kDistToNullIsInfinity, po::bool_switch(&dist_to_null_infinity),
-            descriptions::kDDistToNullIsInfinity)
+        (onam::kParameter, po::value<long double>(), descriptions::kDParameter)
+        (onam::kDistToNullIsInfinity, po::bool_switch(), descriptions::kDDistToNullIsInfinity)
         ;
 
     po::options_description cosine_options("Cosine metric options");
     cosine_options.add_options()
-        (onam::kQGramLength, po::value<unsigned int>(&q)->default_value(2),
-            descriptions::kDQGramLength)
+        (onam::kQGramLength, po::value<unsigned int>(), descriptions::kDQGramLength)
         ;
 
     mfd_options.add(cosine_options);
