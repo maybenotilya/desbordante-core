@@ -42,9 +42,7 @@ private:
     void RegisterFDs(std::vector<RawFD>&& fds, std::vector<size_t> const& og_mapping);
 
 public:
-    explicit HyFD(Config const& config) : PliBasedFDAlgorithm(config, {}) {}
-    explicit HyFD(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config)
-        : PliBasedFDAlgorithm(std::move(relation), config, {}) {}
+    HyFD() : PliBasedFDAlgorithm({}) {};
 };
 
 }  // namespace algos::hyfd
