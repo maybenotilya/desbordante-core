@@ -73,9 +73,15 @@ struct LinesParam : TestingParam {
           expected(std::move(expected)) {}
 };
 
-static std::unique_ptr<algos::TypoMiner> CreateTypoMiner(algos::Primitives const algo,
+static std::unique_ptr<algos::TypoMiner> ConfToFitTypoMiner(algos::Primitives const primitive) {
+    auto typo_miner = std::make_unique<algos::TypoMiner>(primitive);
+    algos::details::ConfigureFromMap(*typo_miner, algos::StdParamsMap{});
+    return typo_miner;
+}
+
+static std::unique_ptr<algos::TypoMiner> CreateTypoMiner(algos::Primitives const primitive,
                                                          algos::StdParamsMap m) {
-    auto typo_miner = std::make_unique<algos::TypoMiner>(algo);
+    auto typo_miner = std::make_unique<algos::TypoMiner>(primitive);
     algos::details::LoadPrimitive(*typo_miner, m);
     return typo_miner;
 }
@@ -121,8 +127,9 @@ static void TestForEachAlgo(F&& test) {
 TEST(SimpleTypoMinerTest, ThrowsOnEmpty) {
     auto const test = [](algos::Primitives const algo) {
         TestingParam p("TestEmpty.csv", ',', true, true, -1, 0.1, 0);
-        auto typo_miner = CreateTypoMiner(algo, std::move(p.params));
-        ASSERT_THROW(typo_miner->Execute(), std::runtime_error);
+        auto typo_miner = ConfToFitTypoMiner(algo);
+        auto parser = CSVParser("TestEmpty.csv", ',', true);
+        ASSERT_THROW(typo_miner->Fit(parser), std::runtime_error);
     };
     TestForEachAlgo(test);
 }

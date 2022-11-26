@@ -23,8 +23,14 @@ using std::string, std::vector;
 
 namespace onam = algos::config::names;
 
+std::unique_ptr<FDAlgorithm> ConfToFitFD_Mine() {
+    std::unique_ptr<FDAlgorithm> primitive = std::make_unique<Fd_mine>();
+    algos::details::ConfigureFromMap(*primitive, StdParamsMap{});
+    return primitive;
+}
+
 std::unique_ptr<FDAlgorithm> CreateFD_MineAlgorithmInstance(
-    std::filesystem::path const& path, char separator = ',', bool has_header = true) {
+    std::string const& path, char separator = ',', bool has_header = true) {
     StdParamsMap params_map{
             {onam::kData, path},
             {onam::kSeparator, separator},
@@ -70,7 +76,9 @@ testing::AssertionResult FD_Mine_CheckFDListEquality(
 TEST(AlgorithmSyntheticTest, FD_Mine_ThrowsOnEmpty) {
     auto path = std::filesystem::current_path() / "input_data" / "TestEmpty.csv";
     auto algorithm = CreateFD_MineAlgorithmInstance(path, ',', true);
-    ASSERT_THROW(algorithm->Execute(), std::runtime_error);
+    auto primitive = ConfToFitFD_Mine();
+    auto parser = CSVParser();
+    ASSERT_THROW(primitive->Fit(parser), std::runtime_error);
 }
 
 TEST(AlgorithmSyntheticTest, FD_Mine_ReturnsEmptyOnSingleNonKey) {
@@ -146,7 +154,7 @@ TEST_F(AlgorithmTest, FD_Mine_ReturnsSameAsPyro) {
                 LightDatasets::HasHeader(i));
 
             StdParamsMap params_map{
-                    {onam::kData, path / LightDatasets::DatasetName(i)},
+                    {onam::kData, std::string{path / LightDatasets::DatasetName(i)}},
                     {onam::kSeparator, LightDatasets::Separator(i)},
                     {onam::kHasHeader, LightDatasets::HasHeader(i)},
                     {onam::kSeed, decltype(Configuration::seed){0}},

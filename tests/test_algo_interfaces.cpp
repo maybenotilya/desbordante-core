@@ -34,7 +34,7 @@ template<typename AlgoInterface>
 static inline void GetKeysTestImpl(KeysTestParams const& p) {
     namespace onam = algos::config::names;
 
-    auto const path = fs::current_path() / "input_data" / p.dataset;
+    std::string const path{fs::current_path() / "input_data" / p.dataset};
     std::vector<unsigned int> actual;
     StdParamsMap params_map{
             {onam::kData, path},

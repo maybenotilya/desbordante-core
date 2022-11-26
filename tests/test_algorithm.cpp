@@ -67,8 +67,9 @@ TYPED_TEST_SUITE_P(AlgorithmTest);
 
 TYPED_TEST_P(AlgorithmTest, ThrowsOnEmpty) {
     auto const path = fs::current_path() / "input_data" / "TestEmpty.csv";
-    auto algorithm = TestFixture::CreateAlgorithmInstance(path, ',', true);
-    ASSERT_THROW(algorithm->Execute(), std::runtime_error);
+    auto primitive = TestFixture::CreateAndConfToFit();
+    auto parser = TestFixture::MakeCsvParser(path, ',', true);
+    ASSERT_THROW(primitive->Fit(parser), std::runtime_error);
 }
 
 TYPED_TEST_P(AlgorithmTest, ReturnsEmptyOnSingleNonKey) {

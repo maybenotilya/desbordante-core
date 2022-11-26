@@ -18,14 +18,14 @@ using StdParamsMap = std::unordered_map<std::string, boost::any>;
 
 namespace details {
 
-template <typename ParamsMap>
-boost::any ExtractAnyFromMap(ParamsMap& options, std::string const& option_name) {
+template <typename OptionMap>
+boost::any ExtractAnyFromMap(OptionMap&& options, std::string const& option_name) {
     auto it = options.find(option_name);
     if (it == options.end()) {
         throw std::invalid_argument("No option named \"" + option_name
                                     + "\" in parameters.");
     }
-    if constexpr (std::is_same_v<typename std::decay<ParamsMap>::type,
+    if constexpr (std::is_same_v<typename std::decay<OptionMap>::type,
                                  boost::program_options::variables_map>) {
         return options.extract(it).mapped().value();
     }
@@ -39,8 +39,8 @@ T ExtractOptionValue(OptionMap& options, std::string const& option_name) {
     return boost::any_cast<T>(ExtractAnyFromMap(options, option_name));
 }
 
-template <typename ParamsMap>
-void ConfigureFromMap(Primitive& primitive, ParamsMap& options) {
+template <typename OptionMap>
+void ConfigureFromMap(Primitive& primitive, OptionMap&& options) {
     std::unordered_set<std::string_view> needed;
     while (!(needed = primitive.GetNeededOptions()).empty()) {
         for (std::string_view const& option_name : needed) {
@@ -55,7 +55,7 @@ void ConfigureFromMap(Primitive& primitive, ParamsMap& options) {
 }
 
 template <typename OptionMap>
-void LoadPrimitive(Primitive& prim, OptionMap& options) {
+void LoadPrimitive(Primitive& prim, OptionMap&& options) {
     details::ConfigureFromMap(prim, options);
     auto parser = CSVParser{
             ExtractOptionValue<std::string>(options, config::names::kData),

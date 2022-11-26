@@ -17,7 +17,8 @@ static std::unique_ptr<algos::CsvStats> MakeStatPrimitive(std::string_view datas
                                                           bool const is_null_equal_null = true,
                                                           unsigned thread_num = 1) {
     algos::StdParamsMap params{
-            {algos::config::names::kData, std::filesystem::current_path() / "input_data" / dataset},
+            {algos::config::names::kData,
+             std::string{std::filesystem::current_path() / "input_data" / dataset}},
             {algos::config::names::kHasHeader, has_header},
             {algos::config::names::kSeparator, separator},
             {algos::config::names::kEqualNulls, is_null_equal_null},

@@ -45,7 +45,7 @@ void CheckAssociationRulesListsEquality(
 class ARAlgorithmTest : public ::testing::Test {
 protected:
     static std::unique_ptr<algos::ARAlgorithm> CreateAlgorithmInstance(
-            double minsup, double minconf, std::filesystem::path const& path,
+            double minsup, double minconf, std::string const& path,
             unsigned int tidColumnIndex, unsigned int itemColumnIndex, char separator = ',',
             bool hasHeader = true) {
         using namespace algos::config::names;
@@ -64,7 +64,7 @@ protected:
     }
 
     static std::unique_ptr<algos::ARAlgorithm> CreateAlgorithmInstance(
-            double minsup, double minconf, std::filesystem::path const& path,
+            double minsup, double minconf, std::string const& path,
             bool firstColumnTid, char separator = ',', bool hasHeader = true) {
         using namespace algos::config::names;
         using namespace algos::config::descriptions;
