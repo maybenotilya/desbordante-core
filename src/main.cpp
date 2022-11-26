@@ -1,12 +1,9 @@
 #include <easylogging++.h>
 
 #include <algorithm>
-#include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
-#include <cctype>
 #include <filesystem>
 #include <iostream>
-#include <iterator>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -24,6 +21,8 @@ namespace descriptions = algos::config::descriptions;
 
 INITIALIZE_EASYLOGGINGPP
 
+constexpr auto primitive_opt = "primitive";
+
 namespace algos {
 
 void validate(boost::any& v, const std::vector<std::string>& values, Metric*, int) {
@@ -31,7 +30,8 @@ void validate(boost::any& v, const std::vector<std::string>& values, Metric*, in
     try {
         v = boost::any(Metric::_from_string(s.c_str()));
     } catch (std::runtime_error&e) {
-        throw po::validation_error(po::validation_error::invalid_option_value);
+        throw po::validation_error(po::validation_error::invalid_option_value,
+                                   algos::config::names::kMetric, s);
     }
 }
 
@@ -40,7 +40,17 @@ void validate(boost::any& v, const std::vector<std::string>& values, MetricAlgo*
     try {
         v = boost::any(MetricAlgo::_from_string(s.c_str()));
     } catch (std::runtime_error &e) {
-        throw po::validation_error(po::validation_error::invalid_option_value);
+        throw po::validation_error(po::validation_error::invalid_option_value,
+                                   algos::config::names::kMetricAlgorithm, s);
+    }
+}
+
+void validate(boost::any& v, const std::vector<std::string>& values, Primitives*, int) {
+    const std::string& s = po::validators::get_single_string(values);
+    try {
+        v = boost::any(Primitives::_from_string(s.c_str()));
+    } catch (std::runtime_error &e) {
+        throw po::validation_error(po::validation_error::invalid_option_value, primitive_opt, s);
     }
 }
 
@@ -58,7 +68,7 @@ static bool CheckOptions(std::string const& prim) {
 }
 
 int main(int argc, char const* argv[]) {
-    std::string algo;
+    algos::Primitives primitive = algos::Primitives::_values()[0];
     std::string dataset;
     char separator = ',';
     bool has_header = true;
@@ -88,7 +98,6 @@ int main(int argc, char const* argv[]) {
     std::string const algo_desc = "algorithm to use for data profiling\n" +
                                   EnumToAvailableValues<algos::Primitives>();
     constexpr auto help_opt = "help";
-    constexpr auto primitive_opt = "primitive";
     std::string const separator_opt = std::string(onam::kSeparator) + ",s";
 
     po::options_description info_options("Desbordante information options");
@@ -99,7 +108,7 @@ int main(int argc, char const* argv[]) {
 
     po::options_description general_options("General options");
     general_options.add_options()
-        (primitive_opt, po::value<std::string>(&algo)->required(), algo_desc.c_str())
+        (primitive_opt, po::value<algos::Primitives>(&primitive)->required(), algo_desc.c_str())
         (onam::kData, po::value<std::string>(&dataset)->required(), descriptions::kDData)
         (separator_opt.c_str(), po::value<char>(&separator)->default_value(separator),
             descriptions::kDSeparator)
@@ -189,17 +198,9 @@ int main(int argc, char const* argv[]) {
 
     el::Loggers::configureFromGlobal("logging.conf");
 
-    std::transform(algo.begin(), algo.end(), algo.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-
-    if (!CheckOptions(algo)) {
-        std::cout << all_options << std::endl;
-        return 1;
-    }
-
     std::unique_ptr<algos::Primitive> algorithm_instance;
     try {
-        algorithm_instance = algos::CreatePrimitive(algo, vm);
+        algorithm_instance = algos::CreatePrimitive(primitive, vm);
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;
         return 1;
