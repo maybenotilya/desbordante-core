@@ -35,18 +35,6 @@ private:
 
     static bool FDLess(FD const& l, FD const& r);
     static auto MakeTuplesByIndicesComparator(std::map<int, unsigned> const& frequency_map);
-    static double VerifyRadius(double radius) {
-        if (!(radius == -1 || radius >= 0)) {
-            throw std::invalid_argument("Radius should be greater or equal to zero or equal to -1");
-        }
-        return radius;
-    }
-    static double VerifyRatio(double ratio) {
-        if (!(ratio >= 0 && ratio <= 1)) {
-            throw std::invalid_argument("Ratio should be between 0 and 1");
-        }
-        return ratio;
-    }
 
     std::unordered_map<int, unsigned> CreateFrequencies(
             util::PLI::Cluster const& cluster, std::vector<int> const& probing_table) const;
