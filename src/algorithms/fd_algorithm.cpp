@@ -16,6 +16,11 @@ void FDAlgorithm::RegisterOptions() {
     RegisterOption(config::EqualNulls.GetOption(&is_null_equal_null_));
 }
 
+void FDAlgorithm::FitInternal(model::IDatasetStream& data_stream) {
+    number_of_columns_ = data_stream.GetNumberOfColumns();
+    FitFd(data_stream);
+}
+
 std::string FDAlgorithm::GetJsonFDs() const {
     return FDsToJson(fd_collection_);
 }
@@ -39,7 +44,6 @@ std::vector<Column const*> FDAlgorithm::GetKeys() const {
     std::vector<Column const*> keys;
     std::map<Column const*, size_t> fds_count_per_col;
     unsigned int cols_of_equal_values = 0;
-    size_t const number_of_cols = input_generator_->GetNumberOfColumns();
 
     for (FD const& fd : fd_collection_) {
         Vertical const& lhs = fd.GetLhs();
@@ -57,7 +61,7 @@ std::vector<Column const*> FDAlgorithm::GetKeys() const {
     }
 
     for (auto const& [col, num] : fds_count_per_col) {
-        if (num + 1 + cols_of_equal_values == number_of_cols) {
+        if (num + 1 + cols_of_equal_values == number_of_columns_) {
             keys.push_back(col);
         }
     }

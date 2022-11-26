@@ -38,6 +38,7 @@ private:
 
     boost::dynamic_bitset<> constant_columns_;
 
+    void FitFd(model::IDatasetStream &data_stream) final;
     unsigned long long ExecuteInternal() final;
 
     void BuildClusters();
@@ -59,9 +60,6 @@ private:
         const std::vector<boost::dynamic_bitset<>>& neg_cover_vector) const;
 
     boost::dynamic_bitset<> BuildAgreeSet(size_t t1, size_t t2);
-
-protected:
-    void FitInternal(model::IDatasetStream &data_stream) override;
 
 public:
     Aid();

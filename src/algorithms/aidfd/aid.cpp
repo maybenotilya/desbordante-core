@@ -4,7 +4,7 @@ namespace algos {
 
 Aid::Aid() : FDAlgorithm({kDefaultPhaseName}) {}
 
-void Aid::FitInternal(model::IDatasetStream& data_stream) {
+void Aid::FitFd(model::IDatasetStream& data_stream) {
     number_of_attributes_ = data_stream.GetNumberOfColumns();
     if (number_of_attributes_ == 0) {
         throw std::runtime_error("Unable to work on an empty dataset.");

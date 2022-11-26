@@ -35,7 +35,6 @@ private:
     void ClearOptions() noexcept;
 
 protected:
-    std::unique_ptr<model::IDatasetStream> input_generator_;
     /* Vector of names of algorithm phases, should be initialized in a constructor
      * if algorithm has more than one phase. This vector is used to determine the
      * total number of phases.

@@ -11,7 +11,7 @@ namespace algos {
 
 FDep::FDep() : FDAlgorithm({kDefaultPhaseName}) {}
 
-void FDep::FitInternal(model::IDatasetStream& data_stream) {
+void FDep::FitFd(model::IDatasetStream& data_stream) {
     number_attributes_ = data_stream.GetNumberOfColumns();
     if (number_attributes_ == 0) {
         throw std::runtime_error("Unable to work on an empty dataset.");

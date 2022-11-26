@@ -6,16 +6,13 @@
 namespace algos {
 
 class PliBasedFDAlgorithm : public FDAlgorithm {
-private:
-    using algos::Primitive::input_generator_;
-
 protected:
     using MaxLhsType = unsigned int;
     static const config::OptionType<MaxLhsType> MaxLhsOpt;
 
     std::shared_ptr<ColumnLayoutRelationData> relation_;
 
-    void FitInternal(model::IDatasetStream& data_stream) final;
+    void FitFd(model::IDatasetStream& data_stream) final;
 
     ColumnLayoutRelationData const& GetRelation() const noexcept {
         // GetRelation should be called after the dataset has been parsed, i.e.

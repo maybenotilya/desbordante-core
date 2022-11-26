@@ -14,7 +14,7 @@ decltype(PliBasedFDAlgorithm::MaxLhsOpt) PliBasedFDAlgorithm::MaxLhsOpt{
 PliBasedFDAlgorithm::PliBasedFDAlgorithm(std::vector<std::string_view> phase_names)
     : FDAlgorithm(std::move(phase_names)) {}
 
-void PliBasedFDAlgorithm::FitInternal(model::IDatasetStream& data_stream) {
+void PliBasedFDAlgorithm::FitFd(model::IDatasetStream& data_stream) {
     relation_ = ColumnLayoutRelationData::CreateFrom(data_stream, is_null_equal_null_);
 
     if (relation_->GetColumnData().empty()) {
@@ -37,6 +37,7 @@ std::vector<Column const*> PliBasedFDAlgorithm::GetKeys() const {
 
 void PliBasedFDAlgorithm::Fit(std::shared_ptr<ColumnLayoutRelationData> data) {
     relation_ = std::move(data);
+    number_of_columns_ = data->GetNumColumns();
     ExecutePrepare();  // TODO: this method has to be repeated for every "alternative" Fit
 }
 

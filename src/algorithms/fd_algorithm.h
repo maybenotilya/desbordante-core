@@ -29,13 +29,15 @@ private:
     void RegisterOptions();
 
 protected:
+    size_t number_of_columns_;
     /* содержит множество найденных функциональных зависимостей. Это поле будет использоваться при
      * тестировании, поэтому важно положить сюда все намайненные ФЗ
      * */
     std::list<FD> fd_collection_;
     bool is_null_equal_null_;
 
-    void FitInternal(model::IDatasetStream &data_stream) override = 0;
+    void FitInternal(model::IDatasetStream &data_stream) final;
+    virtual void FitFd(model::IDatasetStream &data_stream) = 0;
 
 public:
     constexpr static std::string_view kDefaultPhaseName = "FD mining";
