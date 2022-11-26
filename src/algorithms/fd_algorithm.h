@@ -21,28 +21,6 @@ namespace algos {
  * Consider TANE as an example of such a FDAlgorithm usage.
  * */
 class FDAlgorithm : public Primitive {
-public:
-    /* Algorithm configuration struct */
-    struct Config {
-        using ParamValue = boost::any;
-        using ParamsMap = std::unordered_map<std::string, ParamValue>;
-
-        std::filesystem::path data{};   /* Path to input file */
-        char separator = ',';           /* Separator for csv */
-        bool has_header = true;         /* Indicates if input file has header */
-        bool is_null_equal_null = true; /* Is NULL value equals another NULL value */
-        unsigned int max_lhs = -1;      /* Maximum size of lhs value in fds to mine */
-        ushort parallelism = 0;         /* Number of threads to use. If 0 is specified
-                                         * this value is initialized to
-                                         * std::thread::hardware_concurrency.
-                                         */
-
-        ParamsMap special_params{}; /* Other special parameters unique for a particular algorithm
-                                     * algorithm. Use GetSpecialParam() to retrieve parameters by
-                                     * name.
-                                     */
-    };
-
 private:
     friend util::AgreeSetFactory;
 
