@@ -24,7 +24,10 @@ public:
         : info_(info),
           value_ptr_(value_ptr),
           normalize_(normalize),
-          default_value_(default_value) {}
+          default_func_(default_value.has_value()
+                                ? [default_value]() { return default_value.value(); }
+                                : std::function<T()>{})
+    {}
 
     void Set(boost::optional<boost::any> value_holder) override {
         assert(!is_set_);
@@ -50,10 +53,9 @@ public:
         std::string const no_value_no_default =
                 std::string("No value was provided to an option without a default value (")
                 + info_.GetName().data() + ")";
-
         if (!value_holder.has_value()) {
-            if (!default_value_.has_value()) throw std::logic_error(no_value_no_default);
-            return default_value_.value();
+            if (!default_func_) throw std::logic_error(no_value_no_default);
+            return default_func_();
         } else {
             return boost::any_cast<T>(value_holder.value());
         }
@@ -88,14 +90,27 @@ public:
         return *this;
     }
 
+    Option& OverrideDefaultValue(boost::optional<T> new_default) {
+        default_func_ = new_default.has_value()
+                                ? [new_default]() { return new_default.value(); }
+                                : std::function<T()>{};
+        return *this;
+    }
+
+    Option& OverrideDefaultFunction(std::function<T()> default_func) {
+        default_func_ = default_func;
+        return *this;
+    }
+
 private:
     bool is_set_ = false;
     OptionInfo const info_;
     T* value_ptr_;
     std::function<void(T&)> normalize_{};
-    boost::optional<T> default_value_{};
+    std::function<T()> default_func_;
     std::function<void(T&)> instance_check_{};
     OptCondVector opt_cond_{};
     OptAddFunc opt_add_func_{};
 };
+
 }  // namespace algos::config

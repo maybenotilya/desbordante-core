@@ -6,7 +6,9 @@
 #include <boost/unordered_map.hpp>
 #include <easylogging++.h>
 
-unsigned long long Fd_mine::ExecuteFd() {
+namespace algos {
+
+unsigned long long Fd_mine::ExecuteInternal() {
     // 1
     schema_ = relation_->GetSchema();
     auto start_time = std::chrono::system_clock::now();
@@ -267,3 +269,4 @@ void Fd_mine::Display() {
     LOG(DEBUG) << "TOTAL FDs " << fd_counter;
 }
 
+}  // namespace algos

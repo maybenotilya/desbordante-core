@@ -12,13 +12,9 @@ namespace algos {
 
 class FDep : public FDAlgorithm {
 public:
-    explicit FDep(Config const& config);
+    FDep();
 
     ~FDep() override = default;
-
-protected:
-    void FitInternal(model::IDatasetStream &data_stream) override;
-    unsigned long long ExecuteFd() override;
 
 private:
     std::unique_ptr<RelationalSchema> schema_{};
@@ -31,8 +27,8 @@ private:
 
     std::vector<std::vector<size_t>> tuples_;
 
-    // Initializing the most common dependencies.
-    void Initialize() override;
+    unsigned long long ExecuteInternal() final;
+    void FitInternal(model::IDatasetStream &data_stream) final;
 
     // Building negative cover via violated dependencies
     void BuildNegativeCover();
@@ -48,10 +44,6 @@ private:
     // Specializing general dependencies for not to be followed from violated dependencies of negative cover tree.
     void SpecializePositiveCover(const std::bitset<FDTreeElement::kMaxAttrNum>& lhs,
                                  const size_t& a);
-
-    // Loading the relation
-    // Presented as vector of vectors (tuples of the relation).
-    void LoadData();
 };
 
 }  // namespace algos

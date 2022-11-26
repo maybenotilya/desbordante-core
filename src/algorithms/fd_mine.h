@@ -10,6 +10,8 @@
 #include "position_list_index.h"
 #include "vertical.h"
 
+namespace algos {
+
 class Fd_mine : public PliBasedFDAlgorithm {
 private:
     const RelationalSchema* schema_;
@@ -31,9 +33,10 @@ private:
     void Reconstruct();
     void Display();
 
-    unsigned long long ExecuteFd() final;
+    unsigned long long ExecuteInternal() final;
+
 public:
-    Fd_mine(Config const& config) : PliBasedFDAlgorithm(config, {kDefaultPhaseName}) {}
-    explicit Fd_mine(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config)
-        : PliBasedFDAlgorithm(std::move(relation), config, {kDefaultPhaseName}) {}
+    Fd_mine() : PliBasedFDAlgorithm({kDefaultPhaseName}) {};
 };
+
+}  // namespace algos

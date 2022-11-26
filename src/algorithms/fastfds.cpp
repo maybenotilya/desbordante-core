@@ -11,24 +11,27 @@
 #include <thread>
 
 #include "agree_set_factory.h"
+#include "common_options.h"
 #include "parallel_for.h"
 
 namespace algos {
 
 using std::vector, std::set;
 
-FastFDs::FastFDs(Config const& config)
-    : PliBasedFDAlgorithm(config, {"Agree sets generation", "Finding minimal covers"}),
-      threads_num_(config_.parallelism),
-      max_lhs_(config_.max_lhs) {}
+FastFDs::FastFDs() : PliBasedFDAlgorithm({"Agree sets generation", "Finding minimal covers"}) {
+    RegisterOptions();
+}
 
-FastFDs::FastFDs(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config)
-    : PliBasedFDAlgorithm(std::move(relation), config,
-                          {"Agree sets generation", "Finding minimal covers"}),
-      threads_num_(config_.parallelism),
-      max_lhs_(config_.max_lhs) {}
+void FastFDs::RegisterOptions() {
+    RegisterOption(config::ThreadNumber.GetOption(&threads_num_));
+    RegisterOption(MaxLhsOpt.GetOption(&max_lhs_));
+}
 
-unsigned long long FastFDs::ExecuteFd() {
+void FastFDs::MakeExecuteOptsAvailable() {
+    MakeOptionsAvailable(config::GetOptionNames(MaxLhsOpt));
+}
+
+unsigned long long FastFDs::ExecuteInternal() {
     schema_ = relation_->GetSchema();
     percent_per_col_ = kTotalProgressPercent / schema_->GetNumColumns();
 

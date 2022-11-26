@@ -32,6 +32,7 @@ private:
 
     void ExcludeOptions(std::string_view parent_option) noexcept;
     void UnsetOption(std::string_view option_name) noexcept;
+    void ClearOptions() noexcept;
 
 protected:
     std::unique_ptr<model::IDatasetStream> input_generator_;
@@ -51,16 +52,18 @@ protected:
 
     template<typename T>
     void RegisterOption(config::Option<T> option) {
+        assert(possible_options_.find(option.GetName()) == possible_options_.end());
         possible_options_[option.GetName()] = std::make_unique<config::Option<T>>(option);
     }
-
-    void ClearOptions() noexcept;
 
     std::function<void(std::string_view const&, std::vector<std::string_view> const&)>
             GetOptAvailFunc();
 
+    virtual bool HandleUnknownOption(std::string_view const& option_name,
+                                     boost::optional<boost::any> const& value);
+    virtual void AddMoreNeededOptions(std::unordered_set<std::string_view>& previous_options) const;
     void ExecutePrepare();
-    virtual void MakeExecuteOptsAvailable() = 0;
+    virtual void MakeExecuteOptsAvailable();
     virtual unsigned long long ExecuteInternal() = 0;
 
 public:
@@ -73,19 +76,16 @@ public:
     virtual ~Primitive() = default;
 
     explicit Primitive(std::vector<std::string_view> phase_names);
-    Primitive(std::unique_ptr<model::IDatasetStream> input_generator_ptr, std::vector<std::string_view> phase_names)
-        : input_generator_(std::move(input_generator_ptr)), phase_names_(std::move(phase_names)) {}
-    Primitive(std::filesystem::path const& path, char const separator, bool const has_header,
-              std::vector<std::string_view> phase_names)
-        : input_generator_(std::make_unique<CSVParser>(path, separator, has_header)), phase_names_(std::move(phase_names)) {}
 
     void Fit(model::IDatasetStream & data_stream);
 
     unsigned long long Execute();
 
+    void SetOption(std::string_view const& option_name,
+                   boost::optional<boost::any> const& value = {});
     void SetOption(std::string const& option_name, boost::optional<boost::any> const& value = {});
 
-    [[nodiscard]] std::unordered_set<std::string> GetNeededOptions() const;
+    [[nodiscard]] std::unordered_set<std::string_view> GetNeededOptions() const;
 
     void UnsetOption(std::string const& option_name) noexcept;
 

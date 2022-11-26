@@ -38,8 +38,7 @@ private:
 
     boost::dynamic_bitset<> constant_columns_;
 
-    void Initialize() override;
-    unsigned long long ExecuteFd() override;
+    unsigned long long ExecuteInternal() final;
 
     void BuildClusters();
     void CreateNegativeCover();
@@ -61,13 +60,11 @@ private:
 
     boost::dynamic_bitset<> BuildAgreeSet(size_t t1, size_t t2);
 
-    void LoadData();
-
 protected:
     void FitInternal(model::IDatasetStream &data_stream) override;
 
 public:
-    explicit Aid(Config const& config);
+    Aid();
 };
 
 }  // namespace algos

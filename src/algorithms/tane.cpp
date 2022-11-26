@@ -8,6 +8,7 @@
 #include "column_combination.h"
 #include "column_data.h"
 #include "column_layout_relation_data.h"
+#include "common_options.h"
 #include "lattice_level.h"
 #include "lattice_vertex.h"
 #include "relational_schema.h"
@@ -15,12 +16,17 @@
 
 namespace algos {
 
-void Tane::RegisterAdditionalOptions() {
-
+Tane::Tane() : PliBasedFDAlgorithm({kDefaultPhaseName})  {
+    RegisterOptions();
 }
 
-void Tane::MakeMoreExecuteOptsAvailable() {
+void Tane::RegisterOptions() {
+    RegisterOption(MaxLhsOpt.GetOption(&max_lhs_));
+    RegisterOption(config::ErrorOpt.GetOption(&max_ucc_error_));
+}
 
+void Tane::MakeExecuteOptsAvailable() {
+    MakeOptionsAvailable(config::GetOptionNames(MaxLhsOpt, config::ErrorOpt));
 }
 
 double Tane::CalculateZeroAryFdError(ColumnData const* rhs,
@@ -61,7 +67,8 @@ void Tane::RegisterUcc([[maybe_unused]] Vertical const& key,
     count_of_ucc_++;
 }
 
-unsigned long long Tane::ExecuteFd() {
+unsigned long long Tane::ExecuteInternal() {
+    max_fd_error_ = max_ucc_error_;
     RelationalSchema const* schema = relation_->GetSchema();
 
     LOG(INFO) << schema->GetName() << " has " << relation_->GetNumColumns() << " columns, "

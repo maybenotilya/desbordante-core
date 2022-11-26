@@ -63,6 +63,7 @@ AgreeSetFactory::SetOfAgreeSets AgreeSetFactory::GenAgreeSets() const {
 }
 
 AgreeSetFactory::SetOfAgreeSets AgreeSetFactory::GenAsUsingVectorOfIdSets() const {
+    using algos::FDAlgorithm;
     SetOfAgreeSets agree_sets;
     vector<IdentifierSet> identifier_sets;
     SetOfVectors const max_representation = GenPliMaxRepresentation();
@@ -110,6 +111,7 @@ AgreeSetFactory::SetOfAgreeSets AgreeSetFactory::GenAsUsingVectorOfIdSets() cons
 }
 
 AgreeSetFactory::SetOfAgreeSets AgreeSetFactory::GenAsUsingMapOfIdSets() const {
+    using algos::FDAlgorithm;
     SetOfAgreeSets agree_sets;
     std::unordered_map<int, IdentifierSet> identifier_sets;
     SetOfVectors const max_representation = GenPliMaxRepresentation();

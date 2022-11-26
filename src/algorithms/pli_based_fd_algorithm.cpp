@@ -1,20 +1,21 @@
+#include "common_options.h"
 #include "pli_based_fd_algorithm.h"
 
+#include <limits>
 #include <utility>
 
+namespace algos {
+
+decltype(PliBasedFDAlgorithm::MaxLhsOpt) PliBasedFDAlgorithm::MaxLhsOpt{
+        {config::names::kMaximumLhs, config::descriptions::kDMaximumLhs},
+        std::numeric_limits<uint>::max()
+};
+
+PliBasedFDAlgorithm::PliBasedFDAlgorithm(std::vector<std::string_view> phase_names)
+    : FDAlgorithm(std::move(phase_names)) {}
+
 void PliBasedFDAlgorithm::FitInternal(model::IDatasetStream& data_stream) {
-    relation_ = ColumnLayoutRelationData::CreateFrom(data_stream, config_.is_null_equal_null);
-
-    if (relation_->GetColumnData().empty()) {
-        throw std::runtime_error("Got an empty dataset: FD mining is meaningless.");
-    }
-}
-
-void PliBasedFDAlgorithm::Initialize() {
-    if (relation_ == nullptr) {
-        relation_ =
-            ColumnLayoutRelationData::CreateFrom(*input_generator_, config_.is_null_equal_null);
-    }
+    relation_ = ColumnLayoutRelationData::CreateFrom(data_stream, is_null_equal_null_);
 
     if (relation_->GetColumnData().empty()) {
         throw std::runtime_error("Got an empty dataset: FD mining is meaningless.");
@@ -39,3 +40,4 @@ void PliBasedFDAlgorithm::Fit(std::shared_ptr<ColumnLayoutRelationData> data) {
     ExecutePrepare();  // TODO: this method has to be repeated for every "alternative" Fit
 }
 
+}  // namespace algos

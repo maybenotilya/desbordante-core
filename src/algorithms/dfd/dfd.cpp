@@ -4,13 +4,22 @@
 #include <easylogging++.h>
 
 #include "column_layout_relation_data.h"
+#include "common_options.h"
 #include "relational_schema.h"
 #include "position_list_index.h"
 #include "lattice_traversal/lattice_traversal.h"
 
 namespace algos {
 
-unsigned long long DFD::ExecuteFd() {
+void DFD::RegisterOptions() {
+    RegisterOption(config::ThreadNumber.GetOption(&number_of_threads_));
+}
+
+void DFD::MakeExecuteOptsAvailable() {
+    MakeOptionsAvailable(config::GetOptionNames(config::ThreadNumber));
+}
+
+unsigned long long DFD::ExecuteInternal() {
     partition_storage_ = std::make_unique<PartitionStorage>(relation_.get(),
                                                             CachingMethod::kAllCaching,
                                                             CacheEvictionMethod::kMedainUsage);
@@ -73,11 +82,8 @@ unsigned long long DFD::ExecuteFd() {
     return apriori_millis;
 }
 
-DFD::DFD(Config const& config)
-    : PliBasedFDAlgorithm(config, {kDefaultPhaseName}), number_of_threads_(config_.parallelism) {}
-
-DFD::DFD(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config)
-    : PliBasedFDAlgorithm(std::move(relation), config, {kDefaultPhaseName}),
-      number_of_threads_(config_.parallelism) {}
+DFD::DFD() : PliBasedFDAlgorithm({kDefaultPhaseName}) {
+    RegisterOptions();
+}
 
 }  // namespace algos

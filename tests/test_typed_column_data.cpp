@@ -13,6 +13,7 @@ namespace tests {
 namespace fs = std::filesystem;
 namespace mo = model;
 
+using algos::FDAlgorithm;
 using mo::TypeId;
 
 struct TypeParsingParams {
@@ -27,17 +28,14 @@ struct TypeParsingParams {
 
 class TestTypeParsing : public ::testing::TestWithParam<TypeParsingParams> {};
 
-static FDAlgorithm::Config MakeConfig(std::string_view dataset, char sep, bool has_header) {
-    return FDAlgorithm::Config{.data = std::filesystem::current_path() / "input_data" / dataset,
-                               .separator = sep, .has_header = has_header};
+static fs::path ConstructPath(std::string_view dataset) {
+    return std::filesystem::current_path() / "input_data" / dataset;
 }
 
 TEST_P(TestTypeParsing, DefaultTest) {
     TypeParsingParams const& p = GetParam();
-    FDAlgorithm::Config config{MakeConfig(p.dataset, p.sep, p.has_header)};
-    CSVParser parser{config.data, config.separator, config.has_header};
-    std::vector<mo::TypedColumnData> column_data{mo::CreateColumnData(parser,
-                                                                      config.is_null_equal_null)};
+    CSVParser parser{ConstructPath(p.dataset), p.sep, p.has_header};
+    std::vector<mo::TypedColumnData> column_data{mo::CreateColumnData(parser, true)};
 
     ASSERT_EQ(column_data.size(), p.expected.size());
 
@@ -83,10 +81,8 @@ INSTANTIATE_TEST_SUITE_P(
                           "SimpleTypes.csv")));
 
 TEST(TypeSystem, SumColumnDoubles) {
-    FDAlgorithm::Config config = MakeConfig("iris.csv", ',', false);
-    CSVParser parser{config.data, config.separator, config.has_header};
-    std::vector<mo::TypedColumnData> col_data{mo::CreateColumnData(parser,
-                                                                   config.is_null_equal_null)};
+    CSVParser parser{ConstructPath("iris.csv"), ',', false};
+    std::vector<mo::TypedColumnData> col_data{mo::CreateColumnData(parser, true)};
     ASSERT_EQ(col_data.size(), 5);
     mo::TypedColumnData const& col = col_data.front();
     ASSERT_EQ(col.GetTypeId(), static_cast<TypeId>(TypeId::kDouble));

@@ -15,7 +15,7 @@
 
 namespace algos {
 
-class ARAlgorithm : public algos::Primitive {
+class ARAlgorithm : public Primitive {
 private:
     double minconf_;
     InputFormat input_format_ = InputFormat::_values()[0];

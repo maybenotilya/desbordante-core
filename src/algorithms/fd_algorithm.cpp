@@ -2,34 +2,18 @@
 
 #include <thread>
 
-unsigned long long FDAlgorithm::ExecuteInternal() {
-    Initialize();
+#include "common_options.h"
 
-    return ExecuteFd();
+namespace algos {
+
+FDAlgorithm::FDAlgorithm(std::vector<std::string_view> phase_names)
+    : Primitive(std::move(phase_names)) {
+    RegisterOptions();
+    MakeOptionsAvailable(config::GetOptionNames(config::EqualNulls));
 }
 
 void FDAlgorithm::RegisterOptions() {
-    RegisterAdditionalOptions();
-}
-
-void FDAlgorithm::RegisterAdditionalOptions() {}
-
-void FDAlgorithm::MakeExecuteOptsAvailable() {
-    MakeMoreExecuteOptsAvailable();
-}
-
-void FDAlgorithm::MakeMoreExecuteOptsAvailable() {}
-
-void FDAlgorithm::InitConfigParallelism() {
-    if (config_.parallelism == 0) {
-        config_.parallelism = std::thread::hardware_concurrency();
-        if (config_.parallelism == 0) {
-            throw std::runtime_error(
-                    "Unable to detect number of concurrent "
-                    "threads supported by your system. "
-                    "Please, specify it manually.");
-        }
-    }
+    RegisterOption(config::EqualNulls.GetOption(&is_null_equal_null_));
 }
 
 std::string FDAlgorithm::GetJsonFDs() const {
@@ -80,3 +64,5 @@ std::vector<Column const*> FDAlgorithm::GetKeys() const {
 
     return keys;
 }
+
+}  // namespace algos

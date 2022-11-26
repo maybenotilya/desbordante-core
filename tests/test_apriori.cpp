@@ -60,7 +60,7 @@ protected:
                 {kTIdColumnIndex, tidColumnIndex},
                 {kItemColumnIndex, itemColumnIndex}
         };
-        return algos::details::CreateAndLoadPrimitive<algos::Apriori>(params);
+        return algos::CreateAndLoadPrimitive<algos::Apriori>(params);
     }
 
     static std::unique_ptr<algos::ARAlgorithm> CreateAlgorithmInstance(
@@ -77,7 +77,7 @@ protected:
                 {kMinimumConfidence, minconf},
                 {kFirstColumnTId, firstColumnTid}
         };
-        return algos::details::CreateAndLoadPrimitive<algos::Apriori>(params);
+        return algos::CreateAndLoadPrimitive<algos::Apriori>(params);
     }
 };
 

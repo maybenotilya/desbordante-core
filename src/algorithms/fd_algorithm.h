@@ -6,6 +6,7 @@
 
 #include <boost/any.hpp>
 
+#include "option_type.h"
 #include "fd.h"
 #include "primitive.h"
 #include "column_layout_typed_relation_data.h"
@@ -14,10 +15,12 @@ namespace util {
 class AgreeSetFactory;
 }
 
+namespace algos {
+
 /* It is highly recommended to inherit your Algorithm from this class.
  * Consider TANE as an example of such a FDAlgorithm usage.
  * */
-class FDAlgorithm : public algos::Primitive {
+class FDAlgorithm : public Primitive {
 public:
     /* Algorithm configuration struct */
     struct Config {
@@ -38,16 +41,6 @@ public:
                                      * algorithm. Use GetSpecialParam() to retrieve parameters by
                                      * name.
                                      */
-
-        template <typename ParamType>
-        ParamType GetSpecialParam(std::string const& param_name) const {
-            Config::ParamValue const& value = special_params.at(param_name);
-            return boost::any_cast<ParamType>(value);
-        }
-
-        bool HasParam(std::string const& param_name) const {
-            return special_params.find(param_name) != special_params.end();
-        }
     };
 
 private:
@@ -55,39 +48,21 @@ private:
 
     std::mutex mutable register_mutex_;
 
-    void InitConfigParallelism();
     void RegisterOptions();
 
 protected:
-    /* Algorithm configuration */
-    Config config_;
     /* содержит множество найденных функциональных зависимостей. Это поле будет использоваться при
      * тестировании, поэтому важно положить сюда все намайненные ФЗ
      * */
     std::list<FD> fd_collection_;
+    bool is_null_equal_null_;
 
-    virtual void RegisterAdditionalOptions();
-    virtual void Initialize() = 0;
     void FitInternal(model::IDatasetStream &data_stream) override = 0;
-    void MakeExecuteOptsAvailable() final;
-    virtual void MakeMoreExecuteOptsAvailable();
-    unsigned long long ExecuteInternal() final;
-    // Main logic of the algorithm
-    virtual unsigned long long ExecuteFd() = 0;
-
-    template <typename ParamType>
-    ParamType GetSpecialParam(std::string const& param_name) const {
-        return config_.GetSpecialParam<ParamType>(param_name);
-    }
 
 public:
     constexpr static std::string_view kDefaultPhaseName = "FD mining";
 
-    explicit FDAlgorithm(Config const& config, std::vector<std::string_view> phase_names)
-        : Primitive(config.data, config.separator, config.has_header, std::move(phase_names)),
-          config_(config) {
-        InitConfigParallelism();
-    }
+    explicit FDAlgorithm(std::vector<std::string_view> phase_names);
 
     /* эти методы кладут зависимость в хранилище - можно пользоваться ими напрямую или
      * override-нуть, если нужно какое-то кастомное поведение
@@ -151,3 +126,5 @@ public:
         return result;
     }
 };
+
+}  // namespace algos

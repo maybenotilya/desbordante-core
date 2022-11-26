@@ -1,22 +1,21 @@
 #pragma once
 
 #include "column_layout_typed_relation_data.h"
+#include "common_options.h"
 #include "csv_parser.h"
 #include "idataset_stream.h"
 #include "option_names.h"
+#include "option_type.h"
 #include "primitive.h"
+#include "primitive_enum.h"
 #include "pyro.h"
 #include "types.h"
 
 namespace algos {
 
 class TypoMiner : public Primitive {
-public:
-    using Config = FDAlgorithm::Config;
-
 protected:
     void FitInternal(model::IDatasetStream &data_stream) override;
-    void MakeExecuteOptsAvailable() override;
     unsigned long long ExecuteInternal() override;
 
 private:
@@ -26,10 +25,13 @@ private:
     std::shared_ptr<ColumnLayoutRelationData> relation_;
     std::unique_ptr<model::ColumnLayoutTypedRelationData> typed_relation_;
     /* Config members */
-    double radius_ = -1; /* Maximal distance between two values to consider one of them a typo */
+    double radius_;      /* Maximal distance between two values to consider one of them a typo */
     double ratio_;       /* Maximal fraction of deviations per cluster to flag the cluster as
                           * containing typos */
-    bool is_null_equal_null_ = true;
+    config::EqNullsType is_null_equal_null_;
+
+    static config::OptionType<decltype(radius_)> RadiusOpt;
+    static config::OptionType<decltype(ratio_)> RatioOpt;
 
     static bool FDLess(FD const& l, FD const& r);
     static auto MakeTuplesByIndicesComparator(std::map<int, unsigned> const& frequency_map);
@@ -57,22 +59,16 @@ private:
         assert(type.IsMetrizable());
         return static_cast<model::IMetrizableType const&>(type).Dist(l, r) < radius_;
     }
-    explicit TypoMiner(std::unique_ptr<model::IDatasetStream> input_generator,
-                       std::unique_ptr<FDAlgorithm> precise_algo,
-                       std::unique_ptr<FDAlgorithm> approx_algo,
-                       std::shared_ptr<ColumnLayoutRelationData> relation,
-                       std::unique_ptr<model::ColumnLayoutTypedRelationData> typed_relation,
-                       double radius, double ratio)
-        : Primitive(std::move(input_generator),
-                    {/*"Precise fd algorithm execution", "Approximate fd algoritm execution",
-                       "Extracting fds with non-zero error"*/}),
-          precise_algo_(std::move(precise_algo)),
-          approx_algo_(std::move(approx_algo)),
-          relation_(std::move(relation)),
-          typed_relation_(std::move(typed_relation)),
-          radius_(radius),
-          ratio_(ratio) {}
+    explicit TypoMiner(std::unique_ptr<FDAlgorithm> precise_algo,
+                       std::unique_ptr<FDAlgorithm> approx_algo);
     void RegisterOptions();
+    void MakeExecuteOptsAvailable() final;
+    void AddMoreNeededOptions(std::unordered_set<std::string_view> &previous_options) const final;
+    bool HandleUnknownOption(std::string_view const& option_name,
+                             boost::optional<boost::any> const& value) final;
+    int TrySetOption(std::string_view const& option_name,
+                     boost::optional<boost::any> const& value_precise,
+                     boost::optional<boost::any> const& value_approx);
 
 public:
     using TyposVec = std::vector<util::PLI::Cluster::value_type>;
@@ -83,6 +79,8 @@ public:
         unsigned amount;  /* The number of tuples equal to the given and
                            * following immediately after the given */
     };
+
+    TypoMiner(Primitives precise, Primitives approx = Primitives::pyro);
 
     std::vector<util::PLI::Cluster> FindClustersWithTypos(FD const& typos_fd,
                                                           bool const sort_clusters = true);
@@ -125,11 +123,11 @@ public:
         return ratio_;
     }
     double SetRadius(double radius) {
-        radius_ = VerifyRadius(radius);
+        SetOption(std::string_view{RadiusOpt.GetName()}, boost::optional<boost::any>{radius});
         return radius_;
     }
     double SetRatio(double ratio) {
-        ratio_ = VerifyRatio(ratio);
+        SetOption(std::string_view{RadiusOpt.GetName()}, boost::optional<boost::any>{ratio});
         return ratio_;
     }
     ColumnLayoutRelationData const& GetRelationData() const noexcept {
@@ -139,57 +137,6 @@ public:
     std::string GetApproxFDsAsJson() const {
         return FDAlgorithm::FDsToJson(approx_fds_);
     }
-
-    template <typename PreciseAlgo, typename ApproxAlgo = Pyro>
-    static std::unique_ptr<TypoMiner> CreateFrom(Config const& config);
 };
-
-template <typename PreciseAlgo, typename ApproxAlgo>
-std::unique_ptr<TypoMiner> TypoMiner::CreateFrom(Config const& config) {
-    static_assert(std::is_base_of_v<PliBasedFDAlgorithm, ApproxAlgo>,
-                  "Approximate algorithm must be relation based");
-
-    namespace onam = algos::config::names;
-
-    if (config.GetSpecialParam<double>(onam::kError) == 0.0) {
-        throw std::invalid_argument("Typo mining with error = 0 is meaningless");
-    }
-
-    Config precise_config = config;
-    precise_config.special_params[onam::kError] = 0.0;
-    auto input_generator = std::make_unique<CSVParser>(config.data, config.separator,
-                                                       config.has_header);
-    std::shared_ptr<ColumnLayoutRelationData> relation = ColumnLayoutRelationData::CreateFrom(
-            *input_generator, config.is_null_equal_null);
-    input_generator->Reset();
-    auto typed_relation = model::ColumnLayoutTypedRelationData::CreateFrom(
-            *input_generator, config.is_null_equal_null);
-
-    double radius;
-    double ratio;
-    if (config.HasParam(onam::kRadius)) {
-        radius = VerifyRadius(config.GetSpecialParam<double>(onam::kRadius));
-    }
-    if (config.HasParam(onam::kRatio)) {
-        ratio = VerifyRatio(config.GetSpecialParam<double>(onam::kRatio));
-    } else {
-        /* Should be good heuristic. Or set ratio to 1 by default? */
-        ratio = (relation->GetNumRows() <= 1) ? 1 : 2.0 / relation->GetNumRows();
-    }
-
-    std::unique_ptr<FDAlgorithm> precise_algo;
-    std::unique_ptr<FDAlgorithm> approx_algo;
-    if constexpr (std::is_base_of_v<PliBasedFDAlgorithm, PreciseAlgo>) {
-        precise_algo = std::make_unique<PreciseAlgo>(relation, precise_config);
-    } else {
-        precise_algo = std::make_unique<PreciseAlgo>(precise_config);
-    }
-
-    approx_algo = std::make_unique<ApproxAlgo>(relation, config);
-
-    return std::unique_ptr<TypoMiner>(
-        new TypoMiner(std::move(input_generator), std::move(precise_algo), std::move(approx_algo),
-                      std::move(relation), std::move(typed_relation), radius, ratio));
-}
 
 }  // namespace algos

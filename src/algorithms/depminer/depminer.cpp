@@ -14,9 +14,9 @@ namespace algos {
 
 using boost::dynamic_bitset, std::make_shared, std::shared_ptr, std::setw, std::vector, std::list, std::dynamic_pointer_cast;
 
-unsigned long long Depminer::ExecuteFd() {
-
+unsigned long long Depminer::ExecuteInternal() {
     const auto start_time = std::chrono::system_clock::now();
+
     schema_ = relation_->GetSchema();
 
     progress_step_ = kTotalProgressPercent / schema_->GetNumColumns();

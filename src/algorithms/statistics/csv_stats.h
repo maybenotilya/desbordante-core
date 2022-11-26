@@ -7,7 +7,7 @@
 
 namespace algos {
 
-class CsvStats : public algos::Primitive {
+class CsvStats : public Primitive {
     config::EqNullsType is_null_equal_null_;
     config::ThreadNumType threads_num_;
     std::vector<model::TypedColumnData> col_data_;

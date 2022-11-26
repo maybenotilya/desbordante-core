@@ -3,6 +3,7 @@
 #include <random>
 #include <stack>
 
+#include "common_options.h"
 #include "pli_based_fd_algorithm.h"
 #include "vertical.h"
 #include "dfd/partition_storage/partition_storage.h"
@@ -14,13 +15,14 @@ private:
     std::unique_ptr<PartitionStorage> partition_storage_;
     std::vector<Vertical> unique_columns_;
 
-    unsigned int number_of_threads_;
+    config::ThreadNumType number_of_threads_;
 
-    unsigned long long ExecuteFd() override;
+    void MakeExecuteOptsAvailable() final;
+    void RegisterOptions();
+    unsigned long long ExecuteInternal() final;
 
 public:
-    explicit DFD(Config const& config);
-    explicit DFD(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config);
+    DFD();
 };
 
 }  // namespace algos

@@ -9,8 +9,9 @@
 #include "metric_verifier.h"
 #include "option_names.h"
 
-namespace tests {
 namespace onam = algos::config::names;
+
+namespace tests {
 
 struct MetricVerifyingParams {
     algos::StdParamsMap params;
@@ -44,7 +45,8 @@ struct MetricVerifyingParams {
 class TestMetricVerifying : public ::testing::TestWithParam<MetricVerifyingParams> {};
 
 static std::unique_ptr<algos::MetricVerifier> CreateMetricVerifier(algos::StdParamsMap const& map) {
-    return algos::details::CreateAndLoadPrimitive<algos::MetricVerifier>(map);
+    auto mp = algos::StdParamsMap(map);
+    return algos::CreateAndLoadPrimitive<algos::MetricVerifier>(mp);
 }
 
 static bool GetResult(algos::MetricVerifier& metric_verifier) {

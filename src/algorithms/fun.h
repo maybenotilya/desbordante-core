@@ -73,11 +73,9 @@ public:
     bool Contains(Vertical const& that) const;
 };
 
-class FUN : public PliBasedFDAlgorithm {
+class FUN final : public PliBasedFDAlgorithm {
 public:
-    explicit FUN(Config const& config) : PliBasedFDAlgorithm(config, {kDefaultPhaseName}) {}
-    explicit FUN(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config)
-        : PliBasedFDAlgorithm(std::move(relation), config, {kDefaultPhaseName}) {}
+    FUN() : PliBasedFDAlgorithm({kDefaultPhaseName}) {};
 
     // Entities from the algorithm itself
 private:
@@ -86,7 +84,7 @@ private:
 
     using Level = std::list<FunQuadruple>;
 
-    unsigned long long ExecuteFd() final;
+    unsigned long long ExecuteInternal() final;
 
     Level GenerateCandidate(Level const& l_k) const;
 

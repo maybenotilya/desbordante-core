@@ -8,6 +8,8 @@
 
 #include "algorithms/fd_mine.h"
 #include "algorithms/tane.h"
+#include "algo_factory.h"
+#include "common_options.h"
 #include "datasets.h"
 #include "option_names.h"
 #include "pyro.h"
@@ -15,12 +17,20 @@
 
 using ::testing::ContainerEq, ::testing::Eq;
 
+using algos::FDAlgorithm, algos::Fd_mine, algos::StdParamsMap;
+
 using std::string, std::vector;
+
+namespace onam = algos::config::names;
 
 std::unique_ptr<FDAlgorithm> CreateFD_MineAlgorithmInstance(
     std::filesystem::path const& path, char separator = ',', bool has_header = true) {
-    FDAlgorithm::Config c{ .data = path, .separator = separator, .has_header = has_header };
-    return std::make_unique<Fd_mine>(c);
+    StdParamsMap params_map{
+            {onam::kData, path},
+            {onam::kSeparator, separator},
+            {onam::kHasHeader, has_header}
+    };
+    return algos::CreateAndLoadPrimitive<Fd_mine>(params_map);
 }
 
 class AlgorithmTest : public LightDatasets, public HeavyDatasets, public ::testing::Test {
@@ -122,8 +132,6 @@ void MinimizeFDs(std::list<FD>& fd_collection) {
 }
 
 TEST_F(AlgorithmTest, FD_Mine_ReturnsSameAsPyro) {
-    namespace onam = algos::config::names;
-
     auto path = std::filesystem::current_path() / "input_data";
 
     try {
@@ -137,17 +145,20 @@ TEST_F(AlgorithmTest, FD_Mine_ReturnsSameAsPyro) {
                 path / LightDatasets::DatasetName(i), LightDatasets::Separator(i),
                 LightDatasets::HasHeader(i));
 
-            FDAlgorithm::Config c{.data = path / LightDatasets::DatasetName(i),
-                                  .separator = LightDatasets::Separator(i),
-                                  .has_header = LightDatasets::HasHeader(i),
-                                  .special_params = {{onam::kSeed, 0}, {onam::kError, 0.0}}};
-            auto pyro = algos::Pyro(c);
+            StdParamsMap params_map{
+                    {onam::kData, path / LightDatasets::DatasetName(i)},
+                    {onam::kSeparator, LightDatasets::Separator(i)},
+                    {onam::kHasHeader, LightDatasets::HasHeader(i)},
+                    {onam::kSeed, decltype(Configuration::seed){0}},
+                    {onam::kError, algos::config::ErrorType{0.0}}
+            };
+            auto pyro = algos::CreateAndLoadPrimitive<algos::Pyro>(params_map);
 
             algorithm->Execute();
             std::list<FD> fds = algorithm->FdList();
-            pyro.Execute();
+            pyro->Execute();
 
-            for (auto& fd : pyro.FdList()) {
+            for (auto& fd : pyro->FdList()) {
                 if (fd.GetLhs().GetArity() == 0) {
                     std::list<FD>::iterator it = fds.begin();
                     while (it != fds.end()) {
@@ -164,7 +175,7 @@ TEST_F(AlgorithmTest, FD_Mine_ReturnsSameAsPyro) {
             MinimizeFDs(fds);
             // std::string algorithm_results = algorithm->GetJsonFDs();
             std::string algorithm_results = GetJsonFDs(fds);
-            std::string results_pyro = pyro.FDAlgorithm::GetJsonFDs();
+            std::string results_pyro = pyro->FDAlgorithm::GetJsonFDs();
 
             EXPECT_EQ(results_pyro, algorithm_results)
                 << "The new algorithm and Pyro yield different results at "

@@ -46,23 +46,12 @@ void validate(boost::any& v, const std::vector<std::string>& values, MetricAlgo*
 
 }  // namespace algos
 
-static bool CheckOptions(std::string const& task, std::string const& alg, double error) {
-    if (!algos::AlgoMiningType::_is_valid(task.c_str())) {
-        std::cout << "ERROR: no matching task."
-                     " Available tasks (primitives to mine) are:\n" +
-                     EnumToAvailableValues<algos::AlgoMiningType>() + '\n';
-        return false;
-    }
-
-    if (!algos::Algo::_is_valid(alg.c_str())) {
+static bool CheckOptions(std::string const& prim) {
+    if (!algos::Primitives::_is_valid(prim.c_str())) {
         std::cout << "ERROR: no matching algorithm."
                      " Available algorithms are:\n" +
-                     EnumToAvailableValues<algos::Algo>() + '\n';
+                     EnumToAvailableValues<algos::Primitives>() + '\n';
         return false;
-    }
-
-    if (error > 1 || error < 0) {
-        std::cout << "ERROR: error should be between 0 and 1.\n";
     }
 
     return true;
@@ -71,7 +60,6 @@ static bool CheckOptions(std::string const& task, std::string const& alg, double
 int main(int argc, char const* argv[]) {
     std::string algo;
     std::string dataset;
-    std::string task;
     char separator = ',';
     bool has_header = true;
     int seed = 0;
@@ -97,14 +85,10 @@ int main(int argc, char const* argv[]) {
     unsigned int q = 2;
     bool dist_to_null_infinity = false;
 
-    std::string const algo_desc = "algorithm to use\n" +
-                                  EnumToAvailableValues<algos::Algo>() +
-                                  " for FD mining.";
-    std::string const task_desc = "type of dependency to mine\n" +
-                                  EnumToAvailableValues<algos::AlgoMiningType>();
+    std::string const algo_desc = "algorithm to use for data profiling\n" +
+                                  EnumToAvailableValues<algos::Primitives>();
     constexpr auto help_opt = "help";
-    constexpr auto algorithm_opt = "algorithm";
-    constexpr auto task_opt = "task";
+    constexpr auto primitive_opt = "primitive";
     std::string const separator_opt = std::string(onam::kSeparator) + ",s";
 
     po::options_description info_options("Desbordante information options");
@@ -115,8 +99,7 @@ int main(int argc, char const* argv[]) {
 
     po::options_description general_options("General options");
     general_options.add_options()
-        (task_opt, po::value<std::string>(&task)->required(), task_desc.c_str())
-        (algorithm_opt, po::value<std::string>(&algo)->required(), algo_desc.c_str())
+        (primitive_opt, po::value<std::string>(&algo)->required(), algo_desc.c_str())
         (onam::kData, po::value<std::string>(&dataset)->required(), descriptions::kDData)
         (separator_opt.c_str(), po::value<char>(&separator)->default_value(separator),
             descriptions::kDSeparator)
@@ -190,7 +173,7 @@ int main(int argc, char const* argv[]) {
         po::store(po::parse_command_line(argc, argv, all_options), vm);
     } catch (po::error &e) {
         std::cout << e.what() << std::endl;
-        return 0;
+        return 1;
     }
     if (vm.count(help_opt))
     {
@@ -201,7 +184,7 @@ int main(int argc, char const* argv[]) {
         po::notify(vm);
     } catch (po::error &e) {
         std::cout << e.what() << std::endl;
-        return 0;
+        return 1;
     }
 
     el::Loggers::configureFromGlobal("logging.conf");
@@ -209,49 +192,14 @@ int main(int argc, char const* argv[]) {
     std::transform(algo.begin(), algo.end(), algo.begin(),
                    [](unsigned char c) { return std::tolower(c); });
 
-    if (!CheckOptions(task, algo, error)) {
+    if (!CheckOptions(algo)) {
         std::cout << all_options << std::endl;
         return 1;
     }
 
-    if (task == "fd" || task == "typos") {
-        std::cout << "Input: algorithm \"" << algo
-                  << "\" with seed " << std::to_string(seed)
-                  << ", error \"" << std::to_string(error)
-                  << ", max_lhs \"" << std::to_string(max_lhs)
-                  << "\" and dataset \"" << dataset
-                  << "\" with separator \'" << separator
-                  << "\'. Header is " << (has_header ? "" : "not ") << "present. " << std::endl;
-    } else if (task == "ar") {
-        std::cout << "Input: algorithm \"" << algo
-                  << "\" with min. support threshold \"" << std::to_string(minsup)
-                  << "\", min. confidence threshold \"" << std::to_string(minconf)
-                  << "\" and dataset \"" << dataset
-                  << "\". Input type is \"" << ar_input_format
-                  << "\" with separator \'" << separator
-                  << "\'. Header is " << (has_header ? "" : "not ") << "present. " << std::endl;
-    } else if (task == "metric") {
-        algo = "metric";
-        auto get_str = [](std::vector<unsigned> const& vec) {
-            std::stringstream stream;
-            std::copy(vec.begin(), vec.end(), std::ostream_iterator<int>(stream, " "));
-            string lhs_indices_str = stream.str();
-            boost::trim_right(lhs_indices_str);
-            return lhs_indices_str;
-        };
-        std::cout << "Input metric \"" << metric;
-        if (metric == +algos::Metric::cosine) std::cout << "\" with q \"" << q;
-        std::cout << "\" with parameter \"" << parameter
-                  << "\" with LHS indices \"" << get_str(lhs_indices)
-                  << "\" with RHS indices \"" << get_str(rhs_indices)
-                  << "\" and dataset \"" << dataset
-                  << "\" with separator \'" << separator
-                  << "\'. Header is " << (has_header ? "" : "not ") << "present. " << std::endl;
-    }
-
     std::unique_ptr<algos::Primitive> algorithm_instance;
     try {
-        algorithm_instance = algos::CreateAlgorithmInstance(task, algo, vm);
+        algorithm_instance = algos::CreatePrimitive(algo, vm);
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;
         return 1;

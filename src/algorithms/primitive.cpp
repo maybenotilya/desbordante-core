@@ -7,6 +7,8 @@ namespace algos {
 Primitive::Primitive(std::vector<std::string_view> phase_names)
     : phase_names_(std::move(phase_names)) {}
 
+void Primitive::MakeExecuteOptsAvailable() {}
+
 void Primitive::AddProgress(double const val) noexcept {
     assert(val >= 0);
     std::scoped_lock lock(progress_mutex_);
@@ -48,12 +50,18 @@ void Primitive::ExecutePrepare() {
     MakeExecuteOptsAvailable();
 }
 
-void Primitive::SetOption(const std::string& option_name,
-                          boost::optional<boost::any> const& value) {
+void Primitive::SetOption(const std::string_view& option_name,
+                          const boost::optional<boost::any>& value) {
     auto it = possible_options_.find(option_name);
-    if (it == possible_options_.end()
-        || available_options.find(it->first) == available_options.end())
-        throw std::invalid_argument("Invalid option");
+    if (it == possible_options_.end()) {
+        if (!HandleUnknownOption(option_name, value)) {
+            throw std::invalid_argument("Unknown option \"" + std::string{option_name} + '"');
+        }
+        return;
+    }
+    else if (available_options.find(it->first) == available_options.end()) {
+        throw std::invalid_argument("Invalid option \"" + std::string{option_name} + '"');
+    }
 
     if (it->second->IsSet()) {
         UnsetOption(it->first);
@@ -61,6 +69,19 @@ void Primitive::SetOption(const std::string& option_name,
 
     it->second->Set(value);
 }
+
+void Primitive::SetOption(std::string const& option_name,
+                          boost::optional<boost::any> const& value) {
+    SetOption(std::string_view{option_name}, value);
+}
+
+bool Primitive::HandleUnknownOption([[maybe_unused]] const std::string_view& option_name,
+                                    [[maybe_unused]] const boost::optional<boost::any>& value) {
+    return false;
+}
+
+void Primitive::AddMoreNeededOptions(
+        [[maybe_unused]] std::unordered_set<std::string_view>& previous_options) const {}
 
 void Primitive::UnsetOption(const std::string& option_name) noexcept {
     UnsetOption(std::string_view(option_name));
@@ -75,15 +96,16 @@ void Primitive::UnsetOption(std::string_view option_name) noexcept {
     ExcludeOptions(it->first);
 }
 
-std::unordered_set<std::string> Primitive::GetNeededOptions() const {
-    std::unordered_set<std::string> needed{};
+std::unordered_set<std::string_view> Primitive::GetNeededOptions() const {
+    std::unordered_set<std::string_view> needed{};
     for (std::string_view const& name : available_options) {
         auto it = possible_options_.find(name);
         assert(it != possible_options_.end());
         if (!it->second->IsSet()) {
-            needed.insert(std::string(it->first));
+            needed.insert(it->first);
         }
     }
+    AddMoreNeededOptions(needed);
     return needed;
 }
 

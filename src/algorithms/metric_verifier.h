@@ -18,7 +18,7 @@
 
 namespace algos {
 
-class MetricVerifier : public algos::Primitive {
+class MetricVerifier : public Primitive {
 private:
     using DistanceFunction = std::function<long double(std::byte const*, std::byte const*)>;
     using CompareFunction = std::function<bool(util::PLI::Cluster const& cluster)>;

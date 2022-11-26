@@ -22,7 +22,7 @@ static std::unique_ptr<algos::CsvStats> MakeStatPrimitive(std::string_view datas
             {algos::config::names::kSeparator, separator},
             {algos::config::names::kEqualNulls, is_null_equal_null},
             {algos::config::names::kThreads, thread_num}};
-    return algos::details::CreateAndLoadPrimitive<algos::CsvStats>(params);
+    return algos::CreateAndLoadPrimitive<algos::CsvStats>(params);
 }
 
 class TestCsvStats : public ::testing::TestCase{};

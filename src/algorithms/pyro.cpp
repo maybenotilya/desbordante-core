@@ -6,23 +6,33 @@
 
 #include <easylogging++.h>
 
+#include "common_options.h"
 #include "fd_g1_strategy.h"
 #include "key_g1_strategy.h"
+#include "option_descriptions.h"
 #include "option_names.h"
 
 namespace algos {
 
+decltype(Pyro::SeedOpt) Pyro::SeedOpt{
+    {config::names::kSeed, config::descriptions::kDSeed}, 0
+};
+
 std::mutex searchSpacesMutex;
 
-void Pyro::RegisterAdditionalOptions() {
-
+void Pyro::RegisterOptions() {
+    RegisterOption(MaxLhsOpt.GetOption(&configuration_.max_lhs));
+    RegisterOption(config::ErrorOpt.GetOption(&configuration_.max_ucc_error));
+    RegisterOption(config::ThreadNumber.GetOption(&configuration_.parallelism));
+    RegisterOption(SeedOpt.GetOption(&configuration_.seed));
 }
 
-void Pyro::MakeMoreExecuteOptsAvailable() {
-
+void Pyro::MakeExecuteOptsAvailable() {
+    MakeOptionsAvailable(config::GetOptionNames(MaxLhsOpt, config::ErrorOpt, config::ThreadNumber,
+                                                SeedOpt));
 }
 
-unsigned long long Pyro::ExecuteFd() {
+unsigned long long Pyro::ExecuteInternal() {
     auto start_time = std::chrono::system_clock::now();
 
     auto schema = relation_->GetSchema();
@@ -104,13 +114,13 @@ unsigned long long Pyro::ExecuteFd() {
     };
 
     std::vector<std::thread> threads;
-    for (int i = 0; i < configuration_.parallelism; i++) {
+    for (config::ThreadNumType i = 0; i < configuration_.parallelism; i++) {
         //std::thread();
         threads.emplace_back(work_on_search_space, std::ref(search_spaces_),
                              profiling_context.get(), i);
     }
 
-    for (int i = 0; i < configuration_.parallelism; i++) {
+    for (config::ThreadNumType i = 0; i < configuration_.parallelism; i++) {
         threads[i].join();
     }
 
@@ -131,7 +141,8 @@ unsigned long long Pyro::ExecuteFd() {
     return elapsed_milliseconds.count();
 }
 
-void Pyro::init() {
+Pyro::Pyro() : PliBasedFDAlgorithm({kDefaultPhaseName}) {
+    RegisterOptions();
     ucc_consumer_ = [this](auto const& key) {
         this->DiscoverUcc(key);
     };
@@ -139,19 +150,6 @@ void Pyro::init() {
         this->DiscoverFd(fd);
         this->FDAlgorithm::RegisterFd(fd.lhs_, fd.rhs_);
     };
-    configuration_.seed = GetSpecialParam<int>(config::names::kSeed);
-    configuration_.max_ucc_error = GetSpecialParam<double>(config::names::kError);
-    configuration_.max_lhs = config_.max_lhs;
-    configuration_.parallelism = config_.parallelism;
-}
-
-Pyro::Pyro(Config const& config) : PliBasedFDAlgorithm(config, {kDefaultPhaseName}) {
-    init();
-}
-
-Pyro::Pyro(std::shared_ptr<ColumnLayoutRelationData> relation, Config const& config)
-    : PliBasedFDAlgorithm(std::move(relation), config, {kDefaultPhaseName}) {
-    init();
 }
 
 }  // namespace algos
