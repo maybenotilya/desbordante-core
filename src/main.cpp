@@ -28,7 +28,7 @@ namespace algos {
 void validate(boost::any& v, const std::vector<std::string>& values, Metric*, int) {
     const std::string& s = po::validators::get_single_string(values);
     try {
-        v = boost::any(Metric::_from_string(s.c_str()));
+        v = boost::any(Metric::_from_string_nocase(s.c_str()));
     } catch (std::runtime_error&e) {
         throw po::validation_error(po::validation_error::invalid_option_value,
                                    algos::config::names::kMetric, s);
@@ -38,7 +38,7 @@ void validate(boost::any& v, const std::vector<std::string>& values, Metric*, in
 void validate(boost::any& v, const std::vector<std::string>& values, MetricAlgo*, int) {
     const std::string& s = po::validators::get_single_string(values);
     try {
-        v = boost::any(MetricAlgo::_from_string(s.c_str()));
+        v = boost::any(MetricAlgo::_from_string_nocase(s.c_str()));
     } catch (std::runtime_error &e) {
         throw po::validation_error(po::validation_error::invalid_option_value,
                                    algos::config::names::kMetricAlgorithm, s);
@@ -48,24 +48,13 @@ void validate(boost::any& v, const std::vector<std::string>& values, MetricAlgo*
 void validate(boost::any& v, const std::vector<std::string>& values, Primitives*, int) {
     const std::string& s = po::validators::get_single_string(values);
     try {
-        v = boost::any(Primitives::_from_string(s.c_str()));
+        v = boost::any(Primitives::_from_string_nocase(s.c_str()));
     } catch (std::runtime_error &e) {
         throw po::validation_error(po::validation_error::invalid_option_value, primitive_opt, s);
     }
 }
 
 }  // namespace algos
-
-static bool CheckOptions(std::string const& prim) {
-    if (!algos::Primitives::_is_valid(prim.c_str())) {
-        std::cout << "ERROR: no matching algorithm."
-                     " Available algorithms are:\n" +
-                     EnumToAvailableValues<algos::Primitives>() + '\n';
-        return false;
-    }
-
-    return true;
-}
 
 int main(int argc, char const* argv[]) {
     algos::Primitives primitive = algos::Primitives::_values()[0];

@@ -84,7 +84,7 @@ void Primitive::AddMoreNeededOptions(
         [[maybe_unused]] std::unordered_set<std::string_view>& previous_options) const {}
 
 void Primitive::UnsetOption(const std::string& option_name) noexcept {
-    UnsetOption(std::string_view(option_name));
+    UnsetOption(std::string_view{option_name});
 }
 
 void Primitive::UnsetOption(std::string_view option_name) noexcept {

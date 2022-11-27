@@ -19,11 +19,11 @@ using StdParamsMap = std::unordered_map<std::string, boost::any>;
 namespace details {
 
 template <typename OptionMap>
-boost::any ExtractAnyFromMap(OptionMap&& options, std::string const& option_name) {
-    auto it = options.find(option_name);
+boost::any ExtractAnyFromMap(OptionMap&& options, std::string_view const& option_name) {
+    const std::string string_opt{option_name};
+    auto it = options.find(string_opt);
     if (it == options.end()) {
-        throw std::invalid_argument("No option named \"" + option_name
-                                    + "\" in parameters.");
+        throw std::out_of_range("No option named \"" + string_opt + "\" in parameters.");
     }
     if constexpr (std::is_same_v<typename std::decay<OptionMap>::type,
                                  boost::program_options::variables_map>) {
@@ -45,9 +45,8 @@ void ConfigureFromMap(Primitive& primitive, OptionMap&& options) {
     while (!(needed = primitive.GetNeededOptions()).empty()) {
         for (std::string_view const& option_name : needed) {
             try {
-                primitive.SetOption(option_name, ExtractAnyFromMap(options,
-                                                                   std::string{option_name}));
-            } catch (std::invalid_argument&) {
+                primitive.SetOption(option_name, ExtractAnyFromMap(options, option_name));
+            } catch (std::out_of_range&) {
                 primitive.SetOption(option_name);
             }
         }

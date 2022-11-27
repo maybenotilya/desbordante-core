@@ -45,12 +45,14 @@ decltype(MetricVerifier::MetricOpt) MetricVerifier::MetricOpt{
 };
 
 decltype(MetricVerifier::AlgoOpt) MetricVerifier::AlgoOpt{
-        {config::names::kMetricAlgorithm, config::descriptions::kDMetricAlgorithm},
-        MetricAlgo::_values()[0]
+        {config::names::kMetricAlgorithm, config::descriptions::kDMetricAlgorithm}
 };
 
 decltype(MetricVerifier::QGramLengthOpt) MetricVerifier::QGramLengthOpt{
-        {config::names::kQGramLength, config::descriptions::kDQGramLength}, 2
+        {config::names::kQGramLength, config::descriptions::kDQGramLength}, 2, [](auto value) {
+            if (value <= 0)
+                throw std::invalid_argument("Q-gram length should be greater than zero.");
+        }
 };
 
 MetricVerifier::MetricVerifier() : Primitive({}) {
@@ -69,46 +71,71 @@ void MetricVerifier::ValidateIndices(decltype(MetricVerifier::lhs_indices_)& val
 
 void MetricVerifier::ValidateRhs(decltype(MetricVerifier::rhs_indices_)& value) {
     ValidateIndices(value);
-    for (unsigned i : value) {
-        model::TypedColumnData const& col = typed_relation_->GetColumnData(i);
-        auto type_id = col.GetTypeId();
+    if (value.size() == 1) {
+        auto column_index = value[0];
+        model::TypedColumnData const& column = typed_relation_->GetColumnData(column_index);
+        auto type_id = column.GetTypeId();
         if (type_id == +model::TypeId::kUndefined) {
-            throw std::runtime_error(
-                    "Column with index \"" + std::to_string(i) + "\" type undefined.");
+            throw std::invalid_argument("Column with index \"" + std::to_string(column_index)
+                                        + "\" type undefined.");
         }
         if (type_id == +model::TypeId::kMixed) {
-            throw std::runtime_error("Column with index \"" + std::to_string(i)
-                                     + "\" contains values of different types.");
+            throw std::invalid_argument("Column with index \"" + std::to_string(column_index)
+                                        + "\" contains values of different types.");
         }
-        if (value.size() > 1 && !col.IsNumeric()) {
-            throw std::runtime_error(
-                    R"("euclidean" metric does not match RHS column type with index ")"
-                    + std::to_string(i) + "\".");
+
+        if (metric_ == +Metric::euclidean) {
+            if (!column.IsNumeric()) {
+                throw std::invalid_argument("\"Euclidean\" metric is only available for numeric "
+                        "columns.");
+            }
+            return;
         }
+        if (type_id == +model::TypeId::kString) return;
+        throw std::invalid_argument("The chosen metric is available only for string columns.");
     }
+    assert(value.size() > 0);
+    if (metric_ == +Metric::euclidean) {
+        for (auto column_index : value) {
+            model::TypedColumnData const& column = typed_relation_->GetColumnData(column_index);
+            auto type_id = column.GetTypeId();
+            if (type_id == +model::TypeId::kUndefined) {
+                throw std::invalid_argument("Column with index \"" + std::to_string(column_index)
+                                            + "\" type undefined.");
+            }
+            if (type_id == +model::TypeId::kMixed) {
+                throw std::invalid_argument("Column with index \"" + std::to_string(column_index)
+                                            + "\" contains values of different types.");
+            }
+
+            if (!column.IsNumeric()) {
+                throw std::invalid_argument("\"Euclidean\" metric is only available "
+                        "for numeric columns, column with index " + std::to_string(column_index)
+                        + " is not numeric");
+            }
+        }
+        return;
+    }
+    throw std::invalid_argument("Multidimensional RHS is not available for the chosen metric");
+
 }
 
 void MetricVerifier::RegisterOptions() {
     auto check_lhs = [this](auto& value) { ValidateIndices(value); };
-    auto check_rhs = [this](auto& value) { ValidateRhs(value); };
-    auto need_algo_only = [this](Metric value) {
-        return value == +Metric::levenshtein
-               || (value == +Metric::euclidean && rhs_indices_.size() == 1);
+    auto check_rhs = [this](decltype(MetricVerifier::rhs_indices_)& value) { ValidateRhs(value); };
+    auto need_algo_and_q = [this](...) {
+        return metric_ == +Metric::cosine;
     };
-    auto metric_check = [this](Metric value) {
-        if (rhs_indices_.size() != 1 && value != +Metric::euclidean) {
-            throw std::invalid_argument("Can't use this metric");
-        }
+    auto need_algo_only = [this](decltype(MetricVerifier::rhs_indices_) const& value) {
+        assert(metric_ == +Metric::levenshtein || metric_ == +Metric::euclidean);
+        return metric_ == +Metric::levenshtein || value.size() != 1;
     };
     auto algo_check = [this](MetricAlgo value) {
-        const auto algo_unusable = "Can't use this algorithm with this metric and RHS indices.";
-        if (value == +MetricAlgo::approx) {
-            if (metric_ == +Metric::euclidean && rhs_indices_.size() == 1)
-                throw std::invalid_argument(algo_unusable);
-        }
-        else if (value == +MetricAlgo::calipers) {
+        assert(!(metric_ == +Metric::euclidean && rhs_indices_.size() == 1));
+        if (value == +MetricAlgo::calipers) {
             if (!(metric_ == +Metric::euclidean && rhs_indices_.size() == 2))
-                throw std::invalid_argument(algo_unusable);
+                throw std::invalid_argument("\"calipers\" algorithm is only available for "
+                        "2-dimensional RHS and \"euclidean\" metric.");
         }
     };
 
@@ -116,20 +143,22 @@ void MetricVerifier::RegisterOptions() {
     RegisterOption(config::NullDistInf.GetOption(&dist_to_null_infinity_));
     RegisterOption(ParameterOpt.GetOption(&parameter_));
     RegisterOption(LhsIndicesOpt.GetOption(&lhs_indices_).SetInstanceCheck(check_lhs));
-    RegisterOption(RhsIndicesOpt.GetOption(&rhs_indices_).SetInstanceCheck(check_rhs)
-                           .SetConditionalOpts(GetOptAvailFunc(),
-                                               {{true_func, config::GetOptionNames(MetricOpt)}}));
-    RegisterOption(MetricOpt.GetOption(&metric_).SetInstanceCheck(metric_check).SetConditionalOpts(
-            GetOptAvailFunc(), {{equals(+Metric::cosine),
-                                 config::GetOptionNames(AlgoOpt, QGramLengthOpt)},
-                                {need_algo_only, config::GetOptionNames(MetricOpt)}}));
+    RegisterOption(MetricOpt.GetOption(&metric_).SetConditionalOpts(
+            GetOptAvailFunc(), {{true_func, config::GetOptionNames(RhsIndicesOpt)}}));
+    RegisterOption(
+            RhsIndicesOpt.GetOption(&rhs_indices_).SetInstanceCheck(check_rhs)
+                    .SetConditionalOpts(
+                            GetOptAvailFunc(),
+                            {{need_algo_and_q, config::GetOptionNames(AlgoOpt, QGramLengthOpt)},
+                             {need_algo_only, config::GetOptionNames(AlgoOpt)}}));
+
     RegisterOption(AlgoOpt.GetOption(&algo_).SetInstanceCheck(algo_check));
     RegisterOption(QGramLengthOpt.GetOption(&q_));
 }
 
 void MetricVerifier::MakeExecuteOptsAvailable() {
     MakeOptionsAvailable(config::GetOptionNames(config::NullDistInf, ParameterOpt, LhsIndicesOpt,
-                                                RhsIndicesOpt, MetricOpt, AlgoOpt, QGramLengthOpt));
+                                                MetricOpt));
 }
 
 void MetricVerifier::FitInternal(model::IDatasetStream& data_stream) {
@@ -173,16 +202,10 @@ MetricVerifier::CompareFunction MetricVerifier::GetCompareFunction() const {
         model::TypedColumnData const& col = typed_relation_->GetColumnData(rhs_indices_[0]);
         switch (metric_) {
         case Metric::euclidean:
-            if (!col.IsNumeric()) {
-                throw std::runtime_error("\"euclidean\" metric does not match RHS column type.");
-            }
             return [this](util::PLI::Cluster const& cluster) {
                 return CompareNumericValues(cluster);
             };
         case Metric::levenshtein:
-            if (col.GetTypeId() != +model::TypeId::kString) {
-                throw std::runtime_error("\"levenshtein\" metric does not match RHS column type.");
-            }
             return [this, &col](util::PLI::Cluster const& cluster) {
                 auto const& type = dynamic_cast<model::StringType const&>(col.GetType());
                 return CompareStringValues(
@@ -191,9 +214,6 @@ MetricVerifier::CompareFunction MetricVerifier::GetCompareFunction() const {
                     });
             };
         case Metric::cosine:
-            if (col.GetTypeId() != +model::TypeId::kString) {
-                throw std::runtime_error("\"cosine\" metric does not match RHS column type.");
-            }
             return [this, &col](util::PLI::Cluster const& cluster) {
                 auto const& type = dynamic_cast<model::StringType const&>(col.GetType());
                 std::unordered_map<std::string, util::QGramVector> q_gram_map;
