@@ -23,7 +23,10 @@ INITIALIZE_EASYLOGGINGPP
                  py::overload_cast<pybind11::object, std::string, py::kwargs const&>(             \
                          &Py##type::Fit),                                                         \
                  "df"_a, "name"_a = "Pandas dataframe", "Transform data from pandas dataframe")   \
-            .def("execute", &Py##type::Execute, "Process data")
+            .def("execute", &Py##type::Execute, "Process data")                                   \
+            .def("GetNeededOptions", &Py##type::GetNeededOptions,                                 \
+                 "Get names of options the primitive needs")                                      \
+            .def("SetOption", &Py##type::SetOption, "Set option value")
 #define DEFINE_PRIMITIVE_WITH_RES(type) \
     DEFINE_PRIMITIVE(type).def("get_results", &Py##type::GetResults)
 

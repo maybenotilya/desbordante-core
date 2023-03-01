@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <unordered_map>
 
 #include <pybind11/pybind11.h>
@@ -32,6 +33,15 @@ public:
     pybind11::int_ Execute(pybind11::kwargs const& kwargs) {
         Configure(kwargs);
         return primitive_.Execute();
+    }
+
+    void SetOption(std::string const& option_name, pybind11::object option_value) {
+        primitive_.SetOption(option_name, PyToAny(primitive_.GetTypeIndex(option_name), 
+                                                  option_value));
+    }
+
+    std::vector<std::string> GetNeededOptions() const {
+        return primitive_.GetNeededOptions();
     }
 };
 
