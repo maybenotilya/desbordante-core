@@ -26,9 +26,8 @@ INITIALIZE_EASYLOGGINGPP
             .def("execute", &Py##type::Execute, "Process data")                                   \
             .def("GetNeededOptions", &Py##type::GetNeededOptions,                                 \
                  "Get names of options the primitive needs")                                      \
-            .def("SetOption", &Py##type::SetOption, "Set option value")
-#define DEFINE_PRIMITIVE_WITH_RES(type) \
-    DEFINE_PRIMITIVE(type).def("get_results", &Py##type::GetResults)
+            .def("SetOption", &Py##type::SetOption, "Set option value")                           \
+            .def("get_results", &Py##type::GetResults)
 
 namespace python_bindings {
 
@@ -71,21 +70,21 @@ PYBIND11_MODULE(desbordante, module) {
             .def_property_readonly("lhs_indices", &PyFD::GetLhs)
             .def_property_readonly("rhs_index", &PyFD::GetRhs);
 
-    DEFINE_PRIMITIVE_WITH_RES(DataStats);
-    DEFINE_PRIMITIVE_WITH_RES(Apriori);
-    DEFINE_PRIMITIVE_WITH_RES(Tane);
-    DEFINE_PRIMITIVE_WITH_RES(Pyro);
-    DEFINE_PRIMITIVE_WITH_RES(FUN);
-    DEFINE_PRIMITIVE_WITH_RES(FdMine);
-    DEFINE_PRIMITIVE_WITH_RES(FastFDs);
-    DEFINE_PRIMITIVE_WITH_RES(HyFD);
-    DEFINE_PRIMITIVE_WITH_RES(FDep);
-    DEFINE_PRIMITIVE_WITH_RES(DFD);
-    DEFINE_PRIMITIVE_WITH_RES(Depminer);
-    DEFINE_PRIMITIVE_WITH_RES(Aid);
-    DEFINE_PRIMITIVE_WITH_RES(MetricVerifier);
+    DEFINE_PRIMITIVE(DataStats);
+    DEFINE_PRIMITIVE(Apriori);
+    DEFINE_PRIMITIVE(Tane);
+    DEFINE_PRIMITIVE(Pyro);
+    DEFINE_PRIMITIVE(FUN);
+    DEFINE_PRIMITIVE(FdMine);
+    DEFINE_PRIMITIVE(FastFDs);
+    DEFINE_PRIMITIVE(HyFD);
+    DEFINE_PRIMITIVE(FDep);
+    DEFINE_PRIMITIVE(DFD);
+    DEFINE_PRIMITIVE(Depminer);
+    DEFINE_PRIMITIVE(Aid);
+    DEFINE_PRIMITIVE(MetricVerifier);
 }
-#undef DEFINE_PRIMITIVE_WITH_RES
 #undef DEFINE_PRIMITIVE
 
 }  // namespace python_bindings
+
