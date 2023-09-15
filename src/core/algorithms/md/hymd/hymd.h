@@ -1,10 +1,10 @@
 #pragma once
 
 #include "algorithms/algorithm.h"
-#include "algorithms/md/md_algorithm.h"
 #include "algorithms/md/hymd/model/column_match_internal.h"
-#include "algorithms/md/hymd/model/dictionary_compressor.h"
-#include "algorithms/md/hymd/model/lattice.h"
+#include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
+#include "algorithms/md/hymd/model/lattice/lattice.h"
+#include "algorithms/md/md_algorithm.h"
 #include "config/tabular_data/input_table_type.h"
 
 namespace algos::hymd {
@@ -41,6 +41,8 @@ private:
     bool InferFromRecordPairs();
 
     void FillSimilarities();
+    // Needs cardinality, consider a separate class for LHS.
+    std::pair<std::vector<double>, size_t> GetMaxRhsDecBounds(std::vector<double> lhs_sims);
 };
 
 }  // namespace algos

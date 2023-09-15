@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "algorithms/md/hymd/model/keyed_position_list_index.h"
+#include "keyed_position_list_index.h"
 #include "model/table/idataset_stream.h"
 
 namespace algos::hymd::model {
