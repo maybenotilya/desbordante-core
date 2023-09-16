@@ -4,28 +4,17 @@
 #include <cassert>
 #include <numeric>
 
-namespace {
-std::vector<size_t> GetNormalizedIndices(std::vector<size_t> indices) {
-    std::sort(indices.begin(), indices.end());
-    indices.erase(std::unique(indices.begin(), indices.end()), indices.end());
-    return indices;
-}
-}  // namespace
-
 namespace algos::hymd::model {
 
-using CompressedRecord = DictionaryCompressor::CompressedRecord;
-
-DictionaryCompressor::DictionaryCompressor(std::vector<size_t> attribute_indices)
-    : indices_(GetNormalizedIndices(std::move(attribute_indices))), plis_(indices_.size()) {}
+DictionaryCompressor::DictionaryCompressor(size_t attribute_num) : plis_(attribute_num) {}
 
 void DictionaryCompressor::AddRecord(std::vector<std::string> record) {
-    if (record.size() < indices_[indices_.size() - 1]) {
+    if (record.size() < plis_.size()) {
         return;
     }
-    CompressedRecord rec(indices_.size());
-    for (size_t i = 0; i < indices_.size(); ++i) {
-        rec[i] = plis_[i].AddNextValue(record[indices_[i]]);
+    CompressedRecord rec(plis_.size());
+    for (size_t i = 0; i < plis_.size(); ++i) {
+        rec[i] = plis_[i].AddNextValue(record[i]);
     }
     records_.push_back(std::move(rec));
 }
@@ -33,9 +22,7 @@ void DictionaryCompressor::AddRecord(std::vector<std::string> record) {
 DictionaryCompressor DictionaryCompressor::CreateFrom(
         ::model::IDatasetStream& stream /*, indices*/) {
     size_t const columns = stream.GetNumberOfColumns();
-    std::vector<size_t> indices(columns);
-    std::iota(indices.begin(), indices.end(), 0);
-    DictionaryCompressor compressor{std::move(indices)};
+    DictionaryCompressor compressor{columns};
     while (stream.HasNextRow()) {
         compressor.AddRecord(stream.GetNextRow());
     }

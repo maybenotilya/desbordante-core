@@ -2,13 +2,13 @@
 
 #include <cstddef>
 
-#include "algorithms/md/hymd/model/lattice/lattice_md.h"
-#include "algorithms/md/hymd/model/lattice/lattice_node.h"
+#include "algorithms/md/hymd/model/md_lattice/lattice_md.h"
+#include "algorithms/md/hymd/model/md_lattice/lattice_node.h"
 #include "algorithms/md/hymd/model/similarity.h"
 
 namespace algos::hymd::model {
 
-class Lattice {
+class MdLattice {
 private:
     // ...
 
@@ -24,7 +24,7 @@ public:
     void RemoveMd(LatticeMd md);
     void RemoveNode(LatticeNode node);
 
-    Lattice(size_t column_matches_size);
+    MdLattice(size_t column_matches_size);
     // Needs cardinality
     std::pair<std::vector<double>, size_t> GetMaxRhsDecBounds(
             model::SimilarityVector const& lhs_sims);

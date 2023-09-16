@@ -1,8 +1,4 @@
-//
-// Created by buyt on 9/14/23.
-//
-
-#include "lattice.h"
+#include "md_lattice.h"
 
 namespace algos::hymd::model {
 

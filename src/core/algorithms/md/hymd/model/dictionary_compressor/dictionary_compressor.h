@@ -15,12 +15,11 @@ public:
     using CompressedRecord = std::vector<size_t>;
 
 private:
-    std::vector<size_t> indices_;
     std::vector<KeyedPositionListIndex> plis_;
     std::vector<CompressedRecord> records_;
 
 public:
-    explicit DictionaryCompressor(std::vector<size_t> attribute_indices);
+    explicit DictionaryCompressor(size_t attribute_num);
     void AddRecord(std::vector<std::string> record);
     [[nodiscard]] std::vector<KeyedPositionListIndex> const& GetPlis() const {
         return plis_;

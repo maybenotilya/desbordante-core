@@ -1,15 +1,16 @@
 #pragma once
 
+#include <optional>
+
 #include "algorithms/algorithm.h"
 #include "algorithms/md/hymd/model/column_match_internal.h"
 #include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
-#include "algorithms/md/hymd/model/lattice/lattice.h"
+#include "algorithms/md/hymd/model/md_lattice/md_lattice.h"
 #include "algorithms/md/hymd/model/similarity.h"
+#include "algorithms/md/hymd/model/support_lattice/support_lattice.h"
 #include "algorithms/md/md_algorithm.h"
 #include "config/tabular_data/input_table_type.h"
 #include "model/table/relational_schema.h"
-
-#include <optional>
 
 namespace std {
 template<>
@@ -42,13 +43,16 @@ private:
     std::vector<model::ColumnMatchInternal> column_matches_;
     model::SimilarityVector rhs_min_similarities_;
 
+    std::vector<std::vector<model::Similarity>> natural_decision_bounds_;
+
     std::vector<SimilarityMatrix> sim_matrices_;
     // col_match_sim_index = sim_index_[column_match.left_col_index]
     // col_match_sim_index[left_record_id].second[>=sim_index_[left_record_id].first[similarity]]
     std::vector<SimilarityIndex> sim_indexes_;
 
-    model::Lattice lattice_;
+    model::MdLattice md_lattice_;
     size_t cur_level_ = 0;
+    model::SupportLattice support_lattice_;
     size_t min_support_ = 0;
 
     size_t cur_record_left_ = 0;
@@ -68,9 +72,6 @@ private:
     bool InferFromRecordPairs();
 
     void FillSimilarities();
-
-    void MarkUnsupported(model::SimilarityVector const& lhs);
-    bool IsSupported(model::SimilarityVector const& sim_vec);
 
     std::optional<model::SimilarityVector> SpecializeLhs(model::SimilarityVector const& lhs,
                                                          size_t col_match_index);
