@@ -60,8 +60,6 @@ private:
     std::vector<std::pair<size_t, size_t>> recommendations_;
     std::unordered_set<std::pair<size_t, size_t>> checked_recommendations_;
 
-    size_t inference_run_records_checked_ = 0;
-    size_t inference_run_mds_refined_ = 0;
     size_t efficiency_reciprocal_ = 100;
 
     void ResetStateMd() final;
@@ -76,7 +74,8 @@ private:
     std::optional<model::SimilarityVector> SpecializeLhs(model::SimilarityVector const& lhs,
                                                          size_t col_match_index);
 
-    bool CheckRecordPair(size_t left_record, size_t right_record);
+    size_t CheckRecordPair(size_t left_record, size_t right_record);
+    bool ShouldKeepInferring(size_t records_checked, size_t mds_refined);
     model::SimilarityVector GetSimilarityVector(size_t left_record, size_t right_record);
     std::optional<model::SimilarityVector> SpecializeLhs(model::SimilarityVector const& lhs,
                                                          size_t col_match_index,

@@ -9,6 +9,7 @@ void HyMD::ResetStateMd() {
     sim_indexes_.clear();
     cur_level_ = 0;
     md_lattice_ = model::MdLattice(column_matches_.size());
+    support_lattice_ = model::SupportLattice(column_matches_.size());
     cur_record_left_ = 0;
     cur_record_right_ = 0;
     recommendations_.clear();
@@ -35,10 +36,9 @@ unsigned long long HyMD::ExecuteInternal() {
     // time stuff
     FillSimilarities();
 
-    bool done = false;
+    bool done;
     do {
         done = InferFromRecordPairs();
-        efficiency_reciprocal_ *= 2;
         done = TraverseLattice(done);
     } while(!done);
     return 10031;
@@ -85,16 +85,17 @@ bool HyMD::TraverseLattice(bool traverse_all) {
 }
 
 bool HyMD::InferFromRecordPairs() {
-    inference_run_records_checked_ = 0;
-    inference_run_mds_refined_ = 0;
+    size_t records_checked = 0;
+    size_t mds_refined = 0;
 
     while (!recommendations_.empty()) {
         std::pair<size_t, size_t> rec_pair = recommendations_.back();
         recommendations_.pop_back();
         auto const [left_record, right_record] = rec_pair;
-        bool keep_checking = CheckRecordPair(left_record, right_record);
+        mds_refined += CheckRecordPair(left_record, right_record);
         checked_recommendations_.emplace(rec_pair);
-        if (!keep_checking) {
+        if (!ShouldKeepInferring(records_checked, mds_refined)) {
+            efficiency_reciprocal_ *= 2;
             return false;
         }
     }
@@ -105,9 +106,10 @@ bool HyMD::InferFromRecordPairs() {
                 ++cur_record_right_;
                 continue;
             }
-            bool keep_checking = CheckRecordPair(cur_record_left_, cur_record_right_);
+            mds_refined += CheckRecordPair(cur_record_left_, cur_record_right_);
             ++cur_record_right_;
-            if (!keep_checking) {
+            if (!ShouldKeepInferring(records_checked, mds_refined)) {
+                efficiency_reciprocal_ *= 2;
                 return false;
             }
         }
@@ -116,11 +118,9 @@ bool HyMD::InferFromRecordPairs() {
     return true;
 }
 
-bool HyMD::CheckRecordPair(size_t left_record, size_t right_record) {
-    ++inference_run_records_checked_;
+size_t HyMD::CheckRecordPair(size_t left_record, size_t right_record) {
     model::SimilarityVector sim = GetSimilarityVector(left_record, right_record);
     std::vector<model::LatticeMd> violated = md_lattice_.FindViolated(sim);
-    inference_run_mds_refined_ += violated.size();
     for (model::LatticeMd const& md : violated) {
         md_lattice_.RemoveMd(md);
         size_t const rhs_index = md.rhs_index;
@@ -138,8 +138,11 @@ bool HyMD::CheckRecordPair(size_t left_record, size_t right_record) {
             }
         }
     }
-    return inference_run_mds_refined_ != 0 &&
-           inference_run_records_checked_ / inference_run_mds_refined_ > efficiency_reciprocal_;
+    return violated.size();
+}
+
+bool HyMD::ShouldKeepInferring(size_t records_checked, size_t mds_refined) {
+    return mds_refined != 0 && records_checked / mds_refined > efficiency_reciprocal_;
 }
 
 void HyMD::FillSimilarities() {
@@ -167,6 +170,9 @@ void HyMD::FillSimilarities() {
                  * slowdown from this check and deal with it if it is
                  * significant.
                 if (!(similarity >= 0 && similarity <= 1)) {
+                    // Configuration error because bundled similarity functions
+                    // are going to be correct, but the same cannot be said about
+                    // user-supplied functions
                     throw config::OutOfRange("Unexpected similarity (" + std::to_string(similarity) + ")");
                 }
                  */

@@ -8,6 +8,8 @@ class SupportLattice {
 public:
     void MarkUnsupported(model::SimilarityVector const& lhs);
     bool IsUnsupported(model::SimilarityVector const& sim_vec);
+
+    SupportLattice(size_t attributes_number);
 };
 
 }
