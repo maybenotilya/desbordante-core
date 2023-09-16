@@ -9,6 +9,8 @@
 #include "config/tabular_data/input_table_type.h"
 #include "model/table/relational_schema.h"
 
+#include <optional>
+
 namespace std {
 template<>
 struct hash<std::pair<size_t, size_t>> {
@@ -24,10 +26,9 @@ namespace algos::hymd {
 class HyMD final : public MdAlgorithm {
 private:
     using ValueIdentifier = size_t;
-    using SimSortedRecords = std::vector<size_t>;
-    using SimToFirstSimRecMapping = std::unordered_map<model::Similarity, size_t>;
+    using SimSortedInfo = std::vector<std::pair<model::Similarity, ValueIdentifier>>;
     using SimilarityMatrix = std::vector<std::unordered_map<ValueIdentifier, model::Similarity>>;
-    using SimilarityIndex = std::vector<std::pair<SimToFirstSimRecMapping, SimSortedRecords>>;
+    using SimilarityIndex = std::vector<SimSortedInfo>;
 
     config::InputTable left_table_;
     config::InputTable right_table_;
@@ -39,6 +40,7 @@ private:
     model::DictionaryCompressor records_right_;
 
     std::vector<model::ColumnMatchInternal> column_matches_;
+    model::SimilarityVector rhs_min_similarities_;
 
     std::vector<SimilarityMatrix> sim_matrices_;
     // col_match_sim_index = sim_index_[column_match.left_col_index]
@@ -51,8 +53,12 @@ private:
 
     size_t cur_record_left_ = 0;
     size_t cur_record_right_ = 0;
-    std::unordered_set<std::pair<size_t, size_t>> recommendations_;
+    std::vector<std::pair<size_t, size_t>> recommendations_;
     std::unordered_set<std::pair<size_t, size_t>> checked_recommendations_;
+
+    size_t inference_run_records_checked_ = 0;
+    size_t inference_run_mds_refined_ = 0;
+    size_t efficiency_reciprocal_ = 100;
 
     void ResetStateMd() final;
     void LoadDataInternal() final;
@@ -62,14 +68,18 @@ private:
     bool InferFromRecordPairs();
 
     void FillSimilarities();
-    // Needs cardinality, consider a separate class for LHS.
-    std::pair<std::vector<double>, size_t> GetMaxRhsDecBounds(
-            model::SimilarityVector const& lhs_sims);
+
     void MarkUnsupported(model::SimilarityVector const& lhs);
-    bool CanSpecializeLhs(model::SimilarityVector const& lhs, size_t col_match_index);
-    model::SimilarityVector SpecializeLhs(model::SimilarityVector const& lhs,
-                                          size_t col_match_index);
     bool IsSupported(model::SimilarityVector const& sim_vec);
+
+    std::optional<model::SimilarityVector> SpecializeLhs(model::SimilarityVector const& lhs,
+                                                         size_t col_match_index);
+
+    bool CheckRecordPair(size_t left_record, size_t right_record);
+    model::SimilarityVector GetSimilarityVector(size_t left_record, size_t right_record);
+    std::optional<model::SimilarityVector> SpecializeLhs(model::SimilarityVector const& lhs,
+                                                         size_t col_match_index,
+                                                         model::Similarity similarity);
 };
 
 }  // namespace algos

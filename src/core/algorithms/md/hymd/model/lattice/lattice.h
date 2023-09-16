@@ -19,12 +19,15 @@ public:
 
     void Add(LatticeMd md);
     void AddIfMin(LatticeMd md);
-    void FindViolated();
+    std::vector<LatticeMd> FindViolated(model::SimilarityVector similarity_vector);
 
     void RemoveMd(LatticeMd md);
     void RemoveNode(LatticeNode node);
 
     Lattice(size_t column_matches_size);
+    // Needs cardinality
+    std::pair<std::vector<double>, size_t> GetMaxRhsDecBounds(
+            model::SimilarityVector const& lhs_sims);
 };
 
 }  // namespace algos::hymd::model

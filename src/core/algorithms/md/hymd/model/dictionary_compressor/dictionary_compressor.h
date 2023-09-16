@@ -25,6 +25,9 @@ public:
     [[nodiscard]] std::vector<KeyedPositionListIndex> const& GetPlis() const {
         return plis_;
     };
+    [[nodiscard]] std::vector<CompressedRecord> const& GetRecords() const {
+        return records_;
+    }
 
     static DictionaryCompressor CreateFrom(::model::IDatasetStream& stream);
 };
