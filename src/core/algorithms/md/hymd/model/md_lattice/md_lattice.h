@@ -10,7 +10,7 @@ namespace algos::hymd::model {
 
 class MdLattice {
 private:
-    // ...
+
 
 public:
     size_t GetMaxLevel();

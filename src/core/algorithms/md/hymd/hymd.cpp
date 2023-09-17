@@ -33,6 +33,7 @@ void HyMD::LoadDataInternal() {
 }
 
 unsigned long long HyMD::ExecuteInternal() {
+    assert(!column_matches_.empty());
     // time stuff
     FillSimilarities();
 
