@@ -48,7 +48,7 @@ unsigned long long HyMD::ExecuteInternal() {
 bool HyMD::TraverseLattice(bool traverse_all) {
     size_t const col_matches_num = column_matches_.size();
     while (cur_level_ < md_lattice_.GetMaxLevel()) {
-        for (model::LatticeNode const& node : md_lattice_.GetLevel(cur_level_)) {
+        for (model::LatticeNodeSims const& node : md_lattice_.GetLevel(cur_level_)) {
             md_lattice_.RemoveNode(node);
             model::SimilarityVector const& lhs_sims = node.lhs_sims;
             model::SimilarityVector const& rhs_sims = node.rhs_sims;
