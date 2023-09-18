@@ -9,7 +9,8 @@ void HyMD::ResetStateMd() {
     sim_indexes_.clear();
     cur_level_ = 0;
     md_lattice_ = model::MdLattice(column_matches_.size());
-    support_lattice_ = model::SupportLattice(column_matches_.size());
+    support_lattice_ = model::SupportLattice();
+    min_picker_lattice_.Reset();
     cur_record_left_ = 0;
     cur_record_right_ = 0;
     recommendations_.clear();
@@ -48,18 +49,20 @@ unsigned long long HyMD::ExecuteInternal() {
 bool HyMD::TraverseLattice(bool traverse_all) {
     size_t const col_matches_num = column_matches_.size();
     while (cur_level_ < md_lattice_.GetMaxLevel()) {
-        std::vector<model::LatticeNodeSims> cur = md_lattice_.GetMinimalOfCardinality(cur_level_);
+        std::vector<model::LatticeNodeSims> level_mds = md_lattice_.GetLevel(cur_level_);
+        std::vector<model::LatticeNodeSims> cur = min_picker_lattice_.PickMinimumMDs(level_mds);
         if (cur.empty()) {
             ++cur_level_;
+            min_picker_lattice_.Reset();
             if (!traverse_all) return cur_level_ < md_lattice_.GetMaxLevel();
             continue;
         }
         for (model::LatticeNodeSims const& node : cur) {
-            md_lattice_.RemoveNode(node);
+            md_lattice_.RemoveNode(node.lhs_sims);
             model::SimilarityVector const& lhs_sims = node.lhs_sims;
             model::SimilarityVector const& rhs_sims = node.rhs_sims;
             std::vector<double> gen_max_rhs = md_lattice_.GetMaxValidGeneralizationRhs(lhs_sims);
-            auto [new_rhs_sims, support] = md_lattice_.GetMaxRhsDecBounds(lhs_sims);
+            auto [new_rhs_sims, support] = GetMaxRhsDecBounds(lhs_sims);
             if (support < min_support_) {
                 support_lattice_.MarkUnsupported(lhs_sims);
                 continue;

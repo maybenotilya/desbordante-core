@@ -6,6 +6,7 @@
 #include "algorithms/md/hymd/model/column_match_internal.h"
 #include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
 #include "algorithms/md/hymd/model/md_lattice/md_lattice.h"
+#include "algorithms/md/hymd/model/min_picker_lattice/min_picker_lattice.h"
 #include "algorithms/md/hymd/model/similarity.h"
 #include "algorithms/md/hymd/model/support_lattice/support_lattice.h"
 #include "algorithms/md/md_algorithm.h"
@@ -54,6 +55,7 @@ private:
     size_t cur_level_ = 0;
     model::SupportLattice support_lattice_;
     size_t min_support_ = 0;
+    model::MinPickerLattice min_picker_lattice_;
 
     size_t cur_record_left_ = 0;
     size_t cur_record_right_ = 0;
