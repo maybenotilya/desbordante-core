@@ -10,7 +10,7 @@ void HyMD::ResetStateMd() {
     cur_level_ = 0;
     md_lattice_ = model::MdLattice(column_matches_.size());
     support_lattice_ = model::SupportLattice();
-    min_picker_lattice_.Reset();
+    min_picker_lattice_ = model::MinPickerLattice(column_matches_.size());
     cur_record_left_ = 0;
     cur_record_right_ = 0;
     recommendations_.clear();
@@ -50,10 +50,11 @@ bool HyMD::TraverseLattice(bool traverse_all) {
     size_t const col_matches_num = column_matches_.size();
     while (cur_level_ < md_lattice_.GetMaxLevel()) {
         std::vector<model::LatticeNodeSims> level_mds = md_lattice_.GetLevel(cur_level_);
-        std::vector<model::LatticeNodeSims> cur = min_picker_lattice_.PickMinimumMDs(level_mds);
+        min_picker_lattice_.PickMinimalMds(level_mds);
+        std::vector<model::LatticeNodeSims> cur = min_picker_lattice_.GetAll();
         if (cur.empty()) {
             ++cur_level_;
-            min_picker_lattice_.Reset();
+            min_picker_lattice_.Advance();
             if (!traverse_all) return cur_level_ < md_lattice_.GetMaxLevel();
             continue;
         }
