@@ -125,4 +125,47 @@ void MdLatticeNode::FindViolated(std::vector<LatticeMd>& found, SimilarityVector
     }
 }
 
+void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
+                                                 SimilarityVector& cur_rhs,
+                                                 size_t this_node_index) {
+    // By this point, the RHS of the node for lhs should be zeroed out, so no check is needed.
+    for (size_t i = 0; i < rhs_.size(); ++i) {
+        double const rhs_threshold = rhs_[i];
+        double& cur_rhs_threshold = cur_rhs[i];
+        if (rhs_threshold > cur_rhs_threshold) {
+            cur_rhs_threshold = rhs_threshold;
+        }
+    }
+    for (auto const& [index, threshold_mapping] : children_) {
+        size_t const next_node_index = this_node_index + 1 + index;
+        assert(next_node_index < lhs.size());
+        for (auto const& [threshold, node] : threshold_mapping) {
+            assert(threshold > 0.0);
+            if (threshold > lhs[next_node_index]) {
+                break;
+            }
+            node->GetMaxValidGeneralizationRhs(lhs, cur_rhs, next_node_index);
+        }
+    }
+}
+
+void MdLatticeNode::GetLevel(std::vector<LatticeNodeSims>& collected,
+                             SimilarityVector& this_node_lhs, size_t this_node_index,
+                             size_t sims_left) {
+    if (sims_left == 0) {
+        collected.emplace_back(this_node_lhs, rhs_);
+        return;
+    }
+    for (auto const& [index, threshold_mapping] : children_) {
+        size_t const next_node_index = this_node_index + 1 + index;
+        assert(next_node_index < this_node_lhs.size());
+        for (auto const& [threshold, node] : threshold_mapping) {
+            assert(threshold > 0.0);
+            this_node_lhs[next_node_index] = threshold;
+            node->GetLevel(collected, this_node_lhs, this_node_index, sims_left - 1);
+            this_node_lhs[next_node_index] = 0.0;
+        }
+    }
+}
+
 }

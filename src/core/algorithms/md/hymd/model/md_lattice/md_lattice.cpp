@@ -13,7 +13,8 @@ size_t GetCardinality(algos::hymd::model::SimilarityVector const& lhs) {
 namespace algos::hymd::model {
 
 MdLattice::MdLattice(size_t column_matches_size)
-    : root_(SimilarityVector(column_matches_size, 1.0)) {}
+    : root_(SimilarityVector(column_matches_size, 1.0)),
+      column_matches_size_(column_matches_size) {}
 
 size_t MdLattice::GetMaxLevel() const {
     return max_level_;
@@ -42,6 +43,19 @@ std::vector<LatticeMd> MdLattice::FindViolated(SimilarityVector const& similarit
     SimilarityVector lhs(similarity_vector.size(), 0.0);
     root_.FindViolated(found, lhs, similarity_vector, 0);
     return found;
+}
+
+SimilarityVector MdLattice::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs) {
+    SimilarityVector rhs(lhs.size(), 0.0);
+    root_.GetMaxValidGeneralizationRhs(lhs, rhs, 0);
+    return rhs;
+}
+
+std::vector<LatticeNodeSims> MdLattice::GetLevel(size_t level) {
+    std::vector<LatticeNodeSims> collected;
+    SimilarityVector lhs(column_matches_size_, 0.0);
+    root_.GetLevel(collected, lhs, 0, level);
+    return collected;
 }
 
 }  // namespace algos::hymd::model

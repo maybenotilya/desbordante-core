@@ -15,11 +15,11 @@ class MdLattice {
 private:
     size_t max_level_ = 0;
     MdLatticeNode root_;
+    size_t column_matches_size_;
 
 public:
     [[nodiscard]] size_t GetMaxLevel() const;
-    std::pair<std::vector<LatticeNodeSims>, std::unordered_set<MdLatticeNode*>> GetLevel(
-            size_t level);
+    std::vector<LatticeNodeSims> GetLevel(size_t level);
     SimilarityVector GetMaxValidGeneralizationRhs(SimilarityVector const& lhs);
 
     void Add(LatticeMd const& md);
@@ -29,7 +29,7 @@ public:
     void RemoveMd(LatticeMd const& md);
     void RemoveNode(SimilarityVector const& lhs);
 
-    MdLattice(size_t column_matches_size);
+    explicit MdLattice(size_t column_matches_size);
 };
 
 }  // namespace algos::hymd::model

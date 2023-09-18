@@ -20,9 +20,10 @@ private:
     std::unordered_map<size_t, ThresholdMap> children_;
 
 public:
-    void GetMinimalOfCardinality(std::vector<LatticeNodeSims>& min_nodes, size_t sims_left,
-                                 std::unordered_set<MdLatticeNode*> const& exclude);
-    SimilarityVector GetMaxValidGeneralizationRhs(SimilarityVector const& lhs);
+    void GetLevel(std::vector<LatticeNodeSims>& collected, SimilarityVector& this_node_lhs,
+                  size_t this_node_index, size_t sims_left);
+    void GetMaxValidGeneralizationRhs(SimilarityVector const& lhs, SimilarityVector& cur_rhs,
+                                      size_t this_node_index);
 
     void Add(LatticeMd const& md, size_t this_node_index);
     bool AddIfMin(LatticeMd const& md);
