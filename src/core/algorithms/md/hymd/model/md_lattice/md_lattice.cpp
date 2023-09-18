@@ -37,4 +37,11 @@ void MdLattice::RemoveMd(LatticeMd const& md) {
     root_.RemoveMd(md, 0);
 }
 
+std::vector<LatticeMd> MdLattice::FindViolated(SimilarityVector const& similarity_vector) {
+    std::vector<LatticeMd> found;
+    SimilarityVector lhs(similarity_vector.size(), 0.0);
+    root_.FindViolated(found, lhs, similarity_vector, 0);
+    return found;
+}
+
 }  // namespace algos::hymd::model

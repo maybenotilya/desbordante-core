@@ -18,14 +18,13 @@ private:
 
 public:
     [[nodiscard]] size_t GetMaxLevel() const;
-    // std::vector<LatticeNode> GetLevel(size_t level);
-    std::pair<std::vector<LatticeNodeSims>, std::unordered_set<MdLatticeNode*>>
-    GetMinimalOfCardinality(size_t cardinality, std::unordered_set<MdLatticeNode*>& exclude);
+    std::pair<std::vector<LatticeNodeSims>, std::unordered_set<MdLatticeNode*>> GetLevel(
+            size_t level);
     SimilarityVector GetMaxValidGeneralizationRhs(SimilarityVector const& lhs);
 
     void Add(LatticeMd const& md);
     void AddIfMin(LatticeMd const& md);
-    std::vector<LatticeMd> FindViolated(SimilarityVector similarity_vector);
+    std::vector<LatticeMd> FindViolated(SimilarityVector const& similarity_vector);
 
     void RemoveMd(LatticeMd const& md);
     void RemoveNode(SimilarityVector const& lhs);

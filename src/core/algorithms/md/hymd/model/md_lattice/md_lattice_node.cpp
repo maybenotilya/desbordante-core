@@ -100,4 +100,29 @@ void MdLatticeNode::RemoveNode(SimilarityVector const& lhs_vec, size_t this_node
     rhs_.assign(rhs_.size(), 0.0);
 }
 
+void MdLatticeNode::FindViolated(std::vector<LatticeMd>& found, SimilarityVector& this_node_lhs,
+                                 SimilarityVector const& similarity_vector,
+                                 size_t this_node_index) {
+    // check rhs
+    for (size_t i = 0; i < rhs_.size(); ++i) {
+        double const assumed_rhs = rhs_[i];
+        if (similarity_vector[i] < assumed_rhs) {
+            found.emplace_back(this_node_lhs, assumed_rhs, i);
+        }
+    }
+    for (auto const& [index, threshold_mapping] : children_) {
+        size_t const next_node_index = this_node_index + 1 + index;
+        assert(next_node_index < similarity_vector.size());
+        for (auto const& [threshold, node] : threshold_mapping) {
+            assert(threshold > 0.0);
+            if (threshold > similarity_vector[next_node_index]) {
+                break;
+            }
+            this_node_lhs[next_node_index] = threshold;
+            node->FindViolated(found, this_node_lhs, similarity_vector, next_node_index);
+            this_node_lhs[next_node_index] = 0.0;
+        }
+    }
+}
+
 }
