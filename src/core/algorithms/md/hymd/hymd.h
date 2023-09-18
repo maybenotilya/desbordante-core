@@ -80,6 +80,11 @@ private:
     std::optional<model::SimilarityVector> SpecializeLhs(model::SimilarityVector const& lhs,
                                                          size_t col_match_index,
                                                          model::Similarity similarity);
+
+    // Needs cardinality
+    // AKA `Validate`
+    std::pair<std::vector<double>, size_t> GetMaxRhsDecBounds(
+            model::SimilarityVector const& lhs_sims);
 };
 
 }  // namespace algos

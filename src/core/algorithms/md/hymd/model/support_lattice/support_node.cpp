@@ -35,8 +35,12 @@ void SupportNode::MarkUnsupported(model::SimilarityVector const& lhs_vec, size_t
         model::Similarity similarity = lhs_vec[sim_index];
         if (similarity != 0.0) {
             ThresholdMap& threshold_map = children_[child_array_index];
-            threshold_map[similarity]->MarkUnsupported(lhs_vec, new_node_index);
-            break;
+            std::unique_ptr<SupportNode>& node_ptr = threshold_map[similarity];
+            if (node_ptr == nullptr) {
+                node_ptr = std::make_unique<SupportNode>();
+            }
+            node_ptr->MarkUnsupported(lhs_vec, new_node_index);
+            return;
         }
     }
     is_unsupported_ = true;

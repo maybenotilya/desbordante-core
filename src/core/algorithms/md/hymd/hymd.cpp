@@ -48,7 +48,13 @@ unsigned long long HyMD::ExecuteInternal() {
 bool HyMD::TraverseLattice(bool traverse_all) {
     size_t const col_matches_num = column_matches_.size();
     while (cur_level_ < md_lattice_.GetMaxLevel()) {
-        for (model::LatticeNodeSims const& node : md_lattice_.GetLevel(cur_level_)) {
+        std::vector<model::LatticeNodeSims> cur = md_lattice_.GetMinimalOfCardinality(cur_level_);
+        if (cur.empty()) {
+            ++cur_level_;
+            if (!traverse_all) return cur_level_ < md_lattice_.GetMaxLevel();
+            continue;
+        }
+        for (model::LatticeNodeSims const& node : cur) {
             md_lattice_.RemoveNode(node);
             model::SimilarityVector const& lhs_sims = node.lhs_sims;
             model::SimilarityVector const& rhs_sims = node.rhs_sims;
@@ -79,8 +85,6 @@ bool HyMD::TraverseLattice(bool traverse_all) {
                 }
             }
         }
-        ++cur_level_;
-        if (!traverse_all) return false;
     }
     return true;
 }
