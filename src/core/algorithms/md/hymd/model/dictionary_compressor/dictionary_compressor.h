@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "keyed_position_list_index.h"
+#include "algorithms/md/hymd/model/dictionary_compressor/keyed_position_list_index.h"
 #include "model/table/idataset_stream.h"
 
 namespace algos::hymd::model {
@@ -17,6 +17,7 @@ public:
 private:
     std::vector<KeyedPositionListIndex> plis_;
     std::vector<CompressedRecord> records_;
+    size_t records_processed_ = 0;
 
 public:
     explicit DictionaryCompressor(size_t attribute_num);
@@ -26,6 +27,9 @@ public:
     };
     [[nodiscard]] std::vector<CompressedRecord> const& GetRecords() const {
         return records_;
+    }
+    [[nodiscard]] size_t GetNumberOfRecords() const {
+        return records_processed_;
     }
 
     static DictionaryCompressor CreateFrom(::model::IDatasetStream& stream);

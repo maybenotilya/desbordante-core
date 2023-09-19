@@ -19,8 +19,11 @@ private:
 
 public:
     size_t AddNextValue(std::string value);
-    std::unordered_map<std::string, size_t> GetMapping() const {
+    std::unordered_map<std::string, size_t> const& GetMapping() const {
         return value_id_mapping_;
+    }
+    std::vector<Cluster> const& GetClusters() const {
+        return clusters_;
     }
 };
 

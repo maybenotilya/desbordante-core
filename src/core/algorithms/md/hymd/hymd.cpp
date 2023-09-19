@@ -1,6 +1,21 @@
-#include "hymd.h"
+#include "algorithms/md/hymd/hymd.h"
 
 #include <algorithm>
+
+#include "algorithms/md/hymd/model/dictionary_compressor/pli_intersector.h"
+
+namespace {
+size_t GetCardinality(algos::hymd::model::SimilarityVector const& lhs) {
+    return std::count(lhs.begin(), lhs.end(), 0.0);
+}
+std::vector<size_t> GetNonZeroIndices(algos::hymd::model::SimilarityVector const& lhs) {
+    std::vector<size_t> indices;
+    for (size_t i = 0; i < lhs.size(); ++i) {
+        if (lhs[i] != 0) indices.push_back(i);
+    }
+    return indices;
+}
+}  // namespace
 
 namespace algos::hymd {
 
@@ -42,7 +57,7 @@ unsigned long long HyMD::ExecuteInternal() {
     do {
         done = InferFromRecordPairs();
         done = TraverseLattice(done);
-    } while(!done);
+    } while (!done);
     return 10031;
 }
 
@@ -77,7 +92,8 @@ bool HyMD::TraverseLattice(bool traverse_all) {
                 }
             }
             for (size_t i = 0; i < col_matches_num; ++i) {
-                std::optional<model::SimilarityVector> new_lhs_sims = SpecializeLhs(node.lhs_sims, i);
+                std::optional<model::SimilarityVector> new_lhs_sims =
+                        SpecializeLhs(node.lhs_sims, i);
                 if (!new_lhs_sims.has_value()) continue;
                 if (support_lattice_.IsUnsupported(new_lhs_sims.value())) continue;
                 for (size_t j = 0; j < col_matches_num; ++j) {
@@ -171,9 +187,10 @@ void HyMD::FillSimilarities() {
         sim_matrix.resize(left_mapping.size());
         sim_index.resize(left_mapping.size());
         for (auto const& [value_left, value_id_left] : left_mapping) {
-            SimSortedInfo sim_id_vec;
+            std::vector<std::pair<double, ValueIdentifier>> sim_id_vec;
             for (auto const& [value_right, value_id_right] : right_mapping) {
-                model::Similarity similarity = column_match.similarity_function_(value_left, value_right);
+                model::Similarity similarity =
+                        column_match.similarity_function_(value_left, value_right);
                 /*
                  * Only relevant for user-supplied functions, benchmark the
                  * slowdown from this check and deal with it if it is
@@ -182,7 +199,8 @@ void HyMD::FillSimilarities() {
                     // Configuration error because bundled similarity functions
                     // are going to be correct, but the same cannot be said about
                     // user-supplied functions
-                    throw config::OutOfRange("Unexpected similarity (" + std::to_string(similarity) + ")");
+                    throw config::OutOfRange("Unexpected similarity (" + std::to_string(similarity)
+                + ")");
                 }
                  */
                 similarities.push_back(similarity);
@@ -190,7 +208,19 @@ void HyMD::FillSimilarities() {
                 sim_id_vec.emplace_back(similarity, value_id_right);
             }
             std::sort(sim_id_vec.begin(), sim_id_vec.end());
-            sim_index[value_id_left] = sim_id_vec;
+            std::map<model::Similarity, size_t> sim_mapping;
+            std::vector<ValueIdentifier> sim_sorted_records;
+            sim_sorted_records.reserve(sim_id_vec.size());
+            double prev_sim = -1.0;
+            for (size_t idx = 0; idx < sim_sorted_records.size(); ++idx) {
+                auto [similarity, record] = sim_id_vec[idx];
+                if (prev_sim != similarity) {
+                    prev_sim = similarity;
+                    sim_mapping.emplace(similarity, idx);
+                }
+                sim_sorted_records.emplace_back(similarity);
+            }
+            sim_index[value_id_left] = {sim_mapping, sim_sorted_records};
         }
         std::sort(similarities.begin(), similarities.end());
         natural_decision_bounds_[i] = similarities;
@@ -227,4 +257,83 @@ std::optional<model::SimilarityVector> HyMD::SpecializeLhs(const model::Similari
     return new_lhs;
 }
 
-}  // namespace algos
+std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
+        model::SimilarityVector const& lhs_sims) {
+    model::SimilarityVector rhs_thresholds(lhs_sims.size(), 1.0);
+    size_t support = 0;
+    std::vector<size_t> non_zero_indices = GetNonZeroIndices(lhs_sims);
+    size_t const cardinality = non_zero_indices.size();
+    if (cardinality == 0) {
+        assert(column_matches_.size() == lhs_sims.size());
+        for (size_t i = 0; i < column_matches_.size(); ++i) {
+            rhs_thresholds[i] = natural_decision_bounds_[i][0];
+        }
+        support = records_left_.GetNumberOfRecords() * records_right_.GetNumberOfRecords();
+    }
+    else if (cardinality == 1) {
+        size_t const non_zero_index = non_zero_indices[0];
+        std::vector<std::vector<size_t>> const& clusters =
+                records_left_.GetPlis()[GetPliIndex(non_zero_index)].GetClusters();
+        SimilarityIndex const& sim_index = sim_indexes_[non_zero_index];
+        for (size_t value_id = 0; value_id < clusters.size(); ++value_id) {
+            std::vector<size_t> const& cluster = clusters[value_id];
+            std::set<size_t> similar_records =
+                    GetSimilarRecords(value_id, lhs_sims[non_zero_index], sim_index);
+            support += cluster.size() * similar_records.size();
+            DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records);
+        }
+    }
+    else {
+        std::unordered_map<size_t, std::vector<size_t>> col_match_col_mapping =
+                MakeColMatchToColMapping(non_zero_indices);
+        std::vector<model::KeyedPositionListIndex const*> plis;
+        for (auto [pli_idx, col_match_idx] : col_match_col_mapping) {
+            plis.push_back(&records_left_.GetPlis()[pli_idx]);
+        }
+        model::PliIntersector intersector(plis);
+        for (auto const& [val_ids, record_ids] : intersector) {
+            
+        }
+    }
+
+    return {rhs_thresholds, support};
+}
+
+std::set<HyMD::RecordIdentifier> HyMD::GetSimilarRecords(ValueIdentifier value_id,
+                                                         model::Similarity similarity,
+                                                         SimilarityIndex const& sim_index) {
+    auto const& sim_map = sim_index[value_id].first;
+    auto const& records = sim_index[value_id].second;
+    auto it = sim_map.lower_bound(similarity);
+    if (it == sim_map.end()) return {};
+    return {records.begin() + it->second, records.end()};
+}
+
+void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster, std::set<size_t> const& similar_records) {
+    for (size_t k : cluster) {
+        for (size_t l : similar_records) {
+            for (size_t col_match = 0; col_match < column_matches_.size(); ++col_match) {
+                double const record_similarity = sim_matrices_[col_match][k][l];
+                double& threshold = rhs_thresholds[col_match];
+                if (threshold > record_similarity) {
+                    threshold = record_similarity;
+                }
+            }
+        }
+    }
+}
+
+std::unordered_map<size_t, std::vector<size_t>> HyMD::MakeColMatchToColMapping(
+        std::vector<size_t> const& col_match_indices) {
+    std::unordered_map<size_t, std::vector<size_t>> mapping;
+    for (size_t col_match_index : col_match_indices) {
+        mapping[GetPliIndex(col_match_index)].push_back(col_match_index);
+    }
+    return mapping;
+}
+
+size_t HyMD::GetPliIndex(size_t column_match_index) {
+    return column_matches_[column_match_index].left_col_index;
+}
+
+}  // namespace algos::hymd

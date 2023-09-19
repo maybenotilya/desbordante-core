@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <set>
 
 #include "algorithms/algorithm.h"
 #include "algorithms/md/hymd/model/column_match_internal.h"
@@ -28,9 +29,11 @@ namespace algos::hymd {
 class HyMD final : public MdAlgorithm {
 private:
     using ValueIdentifier = size_t;
-    using SimSortedInfo = std::vector<std::pair<model::Similarity, ValueIdentifier>>;
+    using RecordIdentifier = size_t;
+    using PliCluster = std::vector<RecordIdentifier>;
+    using SimInfo = std::pair<std::map<model::Similarity, size_t>, std::vector<ValueIdentifier>>;
     using SimilarityMatrix = std::vector<std::unordered_map<ValueIdentifier, model::Similarity>>;
-    using SimilarityIndex = std::vector<SimSortedInfo>;
+    using SimilarityIndex = std::vector<SimInfo>;
 
     config::InputTable left_table_;
     config::InputTable right_table_;
@@ -85,8 +88,16 @@ private:
 
     // Needs cardinality
     // AKA `Validate`
-    std::pair<std::vector<double>, size_t> GetMaxRhsDecBounds(
+    std::pair<model::SimilarityVector, size_t> GetMaxRhsDecBounds(
             model::SimilarityVector const& lhs_sims);
+    static std::set<RecordIdentifier> GetSimilarRecords(ValueIdentifier value_id,
+                                                        model::Similarity similarity,
+                                                        SimilarityIndex const& sim_index);
+    void DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
+                               std::set<size_t> const& similar_records);
+    std::unordered_map<size_t, std::vector<size_t>> MakeColMatchToColMapping(
+            std::vector<size_t> const& col_match_indices);
+    size_t GetPliIndex(size_t column_match_index);
 };
 
 }  // namespace algos
