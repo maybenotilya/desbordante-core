@@ -84,6 +84,12 @@ void HyMD::RegisterResults() {
             for (size_t i = 0; i < md.rhs_sims.size(); ++i) {
                 double const rhs_sim = md.rhs_sims[i];
                 if (rhs_sim == 0.0) continue;
+                std::vector<::model::ColumnMatch> column_matches;
+                for (size_t j = 0; j < column_matches_.size(); ++j) {
+                    column_matches.emplace_back(column_matches_[j].left_col_index,
+                                                column_matches_[j].right_col_index,
+                                                std::get<2>(column_matches_option_[j]));
+                }
                 std::vector<::model::LhsColumnSimilarityClassifier> lhs;
                 for (size_t j = 0; j < md.lhs_sims.size(); ++j) {
                     double const lhs_sim = md.lhs_sims[j];
@@ -93,8 +99,8 @@ void HyMD::RegisterResults() {
                                      md.lhs_sims[j]);
                 }
                 ::model::ColumnSimilarityClassifier rhs{i, rhs_sim};
-                RegisterMd({left_schema_.get(), right_schema_.get(), column_matches_option_,
-                            std::move(lhs), rhs});
+                RegisterMd({left_schema_.get(), right_schema_.get(), column_matches, std::move(lhs),
+                            rhs});
             }
         }
     }
