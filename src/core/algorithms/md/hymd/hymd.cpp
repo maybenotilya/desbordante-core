@@ -78,7 +78,7 @@ unsigned long long HyMD::ExecuteInternal() {
 }
 
 void HyMD::RegisterResults() {
-    for (size_t level = 0; level < md_lattice_->GetMaxLevel(); ++level) {
+    for (size_t level = 0; level <= md_lattice_->GetMaxLevel(); ++level) {
         std::vector<model::LatticeNodeSims> mds = md_lattice_->GetLevel(level);
         for (auto const& md: mds) {
             for (size_t i = 0; i < md.rhs_sims.size(); ++i) {
