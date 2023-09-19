@@ -45,7 +45,7 @@ private:
     std::unique_ptr<model::DictionaryCompressor> records_left_;
     std::unique_ptr<model::DictionaryCompressor> records_right_;
 
-    std::vector<::model::ColumnMatch> column_matches_option_;
+    std::vector<std::tuple<std::string, std::string, std::string>> column_matches_option_;
     std::vector<model::ColumnMatchInternal> column_matches_;
     model::SimilarityVector rhs_min_similarities_;
 
