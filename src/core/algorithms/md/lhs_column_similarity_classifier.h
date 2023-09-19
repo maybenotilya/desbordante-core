@@ -22,7 +22,10 @@ private:
     std::optional<double> max_disproved_bound_;
 
 public:
-
+    LhsColumnSimilarityClassifier(std::optional<double> max_disproved_bound,
+                                  size_t column_match_index, double decision_boundary)
+        : ColumnSimilarityClassifier(column_match_index, decision_boundary),
+          max_disproved_bound_(max_disproved_bound) {}
 
     [[nodiscard]] std::optional<double> GetMaxDisprovedBound() const noexcept {
         return max_disproved_bound_;

@@ -6,14 +6,13 @@
 namespace model {
 
 struct ColumnMatch {
-    std::string left_col_name;
-    std::string right_col_name;
+    size_t left_col_index;
+    size_t right_col_index;
     std::string similarity_function_name;
 
-    ColumnMatch(std::string left_col_name, std::string right_col_name,
-                std::string similarity_function_name)
-        : left_col_name(std::move(left_col_name)),
-          right_col_name(std::move(right_col_name)),
+    ColumnMatch(size_t left_col_index, size_t right_col_index, std::string similarity_function_name)
+        : left_col_index(left_col_index),
+          right_col_index(right_col_index),
           similarity_function_name(std::move(similarity_function_name)) {}
 };
 
