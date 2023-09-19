@@ -15,14 +15,14 @@
 #include "model/table/relational_schema.h"
 
 namespace std {
-template<>
+template <>
 struct hash<std::pair<size_t, size_t>> {
-    std::size_t operator()(std::pair<size_t, size_t> const &p) const {
+    std::size_t operator()(std::pair<size_t, size_t> const& p) const {
         auto hasher = std::hash<size_t>{};
         return hasher(p.first) ^ hasher(p.second);
     }
 };
-}
+}  // namespace std
 
 namespace algos::hymd {
 
@@ -41,8 +41,8 @@ private:
     std::unique_ptr<RelationalSchema> left_schema_;
     std::unique_ptr<RelationalSchema> right_schema_;
 
-    model::DictionaryCompressor records_left_;
-    model::DictionaryCompressor records_right_;
+    std::unique_ptr<model::DictionaryCompressor> records_left_;
+    std::unique_ptr<model::DictionaryCompressor> records_right_;
 
     std::vector<model::ColumnMatchInternal> column_matches_;
     model::SimilarityVector rhs_min_similarities_;
@@ -54,11 +54,11 @@ private:
     // col_match_sim_index[left_record_id].second[>=sim_index_[left_record_id].first[similarity]]
     std::vector<SimilarityIndex> sim_indexes_;
 
-    model::MdLattice md_lattice_;
+    std::unique_ptr<model::MdLattice> md_lattice_;
     size_t cur_level_ = 0;
-    model::SupportLattice support_lattice_;
+    std::unique_ptr<model::SupportLattice> support_lattice_;
     size_t min_support_ = 0;
-    model::MinPickerLattice min_picker_lattice_;
+    std::unique_ptr<model::MinPickerLattice> min_picker_lattice_;
 
     size_t cur_record_left_ = 0;
     size_t cur_record_right_ = 0;
@@ -80,7 +80,7 @@ private:
                                                          size_t col_match_index);
 
     size_t CheckRecordPair(size_t left_record, size_t right_record);
-    bool ShouldKeepInferring(size_t records_checked, size_t mds_refined);
+    bool ShouldKeepInferring(size_t records_checked, size_t mds_refined) const;
     model::SimilarityVector GetSimilarityVector(size_t left_record, size_t right_record);
     std::optional<model::SimilarityVector> SpecializeLhs(model::SimilarityVector const& lhs,
                                                          size_t col_match_index,
@@ -98,6 +98,9 @@ private:
     std::map<size_t, std::vector<size_t>> MakeColToColMatchMapping(
             std::vector<size_t> const& col_match_indices);
     size_t GetPliIndex(size_t column_match_index);
+
+public:
+    HyMD();
 };
 
-}  // namespace algos
+}  // namespace algos::hymd

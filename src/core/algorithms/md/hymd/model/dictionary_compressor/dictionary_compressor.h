@@ -32,7 +32,7 @@ public:
         return records_processed_;
     }
 
-    static DictionaryCompressor CreateFrom(::model::IDatasetStream& stream);
+    static std::unique_ptr<DictionaryCompressor> CreateFrom(::model::IDatasetStream& stream);
 };
 
 }  // namespace algos::hymd::model

@@ -22,6 +22,8 @@ protected:
         md_collection_.Register(std::move(md_to_register));
     }
 
+    explicit MdAlgorithm(std::vector<std::string_view> phase_names) : Algorithm(std::move(phase_names)) {}
+
 public:
     std::list<model::MD> const& MdList() const noexcept {
         return md_collection_.AsList();

@@ -15,7 +15,7 @@ std::vector<size_t> GetNonZeroIndices(algos::hymd::model::SimilarityVector const
     }
     return indices;
 }
-void IntersectInPlace(std::set<size_t>& set1, std::set<size_t> set2) {
+void IntersectInPlace(std::set<size_t>& set1, std::set<size_t> const& set2) {
     auto it1 = set1.begin();
     auto it2 = set2.begin();
     while (it1 != set1.end() && it2 != set2.end()) {
@@ -34,13 +34,15 @@ void IntersectInPlace(std::set<size_t>& set1, std::set<size_t> set2) {
 
 namespace algos::hymd {
 
+HyMD::HyMD() : MdAlgorithm({}) {}
+
 void HyMD::ResetStateMd() {
     sim_matrices_.clear();
     sim_indexes_.clear();
     cur_level_ = 0;
-    md_lattice_ = model::MdLattice(column_matches_.size());
-    support_lattice_ = model::SupportLattice();
-    min_picker_lattice_ = model::MinPickerLattice(column_matches_.size());
+    md_lattice_ = std::make_unique<model::MdLattice>(column_matches_.size());
+    support_lattice_ = std::make_unique<model::SupportLattice>();
+    min_picker_lattice_ = std::make_unique<model::MinPickerLattice>(column_matches_.size());
     cur_record_left_ = 0;
     cur_record_right_ = 0;
     recommendations_.clear();
@@ -78,24 +80,24 @@ unsigned long long HyMD::ExecuteInternal() {
 
 bool HyMD::TraverseLattice(bool traverse_all) {
     size_t const col_matches_num = column_matches_.size();
-    while (cur_level_ < md_lattice_.GetMaxLevel()) {
-        std::vector<model::LatticeNodeSims> level_mds = md_lattice_.GetLevel(cur_level_);
-        min_picker_lattice_.PickMinimalMds(level_mds);
-        std::vector<model::LatticeNodeSims> cur = min_picker_lattice_.GetAll();
+    while (cur_level_ < md_lattice_->GetMaxLevel()) {
+        std::vector<model::LatticeNodeSims> level_mds = md_lattice_->GetLevel(cur_level_);
+        min_picker_lattice_->PickMinimalMds(level_mds);
+        std::vector<model::LatticeNodeSims> cur = min_picker_lattice_->GetAll();
         if (cur.empty()) {
             ++cur_level_;
-            min_picker_lattice_.Advance();
-            if (!traverse_all) return cur_level_ < md_lattice_.GetMaxLevel();
+            min_picker_lattice_->Advance();
+            if (!traverse_all) return cur_level_ < md_lattice_->GetMaxLevel();
             continue;
         }
         for (model::LatticeNodeSims const& node : cur) {
-            md_lattice_.RemoveNode(node.lhs_sims);
+            md_lattice_->RemoveNode(node.lhs_sims);
             model::SimilarityVector const& lhs_sims = node.lhs_sims;
             model::SimilarityVector const& rhs_sims = node.rhs_sims;
-            std::vector<double> gen_max_rhs = md_lattice_.GetMaxValidGeneralizationRhs(lhs_sims);
+            std::vector<double> gen_max_rhs = md_lattice_->GetMaxValidGeneralizationRhs(lhs_sims);
             auto [new_rhs_sims, support] = GetMaxRhsDecBounds(lhs_sims);
             if (support < min_support_) {
-                support_lattice_.MarkUnsupported(lhs_sims);
+                support_lattice_->MarkUnsupported(lhs_sims);
                 continue;
             }
             assert(new_rhs_sims.size() == column_matches_.size());
@@ -103,19 +105,19 @@ bool HyMD::TraverseLattice(bool traverse_all) {
                 model::Similarity const new_rhs_sim = new_rhs_sims[i];
                 if (new_rhs_sim > lhs_sims[i] && new_rhs_sim >= rhs_min_similarities_[i] &&
                     new_rhs_sim > gen_max_rhs[i]) {
-                    md_lattice_.Add({lhs_sims, new_rhs_sim, i});
+                    md_lattice_->Add({lhs_sims, new_rhs_sim, i});
                 }
             }
             for (size_t i = 0; i < col_matches_num; ++i) {
                 std::optional<model::SimilarityVector> new_lhs_sims =
                         SpecializeLhs(node.lhs_sims, i);
                 if (!new_lhs_sims.has_value()) continue;
-                if (support_lattice_.IsUnsupported(new_lhs_sims.value())) continue;
+                if (support_lattice_->IsUnsupported(new_lhs_sims.value())) continue;
                 for (size_t j = 0; j < col_matches_num; ++j) {
                     model::Similarity const new_lhs_sim = new_lhs_sims.value()[j];
                     model::Similarity const rhs_sim = rhs_sims[j];
                     if (rhs_sims[j] > new_lhs_sim) {
-                        md_lattice_.AddIfMin({new_lhs_sims.value(), rhs_sim, j});
+                        md_lattice_->AddIfMin({new_lhs_sims.value(), rhs_sim, j});
                     }
                 }
             }
@@ -134,13 +136,14 @@ bool HyMD::InferFromRecordPairs() {
         auto const [left_record, right_record] = rec_pair;
         mds_refined += CheckRecordPair(left_record, right_record);
         checked_recommendations_.emplace(rec_pair);
+        ++records_checked;
         if (!ShouldKeepInferring(records_checked, mds_refined)) {
             efficiency_reciprocal_ *= 2;
             return false;
         }
     }
-    while (cur_record_left_ < records_left_.GetRecords().size()) {
-        while (cur_record_right_ < records_right_.GetRecords().size()) {
+    while (cur_record_left_ < records_left_->GetRecords().size()) {
+        while (cur_record_right_ < records_right_->GetRecords().size()) {
             if (checked_recommendations_.find({cur_record_left_, cur_record_right_}) !=
                 checked_recommendations_.end()) {
                 ++cur_record_right_;
@@ -148,6 +151,7 @@ bool HyMD::InferFromRecordPairs() {
             }
             mds_refined += CheckRecordPair(cur_record_left_, cur_record_right_);
             ++cur_record_right_;
+            ++records_checked;
             if (!ShouldKeepInferring(records_checked, mds_refined)) {
                 efficiency_reciprocal_ *= 2;
                 return false;
@@ -160,28 +164,28 @@ bool HyMD::InferFromRecordPairs() {
 
 size_t HyMD::CheckRecordPair(size_t left_record, size_t right_record) {
     model::SimilarityVector sim = GetSimilarityVector(left_record, right_record);
-    std::vector<model::LatticeMd> violated = md_lattice_.FindViolated(sim);
+    std::vector<model::LatticeMd> violated = md_lattice_->FindViolated(sim);
     for (model::LatticeMd const& md : violated) {
-        md_lattice_.RemoveMd(md);
+        md_lattice_->RemoveMd(md);
         size_t const rhs_index = md.rhs_index;
         model::Similarity const rec_rhs_sim = sim[rhs_index];
         model::SimilarityVector const& md_lhs = md.lhs_sims;
         if (rec_rhs_sim >= rhs_min_similarities_[rhs_index] && rec_rhs_sim > md_lhs[rhs_index]) {
-            md_lattice_.AddIfMin({md.lhs_sims, rec_rhs_sim, rhs_index});
+            md_lattice_->AddIfMin({md.lhs_sims, rec_rhs_sim, rhs_index});
         }
         for (size_t i = 0; i < column_matches_.size(); ++i) {
             std::optional<model::SimilarityVector> const& new_lhs =
                     SpecializeLhs(md_lhs, i, sim[i]);
             if (!new_lhs.has_value()) continue;
             if (md.rhs_sim > new_lhs.value()[md.rhs_index]) {
-                md_lattice_.AddIfMin({new_lhs.value(), md.rhs_sim, md.rhs_index});
+                md_lattice_->AddIfMin({new_lhs.value(), md.rhs_sim, md.rhs_index});
             }
         }
     }
     return violated.size();
 }
 
-bool HyMD::ShouldKeepInferring(size_t records_checked, size_t mds_refined) {
+bool HyMD::ShouldKeepInferring(size_t records_checked, size_t mds_refined) const {
     return mds_refined != 0 && records_checked / mds_refined > efficiency_reciprocal_;
 }
 
@@ -194,9 +198,9 @@ void HyMD::FillSimilarities() {
         SimilarityMatrix& sim_matrix = sim_matrices_[i];
         SimilarityIndex& sim_index = sim_indexes_[i];
         std::unordered_map<std::string, size_t> const& left_mapping =
-                records_left_.GetPlis()[column_match.left_col_index].GetMapping();
+                records_left_->GetPlis()[column_match.left_col_index].GetMapping();
         std::unordered_map<std::string, size_t> const& right_mapping =
-                records_right_.GetPlis()[column_match.right_col_index].GetMapping();
+                records_right_->GetPlis()[column_match.right_col_index].GetMapping();
         std::vector<model::Similarity> similarities;
         similarities.reserve(left_mapping.size() * right_mapping.size());
         sim_matrix.resize(left_mapping.size());
@@ -244,8 +248,8 @@ void HyMD::FillSimilarities() {
 
 model::SimilarityVector HyMD::GetSimilarityVector(size_t left_record, size_t right_record) {
     model::SimilarityVector sims(column_matches_.size());
-    std::vector<ValueIdentifier> left_values = records_left_.GetRecords()[left_record];
-    std::vector<ValueIdentifier> right_values = records_right_.GetRecords()[right_record];
+    std::vector<ValueIdentifier> left_values = records_left_->GetRecords()[left_record];
+    std::vector<ValueIdentifier> right_values = records_right_->GetRecords()[right_record];
     for (size_t i = 0; i < column_matches_.size(); ++i) {
         sims[i] = sim_matrices_[i][left_values[i]][right_values[i]];
     }
@@ -283,12 +287,12 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
         for (size_t i = 0; i < column_matches_.size(); ++i) {
             rhs_thresholds[i] = natural_decision_bounds_[i][0];
         }
-        support = records_left_.GetNumberOfRecords() * records_right_.GetNumberOfRecords();
+        support = records_left_->GetNumberOfRecords() * records_right_->GetNumberOfRecords();
     }
     else if (cardinality == 1) {
         size_t const non_zero_index = non_zero_indices[0];
         std::vector<std::vector<size_t>> const& clusters =
-                records_left_.GetPlis()[GetPliIndex(non_zero_index)].GetClusters();
+                records_left_->GetPlis()[GetPliIndex(non_zero_index)].GetClusters();
         SimilarityIndex const& sim_index = sim_indexes_[non_zero_index];
         for (size_t value_id = 0; value_id < clusters.size(); ++value_id) {
             std::vector<size_t> const& cluster = clusters[value_id];
@@ -306,7 +310,7 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
         {
             size_t idx = 0;
             for (auto [pli_idx, col_match_idxs] : col_col_match_mapping) {
-                plis.push_back(&records_left_.GetPlis()[pli_idx]);
+                plis.push_back(&records_left_->GetPlis()[pli_idx]);
                 for (size_t col_match_idx : col_match_idxs) {
                     col_match_to_val_ids_idx[col_match_idx] = idx;
                 }
@@ -338,7 +342,7 @@ std::set<HyMD::RecordIdentifier> HyMD::GetSimilarRecords(ValueIdentifier value_i
     auto const& records = sim_index[value_id].second;
     auto it = sim_map.lower_bound(similarity);
     if (it == sim_map.end()) return {};
-    return {records.begin() + it->second, records.end()};
+    return {records.begin() + static_cast<long>(it->second), records.end()};
 }
 
 void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster, std::set<size_t> const& similar_records) {

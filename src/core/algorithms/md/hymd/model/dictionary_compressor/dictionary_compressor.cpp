@@ -23,14 +23,14 @@ void DictionaryCompressor::AddRecord(std::vector<std::string> record) {
     records_.push_back(std::move(rec));
 }
 
-DictionaryCompressor DictionaryCompressor::CreateFrom(
+std::unique_ptr<DictionaryCompressor> DictionaryCompressor::CreateFrom(
         ::model::IDatasetStream& stream /*, indices*/) {
     size_t const columns = stream.GetNumberOfColumns();
-    DictionaryCompressor compressor{columns};
+    auto compressor = std::make_unique<DictionaryCompressor>(columns);
     if (!stream.HasNextRow())
         throw std::runtime_error("MD mining is meaningless on empty dataset!");
     while (stream.HasNextRow()) {
-        compressor.AddRecord(stream.GetNextRow());
+        compressor->AddRecord(stream.GetNextRow());
     }
     return compressor;
 }
