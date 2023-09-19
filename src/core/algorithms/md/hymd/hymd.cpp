@@ -108,7 +108,7 @@ void HyMD::RegisterResults() {
 
 bool HyMD::TraverseLattice(bool traverse_all) {
     size_t const col_matches_num = column_matches_.size();
-    while (cur_level_ < md_lattice_->GetMaxLevel()) {
+    while (cur_level_ <= md_lattice_->GetMaxLevel()) {
         std::vector<model::LatticeNodeSims> level_mds = md_lattice_->GetLevel(cur_level_);
         min_picker_lattice_->PickMinimalMds(level_mds);
         std::vector<model::LatticeNodeSims> cur = min_picker_lattice_->GetAll();
