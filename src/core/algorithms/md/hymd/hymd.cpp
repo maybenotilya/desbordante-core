@@ -15,6 +15,21 @@ std::vector<size_t> GetNonZeroIndices(algos::hymd::model::SimilarityVector const
     }
     return indices;
 }
+void IntersectInPlace(std::set<size_t>& set1, std::set<size_t> set2) {
+    auto it1 = set1.begin();
+    auto it2 = set2.begin();
+    while (it1 != set1.end() && it2 != set2.end()) {
+        if (*it1 < *it2) {
+            it1 = set1.erase(it1);
+        } else if (*it2 < *it1) {
+            ++it2;
+        } else {
+            ++it1;
+            ++it2;
+        }
+    }
+    set1.erase(it1, set1.end());
+}
 }  // namespace
 
 namespace algos::hymd {
@@ -284,15 +299,32 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
         }
     }
     else {
-        std::unordered_map<size_t, std::vector<size_t>> col_match_col_mapping =
-                MakeColMatchToColMapping(non_zero_indices);
+        std::map<size_t, std::vector<size_t>> col_col_match_mapping =
+                MakeColToColMatchMapping(non_zero_indices);
         std::vector<model::KeyedPositionListIndex const*> plis;
-        for (auto [pli_idx, col_match_idx] : col_match_col_mapping) {
-            plis.push_back(&records_left_.GetPlis()[pli_idx]);
+        std::unordered_map<size_t, size_t> col_match_to_val_ids_idx;
+        {
+            size_t idx = 0;
+            for (auto [pli_idx, col_match_idxs] : col_col_match_mapping) {
+                plis.push_back(&records_left_.GetPlis()[pli_idx]);
+                for (size_t col_match_idx : col_match_idxs) {
+                    col_match_to_val_ids_idx[col_match_idx] = idx;
+                }
+                ++idx;
+            }
         }
         model::PliIntersector intersector(plis);
-        for (auto const& [val_ids, record_ids] : intersector) {
-            
+        for (auto const& [val_ids, cluster] : intersector) {
+            std::set<RecordIdentifier> similar_records =
+                    GetSimilarRecords(val_ids[col_match_to_val_ids_idx[0]],
+                                      lhs_sims[non_zero_indices[0]], sim_indexes_[0]);
+            for (size_t i = 1; i < non_zero_indices.size(); ++i) {
+                IntersectInPlace(similar_records,
+                                 GetSimilarRecords(val_ids[col_match_to_val_ids_idx[i]],
+                                                   lhs_sims[non_zero_indices[i]], sim_indexes_[i]));
+            }
+            support += cluster.size() * similar_records.size();
+            DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records);
         }
     }
 
@@ -323,9 +355,9 @@ void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliClu
     }
 }
 
-std::unordered_map<size_t, std::vector<size_t>> HyMD::MakeColMatchToColMapping(
+std::map<size_t, std::vector<size_t>> HyMD::MakeColToColMatchMapping(
         std::vector<size_t> const& col_match_indices) {
-    std::unordered_map<size_t, std::vector<size_t>> mapping;
+    std::map<size_t, std::vector<size_t>> mapping;
     for (size_t col_match_index : col_match_indices) {
         mapping[GetPliIndex(col_match_index)].push_back(col_match_index);
     }

@@ -95,7 +95,7 @@ private:
                                                         SimilarityIndex const& sim_index);
     void DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
                                std::set<size_t> const& similar_records);
-    std::unordered_map<size_t, std::vector<size_t>> MakeColMatchToColMapping(
+    std::map<size_t, std::vector<size_t>> MakeColToColMatchMapping(
             std::vector<size_t> const& col_match_indices);
     size_t GetPliIndex(size_t column_match_index);
 };
