@@ -5,9 +5,6 @@
 #include "algorithms/md/hymd/model/dictionary_compressor/pli_intersector.h"
 
 namespace {
-size_t GetCardinality(algos::hymd::model::SimilarityVector const& lhs) {
-    return std::count(lhs.begin(), lhs.end(), 0.0);
-}
 std::vector<size_t> GetNonZeroIndices(algos::hymd::model::SimilarityVector const& lhs) {
     std::vector<size_t> indices;
     for (size_t i = 0; i < lhs.size(); ++i) {
