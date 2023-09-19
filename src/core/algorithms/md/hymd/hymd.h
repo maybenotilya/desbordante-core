@@ -4,6 +4,7 @@
 #include <set>
 
 #include "algorithms/algorithm.h"
+#include "algorithms/md/column_match.h"
 #include "algorithms/md/hymd/model/column_match_internal.h"
 #include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
 #include "algorithms/md/hymd/model/md_lattice/md_lattice.h"
@@ -44,6 +45,7 @@ private:
     std::unique_ptr<model::DictionaryCompressor> records_left_;
     std::unique_ptr<model::DictionaryCompressor> records_right_;
 
+    std::vector<::model::ColumnMatch> column_matches_option_;
     std::vector<model::ColumnMatchInternal> column_matches_;
     model::SimilarityVector rhs_min_similarities_;
 
@@ -98,6 +100,8 @@ private:
     std::map<size_t, std::vector<size_t>> MakeColToColMatchMapping(
             std::vector<size_t> const& col_match_indices);
     size_t GetPliIndex(size_t column_match_index);
+
+    void RegisterResults();
 
 public:
     HyMD();

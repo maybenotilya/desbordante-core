@@ -72,7 +72,32 @@ unsigned long long HyMD::ExecuteInternal() {
         done = InferFromRecordPairs();
         done = TraverseLattice(done);
     } while (!done);
+
+    RegisterResults();
     return 10031;
+}
+
+void HyMD::RegisterResults() {
+    for (size_t level = 0; level < md_lattice_->GetMaxLevel(); ++level) {
+        std::vector<model::LatticeNodeSims> mds = md_lattice_->GetLevel(level);
+        for (auto const& md: mds) {
+            for (size_t i = 0; i < md.rhs_sims.size(); ++i) {
+                double const rhs_sim = md.rhs_sims[i];
+                if (rhs_sim == 0.0) continue;
+                std::vector<::model::LhsColumnSimilarityClassifier> lhs;
+                for (size_t j = 0; j < md.lhs_sims.size(); ++j) {
+                    double const lhs_sim = md.lhs_sims[j];
+                    std::vector<double> bounds = natural_decision_bounds_[j];
+                    auto it = std::upper_bound(bounds.begin(), bounds.end(), lhs_sim);
+                    lhs.emplace_back((it == bounds.begin() ? std::optional<double>{} : *--it), j,
+                                     md.lhs_sims[j]);
+                }
+                ::model::ColumnSimilarityClassifier rhs{i, rhs_sim};
+                RegisterMd({left_schema_.get(), right_schema_.get(), column_matches_option_,
+                            std::move(lhs), rhs});
+            }
+        }
+    }
 }
 
 bool HyMD::TraverseLattice(bool traverse_all) {
