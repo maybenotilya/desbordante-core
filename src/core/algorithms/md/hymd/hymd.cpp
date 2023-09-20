@@ -186,6 +186,7 @@ bool HyMD::InferFromRecordPairs() {
                 return false;
             }
         }
+        cur_record_right_ = 0;
         ++cur_record_left_;
     }
     return true;
