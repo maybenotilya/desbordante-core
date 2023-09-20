@@ -5,7 +5,7 @@
 namespace {
 
 size_t GetCardinality(algos::hymd::model::SimilarityVector const& lhs) {
-    return std::count(lhs.begin(), lhs.end(), 0.0);
+    return lhs.size() - std::count(lhs.begin(), lhs.end(), 0.0);
 }
 
 }
