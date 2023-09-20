@@ -47,7 +47,7 @@ iter::const_iterator(std::vector<KeyedPositionListIndex const*> const* plis)
 
 bool iter::ValueIdsAreValid() {
     for (size_t i = 0; i < plis_->size(); ++i) {
-        if ((*plis_)[i]->GetClusters().size() > value_ids_[i]) return false;
+        if ((*plis_)[i]->GetClusters().size() <= value_ids_[i]) return false;
     }
     return true;
 }
