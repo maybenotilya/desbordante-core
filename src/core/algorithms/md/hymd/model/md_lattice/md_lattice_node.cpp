@@ -9,8 +9,8 @@ namespace algos::hymd::model {
 void MdLatticeNode::Add(LatticeMd const& md, size_t const this_node_index) {
     model::SimilarityVector const& lhs_vec = md.lhs_sims;
     assert(this_node_index < lhs_vec.size());
-    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index + 1);
-    if (next_node_index == lhs_vec.size()) {
+    size_t const first_non_zero_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
+    if (first_non_zero_index == lhs_vec.size()) {
         double& cur_sim = rhs_[md.rhs_index];
         double const added_md_sim = md.rhs_sim;
         assert(added_md_sim != 0.0);
@@ -19,15 +19,15 @@ void MdLatticeNode::Add(LatticeMd const& md, size_t const this_node_index) {
         }
         return;
     }
-    assert(next_node_index < lhs_vec.size());
-    size_t const child_array_index = next_node_index - (this_node_index + 1);
-    model::Similarity const child_similarity = lhs_vec[next_node_index];
+    assert(first_non_zero_index < lhs_vec.size());
+    size_t const child_array_index = first_non_zero_index - this_node_index;
+    model::Similarity const child_similarity = lhs_vec[first_non_zero_index];
     ThresholdMap& threshold_map = children_[child_array_index];
     std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[child_similarity];
     if (node_ptr == nullptr) {
         node_ptr = std::make_unique<MdLatticeNode>(rhs_.size());
     }
-    node_ptr->Add(md, next_node_index);
+    node_ptr->Add(md, first_non_zero_index + 1);
 }
 
 bool MdLatticeNode::AddIfMin(LatticeMd const& md) {
