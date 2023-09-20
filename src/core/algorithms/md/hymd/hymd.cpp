@@ -94,7 +94,7 @@ void HyMD::RegisterResults() {
                 for (size_t j = 0; j < md.lhs_sims.size(); ++j) {
                     double const lhs_sim = md.lhs_sims[j];
                     std::vector<double> bounds = natural_decision_bounds_[j];
-                    auto it = std::upper_bound(bounds.begin(), bounds.end(), lhs_sim);
+                    auto it = std::lower_bound(bounds.begin(), bounds.end(), lhs_sim);
                     std::optional<double> max_disproved_bound;
                     if (it != bounds.begin()) max_disproved_bound = *--it;
                     lhs.emplace_back(max_disproved_bound, j, lhs_sim);
