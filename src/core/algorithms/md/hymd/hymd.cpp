@@ -325,8 +325,8 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
                 records_left_->GetPlis()[GetPliIndex(non_zero_index)].GetClusters();
         SimilarityIndex const& sim_index = sim_indexes_[non_zero_index];
         for (size_t value_id = 0; value_id < clusters.size(); ++value_id) {
-            std::vector<size_t> const& cluster = clusters[value_id];
-            std::set<size_t> similar_records =
+            std::vector<RecordIdentifier> const& cluster = clusters[value_id];
+            std::set<RecordIdentifier> similar_records =
                     GetSimilarRecords(value_id, lhs_sims[non_zero_index], sim_index);
             support += cluster.size() * similar_records.size();
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records);
@@ -377,10 +377,17 @@ std::set<HyMD::RecordIdentifier> HyMD::GetSimilarRecords(ValueIdentifier value_i
 
 void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
                                  std::set<size_t> const& similar_records) {
-    for (size_t k : cluster) {
-        for (size_t l : similar_records) {
+    for (RecordIdentifier record_id_left : cluster) {
+        std::vector<ValueIdentifier> const& left_record =
+                records_left_->GetRecords()[record_id_left];
+        for (RecordIdentifier record_id_right : similar_records) {
+            std::vector<ValueIdentifier> const& right_record =
+                    records_right_->GetRecords()[record_id_right];
             for (size_t col_match = 0; col_match < column_matches_.size(); ++col_match) {
-                double const record_similarity = sim_matrices_[col_match][k][l];
+                ValueIdentifier const left_value_id = left_record[col_match];
+                ValueIdentifier const right_value_id = right_record[col_match];
+                double const record_similarity =
+                        sim_matrices_[col_match][left_value_id][right_value_id];
                 double& threshold = rhs_thresholds[col_match];
                 if (threshold > record_similarity) {
                     threshold = record_similarity;
