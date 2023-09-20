@@ -24,6 +24,7 @@ std::vector<LatticeNodeSims> MinPickerLattice::GetAll() {
     for (auto const& md : collected) {
         assert(picked_lhs_.insert(md.lhs_sims).second);
     }
+    root_ = MinPickerNode();
     return collected;
 }
 
