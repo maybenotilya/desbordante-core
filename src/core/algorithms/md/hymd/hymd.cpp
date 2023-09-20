@@ -261,13 +261,13 @@ void HyMD::FillSimilarities() {
             std::vector<ValueIdentifier> sim_sorted_records;
             sim_sorted_records.reserve(sim_id_vec.size());
             double prev_sim = -1.0;
-            for (size_t idx = 0; idx < sim_sorted_records.size(); ++idx) {
+            for (size_t idx = 0; idx < sim_id_vec.size(); ++idx) {
                 auto [similarity, record] = sim_id_vec[idx];
                 if (prev_sim != similarity) {
                     prev_sim = similarity;
                     sim_mapping.emplace(similarity, idx);
                 }
-                sim_sorted_records.emplace_back(similarity);
+                sim_sorted_records.emplace_back(record);
             }
             sim_index[value_id_left] = {sim_mapping, sim_sorted_records};
         }
