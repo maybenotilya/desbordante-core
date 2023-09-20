@@ -116,7 +116,7 @@ bool HyMD::TraverseLattice(bool traverse_all) {
         if (cur.empty()) {
             ++cur_level_;
             min_picker_lattice_->Advance();
-            if (!traverse_all) return cur_level_ < md_lattice_->GetMaxLevel();
+            if (!traverse_all) return false;
             continue;
         }
         for (model::LatticeNodeSims const& node : cur) {
