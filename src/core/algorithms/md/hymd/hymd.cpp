@@ -95,8 +95,9 @@ void HyMD::RegisterResults() {
                     double const lhs_sim = md.lhs_sims[j];
                     std::vector<double> bounds = natural_decision_bounds_[j];
                     auto it = std::upper_bound(bounds.begin(), bounds.end(), lhs_sim);
-                    lhs.emplace_back((it == bounds.begin() ? std::optional<double>{} : *--it), j,
-                                     md.lhs_sims[j]);
+                    std::optional<double> max_disproved_bound;
+                    if (it != bounds.begin()) max_disproved_bound = *--it;
+                    lhs.emplace_back(max_disproved_bound, j, lhs_sim);
                 }
                 ::model::ColumnSimilarityClassifier rhs{i, rhs_sim};
                 RegisterMd({left_schema_.get(), right_schema_.get(), column_matches, std::move(lhs),
