@@ -2,33 +2,31 @@
 
 #include <cassert>
 
+#include "algorithms/md/hymd/model/get_first_non_zero_index.h"
+
 namespace algos::hymd::model {
 
 void MdLatticeNode::Add(LatticeMd const& md, size_t const this_node_index) {
     model::SimilarityVector const& lhs_vec = md.lhs_sims;
-    assert(this_node_index <= lhs_vec.size());
-    size_t const child_array_size_limit = lhs_vec.size() - this_node_index;
-    for (size_t child_array_index = 0; child_array_index < child_array_size_limit;
-         ++child_array_index) {
-        size_t const sim_index = this_node_index + child_array_index;
-        size_t const new_node_index = sim_index + 1;
-        assert(sim_index < lhs_vec.size());
-        model::Similarity similarity = lhs_vec[sim_index];
-        if (similarity != 0.0) {
-            ThresholdMap& threshold_map = children_[child_array_index];
-            std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[similarity];
-            if (node_ptr == nullptr) {
-                node_ptr = std::make_unique<MdLatticeNode>(rhs_.size());
-            }
-            node_ptr->Add(md, new_node_index);
-            return;
+    assert(this_node_index < lhs_vec.size());
+    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index + 1);
+    if (next_node_index == lhs_vec.size()) {
+        double& cur_sim = rhs_[md.rhs_index];
+        double const added_md_sim = md.rhs_sim;
+        if (added_md_sim < cur_sim) {
+            cur_sim = added_md_sim;
         }
+        return;
     }
-    double& cur_sim = rhs_[md.rhs_index];
-    double const added_md_sim = md.rhs_sim;
-    if (added_md_sim < cur_sim) {
-        cur_sim = added_md_sim;
+    assert(next_node_index < lhs_vec.size());
+    size_t const child_array_index = next_node_index - (this_node_index + 1);
+    model::Similarity const child_similarity = lhs_vec[next_node_index];
+    ThresholdMap& threshold_map = children_[child_array_index];
+    std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[child_similarity];
+    if (node_ptr == nullptr) {
+        node_ptr = std::make_unique<MdLatticeNode>(rhs_.size());
     }
+    node_ptr->Add(md, next_node_index);
 }
 
 bool MdLatticeNode::AddIfMin(LatticeMd const& md) {
@@ -58,52 +56,43 @@ bool MdLatticeNode::HasGeneralization(LatticeMd const& md, size_t this_node_inde
 
 void MdLatticeNode::RemoveMd(LatticeMd const& md, size_t const this_node_index) {
     model::SimilarityVector const& lhs_vec = md.lhs_sims;
-    assert(this_node_index <= lhs_vec.size());
-    size_t const child_array_size_limit = lhs_vec.size() - this_node_index;
-    for (size_t child_array_index = 0; child_array_index < child_array_size_limit;
-         ++child_array_index) {
-        size_t const sim_index = this_node_index + child_array_index;
-        size_t const new_node_index = sim_index + 1;
-        assert(sim_index < lhs_vec.size());
-        model::Similarity similarity = lhs_vec[sim_index];
-        if (similarity != 0.0) {
-            ThresholdMap& threshold_map = children_[child_array_index];
-            std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[similarity];
-            assert(node_ptr != nullptr);
-            node_ptr->RemoveMd(md, new_node_index);
-            return;
-        }
+    assert(this_node_index < lhs_vec.size());
+    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index + 1);
+    if (next_node_index == lhs_vec.size()) {
+        double& cur_sim = rhs_[md.rhs_index];
+        double const removed_md_sim = md.rhs_sim;
+        assert(cur_sim != 0.0 && cur_sim == removed_md_sim);
+        cur_sim = 0.0;
+        return;
     }
-    double& cur_sim = rhs_[md.rhs_index];
-    double const removed_md_sim = md.rhs_sim;
-    assert(cur_sim != 0.0 && cur_sim == removed_md_sim);
-    cur_sim = 0.0;
+    assert(next_node_index < lhs_vec.size());
+    size_t const child_array_index = next_node_index - (this_node_index + 1);
+    model::Similarity const child_similarity = lhs_vec[next_node_index];
+    ThresholdMap& threshold_map = children_[child_array_index];
+    std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[child_similarity];
+    assert(node_ptr != nullptr);
+    node_ptr->RemoveMd(md, next_node_index);
 }
 
 void MdLatticeNode::RemoveNode(SimilarityVector const& lhs_vec, size_t this_node_index) {
-    assert(this_node_index <= lhs_vec.size());
-    size_t const child_array_size_limit = lhs_vec.size() - this_node_index;
-    for (size_t child_array_index = 0; child_array_index < child_array_size_limit;
-         ++child_array_index) {
-        size_t const sim_index = this_node_index + child_array_index;
-        size_t const new_node_index = sim_index + 1;
-        assert(sim_index < lhs_vec.size());
-        model::Similarity similarity = lhs_vec[sim_index];
-        if (similarity != 0.0) {
-            ThresholdMap& threshold_map = children_[child_array_index];
-            std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[similarity];
-            assert(node_ptr != nullptr);
-            node_ptr->RemoveNode(lhs_vec, new_node_index);
-            return;
-        }
+    assert(this_node_index < lhs_vec.size());
+    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index + 1);
+    if (next_node_index == lhs_vec.size()) {
+        rhs_.assign(rhs_.size(), 0.0);
+        return;
     }
-    rhs_.assign(rhs_.size(), 0.0);
+    assert(next_node_index < lhs_vec.size());
+    size_t const child_array_index = next_node_index - (this_node_index + 1);
+    model::Similarity const child_similarity = lhs_vec[next_node_index];
+    ThresholdMap& threshold_map = children_[child_array_index];
+    std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[child_similarity];
+    assert(node_ptr != nullptr);
+    node_ptr->RemoveNode(lhs_vec, next_node_index);
 }
 
 void MdLatticeNode::FindViolated(std::vector<LatticeMd>& found, SimilarityVector& this_node_lhs,
                                  SimilarityVector const& similarity_vector,
                                  size_t this_node_index) {
-    // check rhs
     for (size_t i = 0; i < rhs_.size(); ++i) {
         double const assumed_rhs = rhs_[i];
         if (similarity_vector[i] < assumed_rhs) {
@@ -163,8 +152,8 @@ void MdLatticeNode::GetLevel(std::vector<LatticeNodeSims>& collected,
             assert(threshold > 0.0);
             this_node_lhs[next_node_index] = threshold;
             node->GetLevel(collected, this_node_lhs, this_node_index, sims_left - 1);
-            this_node_lhs[next_node_index] = 0.0;
         }
+        this_node_lhs[next_node_index] = 0.0;
     }
 }
 

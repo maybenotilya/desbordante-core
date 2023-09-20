@@ -2,29 +2,27 @@
 
 #include <cassert>
 
+#include "algorithms/md/hymd/model/get_first_non_zero_index.h"
+
 namespace algos::hymd::model {
 
 void MinPickerNode::Add(LatticeNodeSims const& md, size_t this_node_index) {
     model::SimilarityVector const& lhs_vec = md.lhs_sims;
-    assert(this_node_index <= lhs_vec.size());
-    size_t const child_array_size_limit = lhs_vec.size() - this_node_index;
-    for (size_t child_array_index = 0; child_array_index < child_array_size_limit;
-         ++child_array_index) {
-        size_t const sim_index = this_node_index + child_array_index;
-        size_t const new_node_index = sim_index + 1;
-        assert(sim_index < lhs_vec.size());
-        model::Similarity similarity = lhs_vec[sim_index];
-        if (similarity != 0.0) {
-            ThresholdMap& threshold_map = children_[child_array_index];
-            std::unique_ptr<MinPickerNode>& node_ptr = threshold_map[similarity];
-            if (node_ptr == nullptr) {
-                node_ptr = std::make_unique<MinPickerNode>();
-            }
-            node_ptr->Add(md, new_node_index);
-            return;
-        }
+    assert(this_node_index < lhs_vec.size());
+    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index + 1);
+    if (next_node_index == lhs_vec.size()) {
+        rhs_ = md.rhs_sims;
+        return;
     }
-    rhs_ = md.rhs_sims;
+    assert(next_node_index < lhs_vec.size());
+    size_t const child_array_index = next_node_index - (this_node_index + 1);
+    model::Similarity const child_similarity = lhs_vec[next_node_index];
+    ThresholdMap& threshold_map = children_[child_array_index];
+    std::unique_ptr<MinPickerNode>& node_ptr = threshold_map[child_similarity];
+    if (node_ptr == nullptr) {
+        node_ptr = std::make_unique<MinPickerNode>();
+    }
+    node_ptr->Add(md, next_node_index);
 }
 
 bool MinPickerNode::HasGeneralization(LatticeNodeSims const& md, size_t this_node_index) {
@@ -53,6 +51,8 @@ void MinPickerNode::TryAdd(LatticeNodeSims const& md) {
 }
 
 void MinPickerNode::RemoveSpecializations(LatticeNodeSims const& md, size_t this_node_index) {
+    // All MDs in the tree are of the same cardinality.
+    // if (IsMD()) { rhs_.clear(); return; }
     SimilarityVector const& lhs_vec = md.lhs_sims;
     for (auto const& [index, threshold_mapping] : children_) {
         size_t const next_node_index = this_node_index + 1 + index;

@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "algorithms/md/hymd/model/get_first_non_zero_index.h"
+
 namespace algos::hymd::model {
 
 bool SupportNode::IsUnsupported(model::SimilarityVector const& lhs_vec,
@@ -25,25 +27,21 @@ bool SupportNode::IsUnsupported(model::SimilarityVector const& lhs_vec,
 
 void SupportNode::MarkUnsupported(model::SimilarityVector const& lhs_vec, size_t this_node_index) {
     if (is_unsupported_) return;
-    assert(this_node_index <= lhs_vec.size());
-    size_t const child_array_size_limit = lhs_vec.size() - this_node_index;
-    for (size_t child_array_index = 0; child_array_index < child_array_size_limit;
-         ++child_array_index) {
-        size_t const sim_index = this_node_index + child_array_index;
-        size_t const new_node_index = sim_index + 1;
-        assert(sim_index < lhs_vec.size());
-        model::Similarity similarity = lhs_vec[sim_index];
-        if (similarity != 0.0) {
-            ThresholdMap& threshold_map = children_[child_array_index];
-            std::unique_ptr<SupportNode>& node_ptr = threshold_map[similarity];
-            if (node_ptr == nullptr) {
-                node_ptr = std::make_unique<SupportNode>();
-            }
-            node_ptr->MarkUnsupported(lhs_vec, new_node_index);
-            return;
-        }
+    assert(this_node_index < lhs_vec.size());
+    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index + 1);
+    if (next_node_index == lhs_vec.size()) {
+        is_unsupported_ = true;
+        return;
     }
-    is_unsupported_ = true;
+    assert(next_node_index < lhs_vec.size());
+    size_t const child_array_index = next_node_index - (this_node_index + 1);
+    model::Similarity const child_similarity = lhs_vec[next_node_index];
+    ThresholdMap& threshold_map = children_[child_array_index];
+    std::unique_ptr<SupportNode>& node_ptr = threshold_map[child_similarity];
+    if (node_ptr == nullptr) {
+        node_ptr = std::make_unique<SupportNode>();
+    }
+    node_ptr->MarkUnsupported(lhs_vec, next_node_index);
 }
 
 }
