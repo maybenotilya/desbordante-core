@@ -374,7 +374,8 @@ std::set<HyMD::RecordIdentifier> HyMD::GetSimilarRecords(ValueIdentifier value_i
     return {records.begin() + static_cast<long>(it->second), records.end()};
 }
 
-void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster, std::set<size_t> const& similar_records) {
+void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
+                                 std::set<size_t> const& similar_records) {
     for (size_t k : cluster) {
         for (size_t l : similar_records) {
             for (size_t col_match = 0; col_match < column_matches_.size(); ++col_match) {
