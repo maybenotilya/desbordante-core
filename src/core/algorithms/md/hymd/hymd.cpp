@@ -145,7 +145,7 @@ bool HyMD::TraverseLattice(bool traverse_all) {
                 for (size_t j = 0; j < col_matches_num; ++j) {
                     model::Similarity const new_lhs_sim = new_lhs_sims.value()[j];
                     model::Similarity const rhs_sim = rhs_sims[j];
-                    if (rhs_sims[j] > new_lhs_sim) {
+                    if (rhs_sim > new_lhs_sim) {
                         md_lattice_->AddIfMin({new_lhs_sims.value(), rhs_sim, j});
                     }
                 }
