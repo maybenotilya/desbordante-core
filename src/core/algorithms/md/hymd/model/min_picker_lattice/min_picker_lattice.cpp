@@ -1,5 +1,7 @@
 #include "algorithms/md/hymd/model/min_picker_lattice/min_picker_lattice.h"
 
+#include <cassert>
+
 namespace algos::hymd::model {
 
 void MinPickerLattice::Advance() {
@@ -19,6 +21,9 @@ std::vector<LatticeNodeSims> MinPickerLattice::GetAll() {
     std::vector<LatticeNodeSims> collected;
     SimilarityVector lhs(attribute_num_, 0.0);
     root_.GetAll(collected, lhs, 0, cardinality);
+    for (auto const& md : collected) {
+        assert(!picked_lhs_.insert(md.lhs_sims).second);
+    }
     return collected;
 }
 
