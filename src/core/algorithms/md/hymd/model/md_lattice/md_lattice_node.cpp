@@ -13,7 +13,8 @@ void MdLatticeNode::Add(LatticeMd const& md, size_t const this_node_index) {
     if (next_node_index == lhs_vec.size()) {
         double& cur_sim = rhs_[md.rhs_index];
         double const added_md_sim = md.rhs_sim;
-        if (added_md_sim < cur_sim) {
+        assert(added_md_sim != 0.0);
+        if (cur_sim == 0.0 || added_md_sim < cur_sim) {
             cur_sim = added_md_sim;
         }
         return;
