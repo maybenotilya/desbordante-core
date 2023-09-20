@@ -18,7 +18,7 @@ void MinPickerLattice::PickMinimalMds(std::vector<LatticeNodeSims> const& mds) {
 std::vector<LatticeNodeSims> MinPickerLattice::GetAll() {
     std::vector<LatticeNodeSims> collected;
     SimilarityVector lhs(attribute_num_, 0.0);
-
+    root_.GetAll(collected, lhs, 0, attribute_num_);
     return collected;
 }
 
