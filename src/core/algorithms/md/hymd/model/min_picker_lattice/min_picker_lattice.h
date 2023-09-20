@@ -27,7 +27,6 @@ class MinPickerLattice {
 private:
     std::unordered_set<SimilarityVector> picked_lhs_;
     size_t attribute_num_;
-    size_t cardinality_ = 0;
     MinPickerNode root_;
 
 public:

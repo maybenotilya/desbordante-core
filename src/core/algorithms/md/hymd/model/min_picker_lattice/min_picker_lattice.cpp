@@ -5,7 +5,6 @@ namespace algos::hymd::model {
 void MinPickerLattice::Advance() {
     picked_lhs_.clear();
     root_ = MinPickerNode();
-    ++cardinality_;
 }
 
 void MinPickerLattice::PickMinimalMds(std::vector<LatticeNodeSims> const& mds) {
