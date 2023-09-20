@@ -350,12 +350,12 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
         model::PliIntersector intersector(plis);
         for (auto const& [val_ids, cluster] : intersector) {
             std::set<RecordIdentifier> similar_records = GetSimilarRecords(
-                    val_ids[col_match_to_val_ids_idx[0]], lhs_sims[non_zero_indices[0]],
-                    sim_indexes_[non_zero_indices[0]]);
+                    val_ids[col_match_to_val_ids_idx[non_zero_indices[0]]],
+                    lhs_sims[non_zero_indices[0]], sim_indexes_[non_zero_indices[0]]);
             for (size_t i = 1; i < non_zero_indices.size(); ++i) {
                 size_t const column_match_index = non_zero_indices[i];
                 IntersectInPlace(similar_records,
-                                 GetSimilarRecords(val_ids[col_match_to_val_ids_idx[i]],
+                                 GetSimilarRecords(val_ids[col_match_to_val_ids_idx[column_match_index]],
                                                    lhs_sims[column_match_index],
                                                    sim_indexes_[column_match_index]));
             }
