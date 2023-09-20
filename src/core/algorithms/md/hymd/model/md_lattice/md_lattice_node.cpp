@@ -8,7 +8,7 @@ namespace algos::hymd::model {
 
 void MdLatticeNode::Add(LatticeMd const& md, size_t const this_node_index) {
     model::SimilarityVector const& lhs_vec = md.lhs_sims;
-    assert(this_node_index < lhs_vec.size());
+    assert(this_node_index <= lhs_vec.size());
     size_t const first_non_zero_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
     if (first_non_zero_index == lhs_vec.size()) {
         double& cur_sim = rhs_[md.rhs_index];
