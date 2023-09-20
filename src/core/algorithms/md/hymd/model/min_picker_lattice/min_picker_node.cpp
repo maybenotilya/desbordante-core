@@ -62,7 +62,7 @@ void MinPickerNode::RemoveSpecializations(LatticeNodeSims const& md, size_t this
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
             if (threshold < next_node_sim) continue;
-            RemoveSpecializations(md, cur_node_index + 1);
+            node->RemoveSpecializations(md, cur_node_index + 1);
         }
     }
     rhs_.clear();
