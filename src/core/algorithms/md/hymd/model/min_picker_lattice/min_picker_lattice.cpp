@@ -5,6 +5,7 @@ namespace algos::hymd::model {
 void MinPickerLattice::Advance() {
     picked_lhs_.clear();
     root_ = MinPickerNode();
+    ++cardinality;
 }
 
 void MinPickerLattice::PickMinimalMds(std::vector<LatticeNodeSims> const& mds) {
@@ -17,7 +18,7 @@ void MinPickerLattice::PickMinimalMds(std::vector<LatticeNodeSims> const& mds) {
 std::vector<LatticeNodeSims> MinPickerLattice::GetAll() {
     std::vector<LatticeNodeSims> collected;
     SimilarityVector lhs(attribute_num_, 0.0);
-    root_.GetAll(collected, lhs, 0, attribute_num_);
+    root_.GetAll(collected, lhs, 0, cardinality);
     return collected;
 }
 
