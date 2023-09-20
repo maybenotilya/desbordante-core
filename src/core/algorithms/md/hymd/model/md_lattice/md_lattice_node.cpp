@@ -40,14 +40,14 @@ bool MdLatticeNode::HasGeneralization(LatticeMd const& md, size_t this_node_inde
     if (rhs_[md.rhs_index] >= md.rhs_sim) return true;
     SimilarityVector const& lhs_vec = md.lhs_sims;
     for (auto const& [index, threshold_mapping] : children_) {
-        size_t const next_node_index = this_node_index + 1 + index;
-        assert(next_node_index < lhs_vec.size());
+        size_t const cur_node_index = this_node_index + index;
+        assert(cur_node_index < lhs_vec.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            if (threshold > lhs_vec[next_node_index]) {
+            if (threshold > lhs_vec[cur_node_index]) {
                 break;
             }
-            if (node->HasGeneralization(md, next_node_index)) {
+            if (node->HasGeneralization(md, cur_node_index + 1)) {
                 return true;
             }
         }
@@ -58,7 +58,7 @@ bool MdLatticeNode::HasGeneralization(LatticeMd const& md, size_t this_node_inde
 void MdLatticeNode::RemoveMd(LatticeMd const& md, size_t const this_node_index) {
     model::SimilarityVector const& lhs_vec = md.lhs_sims;
     assert(this_node_index < lhs_vec.size());
-    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index + 1);
+    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
     if (next_node_index == lhs_vec.size()) {
         double& cur_sim = rhs_[md.rhs_index];
         double const removed_md_sim = md.rhs_sim;
@@ -67,28 +67,28 @@ void MdLatticeNode::RemoveMd(LatticeMd const& md, size_t const this_node_index) 
         return;
     }
     assert(next_node_index < lhs_vec.size());
-    size_t const child_array_index = next_node_index - (this_node_index + 1);
+    size_t const child_array_index = next_node_index - this_node_index;
     model::Similarity const child_similarity = lhs_vec[next_node_index];
     ThresholdMap& threshold_map = children_[child_array_index];
     std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[child_similarity];
     assert(node_ptr != nullptr);
-    node_ptr->RemoveMd(md, next_node_index);
+    node_ptr->RemoveMd(md, next_node_index + 1);
 }
 
 void MdLatticeNode::RemoveNode(SimilarityVector const& lhs_vec, size_t this_node_index) {
     assert(this_node_index < lhs_vec.size());
-    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index + 1);
+    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
     if (next_node_index == lhs_vec.size()) {
         rhs_.assign(rhs_.size(), 0.0);
         return;
     }
     assert(next_node_index < lhs_vec.size());
-    size_t const child_array_index = next_node_index - (this_node_index + 1);
+    size_t const child_array_index = next_node_index - this_node_index;
     model::Similarity const child_similarity = lhs_vec[next_node_index];
     ThresholdMap& threshold_map = children_[child_array_index];
     std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[child_similarity];
     assert(node_ptr != nullptr);
-    node_ptr->RemoveNode(lhs_vec, next_node_index);
+    node_ptr->RemoveNode(lhs_vec, next_node_index + 1);
 }
 
 void MdLatticeNode::FindViolated(std::vector<LatticeMd>& found, SimilarityVector& this_node_lhs,
@@ -101,16 +101,16 @@ void MdLatticeNode::FindViolated(std::vector<LatticeMd>& found, SimilarityVector
         }
     }
     for (auto const& [index, threshold_mapping] : children_) {
-        size_t const next_node_index = this_node_index + 1 + index;
-        assert(next_node_index < similarity_vector.size());
+        size_t const cur_node_index = this_node_index + index;
+        assert(cur_node_index < similarity_vector.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            if (threshold > similarity_vector[next_node_index]) {
+            if (threshold > similarity_vector[cur_node_index]) {
                 break;
             }
-            this_node_lhs[next_node_index] = threshold;
-            node->FindViolated(found, this_node_lhs, similarity_vector, next_node_index);
-            this_node_lhs[next_node_index] = 0.0;
+            this_node_lhs[cur_node_index] = threshold;
+            node->FindViolated(found, this_node_lhs, similarity_vector, cur_node_index + 1);
+            this_node_lhs[cur_node_index] = 0.0;
         }
     }
 }
@@ -127,14 +127,14 @@ void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
         }
     }
     for (auto const& [index, threshold_mapping] : children_) {
-        size_t const next_node_index = this_node_index + 1 + index;
-        assert(next_node_index < lhs.size());
+        size_t const cur_node_index = this_node_index + index;
+        assert(cur_node_index < lhs.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            if (threshold > lhs[next_node_index]) {
+            if (threshold > lhs[cur_node_index]) {
                 break;
             }
-            node->GetMaxValidGeneralizationRhs(lhs, cur_rhs, next_node_index);
+            node->GetMaxValidGeneralizationRhs(lhs, cur_rhs, cur_node_index + 1);
         }
     }
 }
@@ -147,14 +147,14 @@ void MdLatticeNode::GetLevel(std::vector<LatticeNodeSims>& collected,
         return;
     }
     for (auto const& [index, threshold_mapping] : children_) {
-        size_t const next_node_index = this_node_index + 1 + index;
-        assert(next_node_index < this_node_lhs.size());
+        size_t const cur_node_index = this_node_index + index;
+        assert(cur_node_index < this_node_lhs.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            this_node_lhs[next_node_index] = threshold;
-            node->GetLevel(collected, this_node_lhs, this_node_index, sims_left - 1);
+            this_node_lhs[cur_node_index] = threshold;
+            node->GetLevel(collected, this_node_lhs, cur_node_index + 1, sims_left - 1);
         }
-        this_node_lhs[next_node_index] = 0.0;
+        this_node_lhs[cur_node_index] = 0.0;
     }
 }
 

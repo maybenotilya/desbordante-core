@@ -10,14 +10,14 @@ bool SupportNode::IsUnsupported(model::SimilarityVector const& lhs_vec,
                                 size_t const this_node_index) const {
     if (is_unsupported_) return true;
     for (auto const& [index, threshold_mapping] : children_) {
-        size_t const next_node_index = this_node_index + 1 + index;
-        assert(next_node_index < lhs_vec.size());
+        size_t const cur_node_index = this_node_index + index;
+        assert(cur_node_index < lhs_vec.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            if (threshold > lhs_vec[next_node_index]) {
+            if (threshold > lhs_vec[cur_node_index]) {
                 break;
             }
-            if (node->IsUnsupported(lhs_vec, next_node_index)) {
+            if (node->IsUnsupported(lhs_vec, cur_node_index + 1)) {
                 return true;
             }
         }

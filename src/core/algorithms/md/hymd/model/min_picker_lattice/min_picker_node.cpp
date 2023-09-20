@@ -29,14 +29,14 @@ bool MinPickerNode::HasGeneralization(LatticeNodeSims const& md, size_t this_nod
     if (IsMd()) return true;
     SimilarityVector const& lhs_vec = md.lhs_sims;
     for (auto const& [index, threshold_mapping] : children_) {
-        size_t const next_node_index = this_node_index + 1 + index;
-        assert(next_node_index < lhs_vec.size());
+        size_t const cur_node_index = this_node_index + index;
+        assert(cur_node_index < lhs_vec.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            if (threshold > lhs_vec[next_node_index]) {
+            if (threshold > lhs_vec[cur_node_index]) {
                 break;
             }
-            if (node->HasGeneralization(md, next_node_index)) {
+            if (node->HasGeneralization(md, cur_node_index + 1)) {
                 return true;
             }
         }
@@ -55,14 +55,14 @@ void MinPickerNode::RemoveSpecializations(LatticeNodeSims const& md, size_t this
     // if (IsMD()) { rhs_.clear(); return; }
     SimilarityVector const& lhs_vec = md.lhs_sims;
     for (auto const& [index, threshold_mapping] : children_) {
-        size_t const next_node_index = this_node_index + 1 + index;
-        assert(next_node_index < lhs_vec.size());
-        double const next_node_sim = lhs_vec[next_node_index];
+        size_t const cur_node_index = this_node_index + index;
+        assert(cur_node_index < lhs_vec.size());
+        double const next_node_sim = lhs_vec[cur_node_index];
         if (next_node_sim == 0.0) continue;
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
             if (threshold < next_node_sim) continue;
-            RemoveSpecializations(md, next_node_index);
+            RemoveSpecializations(md, cur_node_index + 1);
         }
     }
     rhs_.clear();
@@ -75,14 +75,14 @@ void MinPickerNode::GetAll(std::vector<LatticeNodeSims>& collected, SimilarityVe
         return;
     }
     for (auto const& [index, threshold_mapping] : children_) {
-        size_t const next_node_index = this_node_index + 1 + index;
-        assert(next_node_index < this_node_lhs.size());
+        size_t const cur_node_index = this_node_index + index;
+        assert(cur_node_index < this_node_lhs.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            this_node_lhs[next_node_index] = threshold;
-            node->GetAll(collected, this_node_lhs, this_node_index, sims_left - 1);
-            this_node_lhs[next_node_index] = 0.0;
+            this_node_lhs[cur_node_index] = threshold;
+            node->GetAll(collected, this_node_lhs, cur_node_index + 1, sims_left - 1);
         }
+        this_node_lhs[cur_node_index] = 0.0;
     }
 }
 
