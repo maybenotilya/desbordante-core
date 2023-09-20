@@ -57,7 +57,7 @@ bool MdLatticeNode::HasGeneralization(LatticeMd const& md, size_t this_node_inde
 
 void MdLatticeNode::RemoveMd(LatticeMd const& md, size_t const this_node_index) {
     model::SimilarityVector const& lhs_vec = md.lhs_sims;
-    assert(this_node_index < lhs_vec.size());
+    assert(this_node_index <= lhs_vec.size());
     size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
     if (next_node_index == lhs_vec.size()) {
         double& cur_sim = rhs_[md.rhs_index];
@@ -76,7 +76,7 @@ void MdLatticeNode::RemoveMd(LatticeMd const& md, size_t const this_node_index) 
 }
 
 void MdLatticeNode::RemoveNode(SimilarityVector const& lhs_vec, size_t this_node_index) {
-    assert(this_node_index < lhs_vec.size());
+    assert(this_node_index <= lhs_vec.size());
     size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
     if (next_node_index == lhs_vec.size()) {
         rhs_.assign(rhs_.size(), 0.0);
