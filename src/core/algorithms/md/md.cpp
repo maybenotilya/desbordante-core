@@ -30,7 +30,7 @@ std::string MD::ToString() const noexcept {
             ss << "(>" << disp.value() << ") ";
         }
         else {
-            ss << "(>=0.0) ";
+            ss << "(>=0) ";
         }
         ss << "|";
     }
