@@ -27,10 +27,7 @@ std::string MD::ToString() const noexcept {
            << ")>=" << classifier.GetDecisionBoundary();
         auto disp = classifier.GetMaxDisprovedBound();
         if (disp.has_value()) {
-            ss << "(>" << disp.value() << ") ";
-        }
-        else {
-            ss << "(>=0) ";
+            ss << " (>" << disp.value() << ") ";
         }
         ss << "|";
     }
