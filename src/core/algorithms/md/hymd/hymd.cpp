@@ -64,7 +64,8 @@ void HyMD::LoadDataInternal() {
 
 unsigned long long HyMD::ExecuteInternal() {
     assert(!column_matches_.empty());
-    // time stuff
+    auto const start_time = std::chrono::system_clock::now();
+
     FillSimilarities();
 
     bool done;
@@ -74,7 +75,10 @@ unsigned long long HyMD::ExecuteInternal() {
     } while (!done);
 
     RegisterResults();
-    return 10031;
+
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() -
+                                                                 start_time)
+            .count();
 }
 
 void HyMD::RegisterResults() {
