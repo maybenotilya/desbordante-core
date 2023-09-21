@@ -11,6 +11,7 @@ std::vector<size_t> GetEndingValueIds(std::vector<KeyedPositionListIndex const*>
     for (auto const* pli : plis) {
         value_ids.push_back(pli->GetClusters().size() - 1);
     }
+    ++value_ids[value_ids.size() - 1];
     return value_ids;
 }
 }
