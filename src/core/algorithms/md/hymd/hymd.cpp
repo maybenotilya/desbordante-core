@@ -227,16 +227,18 @@ void HyMD::FillSimilarities() {
         model::ColumnMatchInternal const& column_match = column_matches_[i];
         SimilarityMatrix& sim_matrix = sim_matrices_[i];
         SimilarityIndex& sim_index = sim_indexes_[i];
-        std::unordered_map<std::string, size_t> const& left_mapping =
-                records_left_->GetPlis()[column_match.left_col_index].GetMapping();
-        std::unordered_map<std::string, size_t> const& right_mapping =
-                records_right_->GetPlis()[column_match.right_col_index].GetMapping();
+        model::KeyedPositionListIndex const& left_pli =
+                records_left_->GetPlis()[column_match.left_col_index];
+        model::KeyedPositionListIndex const& right_pli =
+                records_right_->GetPlis()[column_match.right_col_index];
+        std::unordered_map<std::string, size_t> const& left_mapping = left_pli.GetMapping();
+        std::unordered_map<std::string, size_t> const& right_mapping = right_pli.GetMapping();
         std::vector<model::Similarity> similarities;
         similarities.reserve(left_mapping.size() * right_mapping.size());
         sim_matrix.resize(left_mapping.size());
         sim_index.resize(left_mapping.size());
         for (auto const& [value_left, value_id_left] : left_mapping) {
-            std::vector<std::pair<double, ValueIdentifier>> sim_id_vec;
+            std::vector<std::pair<double, RecordIdentifier>> sim_rec_id_vec;
             for (auto const& [value_right, value_id_right] : right_mapping) {
                 model::Similarity similarity =
                         column_match.similarity_function_(value_left, value_right);
@@ -254,20 +256,22 @@ void HyMD::FillSimilarities() {
                  */
                 similarities.push_back(similarity);
                 sim_matrix[value_id_left][value_id_right] = similarity;
-                sim_id_vec.emplace_back(similarity, value_id_right);
+                for (RecordIdentifier record_id : right_pli.GetClusters()[value_id_right]) {
+                    sim_rec_id_vec.emplace_back(similarity, record_id);
+                }
             }
-            std::sort(sim_id_vec.begin(), sim_id_vec.end());
+            std::sort(sim_rec_id_vec.begin(), sim_rec_id_vec.end());
             std::map<model::Similarity, size_t> sim_mapping;
-            std::vector<ValueIdentifier> sim_sorted_records;
-            sim_sorted_records.reserve(sim_id_vec.size());
+            std::vector<RecordIdentifier> sim_sorted_records;
+            sim_sorted_records.reserve(sim_rec_id_vec.size());
             double prev_sim = -1.0;
-            for (size_t idx = 0; idx < sim_id_vec.size(); ++idx) {
-                auto [similarity, record] = sim_id_vec[idx];
+            for (size_t idx = 0; idx < sim_rec_id_vec.size(); ++idx) {
+                auto [similarity, record_id] = sim_rec_id_vec[idx];
                 if (prev_sim != similarity) {
                     prev_sim = similarity;
                     sim_mapping.emplace(similarity, idx);
                 }
-                sim_sorted_records.emplace_back(record);
+                sim_sorted_records.emplace_back(record_id);
             }
             sim_index[value_id_left] = {sim_mapping, sim_sorted_records};
         }
