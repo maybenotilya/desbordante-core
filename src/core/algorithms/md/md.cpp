@@ -24,10 +24,10 @@ std::string MD::ToString() const noexcept {
            << left_schema_->GetColumn(column_match.left_col_index)->GetName() << ", "
            << right_schema_->GetName() << ":"
            << right_schema_->GetColumn(column_match.right_col_index)->GetName()
-           << ")>=" << classifier.GetDecisionBoundary();
+           << ")>= " << classifier.GetDecisionBoundary();
         auto disp = classifier.GetMaxDisprovedBound();
         if (disp.has_value()) {
-            ss << " (>" << disp.value() << ") ";
+            ss << "(>" << disp.value() << ") ";
         }
         ss << "|";
     }
