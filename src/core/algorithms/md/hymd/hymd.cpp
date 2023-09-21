@@ -389,12 +389,12 @@ std::set<HyMD::RecordIdentifier> HyMD::GetSimilarRecords(ValueIdentifier value_i
 
 void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
                                  std::set<size_t> const& similar_records) {
-    for (RecordIdentifier record_id_left : cluster) {
-        std::vector<ValueIdentifier> const& left_record =
-                records_left_->GetRecords()[record_id_left];
-        for (RecordIdentifier record_id_right : similar_records) {
-            std::vector<ValueIdentifier> const& right_record =
-                    records_right_->GetRecords()[record_id_right];
+    for (RecordIdentifier record_id_right_ : similar_records) {
+        std::vector<ValueIdentifier> const& right_record =
+                records_right_->GetRecords()[record_id_right_];
+        for (RecordIdentifier record_id_left : cluster) {
+            std::vector<ValueIdentifier> const& left_record =
+                    records_left_->GetRecords()[record_id_left];
             bool recommend = false;
             for (size_t col_match = 0; col_match < column_matches_.size(); ++col_match) {
                 ValueIdentifier const left_value_id = left_record[col_match];
@@ -407,7 +407,7 @@ void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliClu
                     recommend = true;
                 }
             }
-            if (recommend) recommendations_.emplace_back(record_id_left, record_id_right);
+            if (recommend) recommendations_.emplace_back(record_id_right_, record_id_left);
         }
     }
 }
