@@ -276,6 +276,8 @@ void HyMD::FillSimilarities() {
             sim_index[value_id_left] = {sim_mapping, sim_sorted_records};
         }
         std::sort(similarities.begin(), similarities.end());
+        similarities.erase(std::unique(similarities.begin(), similarities.end()),
+                           similarities.end());
         natural_decision_bounds_[i] = similarities;
     }
 }
@@ -295,7 +297,7 @@ std::optional<model::SimilarityVector> HyMD::SpecializeLhs(model::SimilarityVect
     return SpecializeLhs(lhs, col_match_index, lhs[col_match_index]);
 }
 
-std::optional<model::SimilarityVector> HyMD::SpecializeLhs(const model::SimilarityVector& lhs,
+std::optional<model::SimilarityVector> HyMD::SpecializeLhs(model::SimilarityVector const& lhs,
                                                            size_t col_match_index,
                                                            model::Similarity similarity) {
     assert(col_match_index < natural_decision_bounds_.size());
