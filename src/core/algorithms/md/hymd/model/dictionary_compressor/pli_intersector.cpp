@@ -90,9 +90,10 @@ bool iter::IncValueIds() {
 
 std::vector<size_t> iter::GetCluster() {
     std::vector<size_t> cluster = (*plis_)[0]->GetClusters()[value_ids_[0]];
+    std::vector<size_t> new_cluster;
+    std::vector<size_t> intersected;
     for (size_t i = 1; i < value_ids_.size(); ++i) {
-        std::vector<size_t> new_cluster = (*plis_)[i]->GetClusters()[value_ids_[i]];
-        std::vector<size_t> intersected;
+        new_cluster = (*plis_)[i]->GetClusters()[value_ids_[i]];
         std::set_intersection(cluster.begin(), cluster.end(), new_cluster.begin(),
                               new_cluster.end(), std::back_inserter(intersected));
         cluster.swap(intersected);
