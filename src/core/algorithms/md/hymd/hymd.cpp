@@ -220,7 +220,8 @@ size_t HyMD::CheckRecordPair(size_t left_record, size_t right_record) {
 }
 
 bool HyMD::ShouldKeepInferring(size_t records_checked, size_t mds_refined) const {
-    return mds_refined != 0 && records_checked / mds_refined > efficiency_reciprocal_;
+    return records_checked < 5 ||
+           (mds_refined != 0 && records_checked / mds_refined > efficiency_reciprocal_);
 }
 
 void HyMD::FillSimilarities() {
