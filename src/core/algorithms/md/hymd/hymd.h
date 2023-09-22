@@ -33,7 +33,7 @@ private:
     using RecordIdentifier = size_t;
     using PliCluster = std::vector<RecordIdentifier>;
     using SimInfo = std::map<model::Similarity, std::vector<ValueIdentifier>>;
-    using SimilarityMatrix = std::vector<std::unordered_map<ValueIdentifier, model::Similarity>>;
+    using SimilarityMatrix = std::vector<std::vector<model::Similarity>>;
     using SimilarityIndex = std::vector<SimInfo>;
 
     config::InputTable left_table_;

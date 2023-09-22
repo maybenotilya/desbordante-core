@@ -243,6 +243,8 @@ void HyMD::FillSimilarities() {
         sim_matrix.resize(left_mapping.size());
         sim_index.resize(left_mapping.size());
         for (auto const& [value_left, value_id_left] : left_mapping) {
+            auto& left = sim_matrix[value_id_left];
+            left.resize(right_mapping.size());
             std::vector<std::pair<double, RecordIdentifier>> sim_rec_id_vec;
             for (auto const& [value_right, value_id_right] : right_mapping) {
                 model::Similarity similarity =
@@ -260,7 +262,7 @@ void HyMD::FillSimilarities() {
                 }
                  */
                 similarities.push_back(similarity);
-                sim_matrix[value_id_left][value_id_right] = similarity;
+                left[value_id_right] = similarity;
                 for (RecordIdentifier record_id : right_pli.GetClusters()[value_id_right]) {
                     sim_rec_id_vec.emplace_back(similarity, record_id);
                 }
