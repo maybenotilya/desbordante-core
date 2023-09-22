@@ -369,8 +369,8 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
                                                    lhs_sims[column_match_index],
                                                    sim_indexes_[column_match_index]));
             }
-            support += cluster.size() * similar_records.size();
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records);
+            support += cluster.size() * similar_records.size();
         }
     }
 
