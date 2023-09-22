@@ -12,7 +12,7 @@ std::vector<size_t> GetNonZeroIndices(algos::hymd::model::SimilarityVector const
     }
     return indices;
 }
-void IntersectInPlace(std::set<size_t>& set1, std::set<size_t> const& set2) {
+[[maybe_unused]] void IntersectInPlace(std::set<size_t>& set1, std::set<size_t> const& set2) {
     auto it1 = set1.begin();
     auto it2 = set2.begin();
     while (it1 != set1.end() && it2 != set2.end()) {
@@ -265,20 +265,23 @@ void HyMD::FillSimilarities() {
                     sim_rec_id_vec.emplace_back(similarity, record_id);
                 }
             }
-            std::sort(sim_rec_id_vec.begin(), sim_rec_id_vec.end());
-            std::map<model::Similarity, size_t> sim_mapping;
-            std::vector<RecordIdentifier> sim_sorted_records;
-            sim_sorted_records.reserve(sim_rec_id_vec.size());
-            double prev_sim = -1.0;
-            for (size_t idx = 0; idx < sim_rec_id_vec.size(); ++idx) {
-                auto [similarity, record_id] = sim_rec_id_vec[idx];
-                if (prev_sim != similarity) {
-                    prev_sim = similarity;
-                    sim_mapping.emplace(similarity, idx);
-                }
-                sim_sorted_records.emplace_back(record_id);
+            std::sort(sim_rec_id_vec.begin(), sim_rec_id_vec.end(), std::greater<>{});
+            std::vector<RecordIdentifier> records;
+            for (auto [sim, rec] : sim_rec_id_vec) {
+                records.push_back(rec);
             }
-            sim_index[value_id_left] = {sim_mapping, sim_sorted_records};
+            std::vector<RecordIdentifier> temp_records;
+            SimInfo sim_info;
+            double prev_sim = -1.0;
+            for (auto it = sim_rec_id_vec.begin(); it != sim_rec_id_vec.end(); ++it) {
+                auto [similarity, record] = *it;
+                if (similarity != prev_sim) {
+                    temp_records = {records.begin() + (it - sim_rec_id_vec.begin()), records.end()};
+                    std::sort(temp_records.begin(), temp_records.end());
+                    sim_info[similarity] = std::move(temp_records);
+                }
+            }
+            sim_index[value_id_left] = std::move(sim_info);
         }
         std::sort(similarities.begin(), similarities.end());
         similarities.erase(std::unique(similarities.begin(), similarities.end()),
@@ -337,7 +340,7 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
         SimilarityIndex const& sim_index = sim_indexes_[non_zero_index];
         for (size_t value_id = 0; value_id < clusters.size(); ++value_id) {
             std::vector<RecordIdentifier> const& cluster = clusters[value_id];
-            std::set<RecordIdentifier> similar_records =
+            std::vector<RecordIdentifier> similar_records =
                     GetSimilarRecords(value_id, lhs_sims[non_zero_index], sim_index);
             support += cluster.size() * similar_records.size();
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records);
@@ -360,15 +363,20 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
         }
         model::PliIntersector intersector(plis);
         for (auto const& [val_ids, cluster] : intersector) {
-            std::set<RecordIdentifier> similar_records = GetSimilarRecords(
+            std::vector<RecordIdentifier> similar_records = GetSimilarRecords(
                     val_ids[col_match_to_val_ids_idx[non_zero_indices[0]]],
                     lhs_sims[non_zero_indices[0]], sim_indexes_[non_zero_indices[0]]);
+            std::vector<RecordIdentifier> new_records;
+            std::vector<RecordIdentifier> intersected;
             for (size_t i = 1; i < non_zero_indices.size(); ++i) {
                 size_t const column_match_index = non_zero_indices[i];
-                IntersectInPlace(similar_records,
-                                 GetSimilarRecords(val_ids[col_match_to_val_ids_idx[column_match_index]],
-                                                   lhs_sims[column_match_index],
-                                                   sim_indexes_[column_match_index]));
+                new_records = GetSimilarRecords(
+                        val_ids[col_match_to_val_ids_idx[column_match_index]],
+                        lhs_sims[column_match_index], sim_indexes_[column_match_index]);
+                std::set_intersection(similar_records.begin(), similar_records.end(),
+                                      new_records.begin(), new_records.end(),
+                                      std::back_inserter(intersected));
+                similar_records.swap(intersected);
             }
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records);
             support += cluster.size() * similar_records.size();
@@ -378,18 +386,17 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
     return {rhs_thresholds, support};
 }
 
-std::set<HyMD::RecordIdentifier> HyMD::GetSimilarRecords(ValueIdentifier value_id,
-                                                         model::Similarity similarity,
-                                                         SimilarityIndex const& sim_index) {
-    auto const& sim_map = sim_index[value_id].first;
-    auto const& records = sim_index[value_id].second;
-    auto it = sim_map.lower_bound(similarity);
-    if (it == sim_map.end()) return {};
-    return {records.begin() + static_cast<long>(it->second), records.end()};
+std::vector<HyMD::RecordIdentifier> HyMD::GetSimilarRecords(ValueIdentifier value_id,
+                                                           model::Similarity similarity,
+                                                           SimilarityIndex const& sim_index) {
+    auto const& val_index = sim_index[value_id];
+    auto it = val_index.lower_bound(similarity);
+    if (it == val_index.end()) return {};
+    return it->second;
 }
 
 void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
-                                 std::set<size_t> const& similar_records) {
+                                 std::vector<size_t> const& similar_records) {
     for (RecordIdentifier record_id_right_ : similar_records) {
         std::vector<ValueIdentifier> const& right_record =
                 records_right_->GetRecords()[record_id_right_];

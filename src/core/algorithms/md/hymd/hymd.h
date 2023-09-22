@@ -32,7 +32,7 @@ private:
     using ValueIdentifier = size_t;
     using RecordIdentifier = size_t;
     using PliCluster = std::vector<RecordIdentifier>;
-    using SimInfo = std::pair<std::map<model::Similarity, size_t>, std::vector<ValueIdentifier>>;
+    using SimInfo = std::map<model::Similarity, std::vector<ValueIdentifier>>;
     using SimilarityMatrix = std::vector<std::unordered_map<ValueIdentifier, model::Similarity>>;
     using SimilarityIndex = std::vector<SimInfo>;
 
@@ -92,11 +92,11 @@ private:
     // AKA `Validate`
     std::pair<model::SimilarityVector, size_t> GetMaxRhsDecBounds(
             model::SimilarityVector const& lhs_sims);
-    static std::set<RecordIdentifier> GetSimilarRecords(ValueIdentifier value_id,
-                                                        model::Similarity similarity,
-                                                        SimilarityIndex const& sim_index);
+    static std::vector<RecordIdentifier> GetSimilarRecords(ValueIdentifier value_id,
+                                                           model::Similarity similarity,
+                                                           SimilarityIndex const& sim_index);
     void DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
-                               std::set<size_t> const& similar_records);
+                               std::vector<size_t> const& similar_records);
     std::map<size_t, std::vector<size_t>> MakeColToColMatchMapping(
             std::vector<size_t> const& col_match_indices);
     size_t GetPliIndex(size_t column_match_index);
