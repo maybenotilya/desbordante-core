@@ -22,7 +22,8 @@ std::vector<LatticeNodeSims> MinPickerLattice::GetAll() {
     SimilarityVector lhs(attribute_num_, 0.0);
     root_.GetAll(collected, lhs, 0, cardinality);
     for (auto const& md : collected) {
-        assert(picked_lhs_.insert(md.lhs_sims).second);
+        bool inserted = picked_lhs_.insert(md.lhs_sims).second;
+        assert(inserted);
     }
     root_ = MinPickerNode();
     return collected;
