@@ -399,14 +399,15 @@ std::vector<HyMD::RecordIdentifier> HyMD::GetSimilarRecords(ValueIdentifier valu
 
 void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
                                  std::vector<size_t> const& similar_records) {
+    auto const col_matches_size = column_matches_.size();
+    auto const& right_records = records_right_->GetRecords();
+    auto const& left_records = records_left_->GetRecords();
     for (RecordIdentifier record_id_right_ : similar_records) {
-        std::vector<ValueIdentifier> const& right_record =
-                records_right_->GetRecords()[record_id_right_];
+        std::vector<ValueIdentifier> const& right_record = right_records[record_id_right_];
         for (RecordIdentifier record_id_left : cluster) {
-            std::vector<ValueIdentifier> const& left_record =
-                    records_left_->GetRecords()[record_id_left];
+            std::vector<ValueIdentifier> const& left_record = left_records[record_id_left];
             bool recommend = false;
-            for (size_t col_match = 0; col_match < column_matches_.size(); ++col_match) {
+            for (size_t col_match = 0; col_match < col_matches_size; ++col_match) {
                 ValueIdentifier const left_value_id = left_record[col_match];
                 ValueIdentifier const right_value_id = right_record[col_match];
                 double const record_similarity =
