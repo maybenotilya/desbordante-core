@@ -26,7 +26,6 @@ public:
                                       size_t this_node_index);
 
     void Add(LatticeMd const& md, size_t this_node_index);
-    bool AddIfMin(LatticeMd const& md);
     bool HasGeneralization(LatticeMd const& md, size_t this_node_index);
 
     void FindViolated(std::vector<LatticeMd>& found, SimilarityVector& this_node_lhs,

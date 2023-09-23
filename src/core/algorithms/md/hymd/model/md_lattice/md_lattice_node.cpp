@@ -31,12 +31,6 @@ void MdLatticeNode::Add(LatticeMd const& md, size_t const this_node_index) {
     node_ptr->Add(md, first_non_zero_index + 1);
 }
 
-bool MdLatticeNode::AddIfMin(LatticeMd const& md) {
-    if (HasGeneralization(md, 0)) return false;
-    Add(md, 0);
-    return true;
-}
-
 bool MdLatticeNode::HasGeneralization(LatticeMd const& md, size_t this_node_index) {
     if (rhs_[md.rhs_index] >= md.rhs_sim) return true;
     SimilarityVector const& lhs_vec = md.lhs_sims;

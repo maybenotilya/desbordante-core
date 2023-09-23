@@ -21,13 +21,13 @@ size_t MdLattice::GetMaxLevel() const {
 }
 
 void MdLattice::Add(LatticeMd const& md) {
-    root_.Add(md, 0);
     max_level_ = std::max(max_level_, GetCardinality(md.lhs_sims));
+    root_.Add(md, 0);
 }
 
 void MdLattice::AddIfMin(LatticeMd const& md) {
-    if (!root_.AddIfMin(md)) return;
-    max_level_ = std::max(max_level_, GetCardinality(md.lhs_sims));
+    if (root_.HasGeneralization(md, 0)) return;
+    Add(md);
 }
 
 void MdLattice::RemoveNode(SimilarityVector const& lhs) {
