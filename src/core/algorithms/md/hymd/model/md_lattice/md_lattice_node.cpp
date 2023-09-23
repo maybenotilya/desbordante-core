@@ -1,5 +1,6 @@
 #include "md_lattice_node.h"
 
+#include <algorithm>
 #include <cassert>
 
 #include "algorithms/md/hymd/model/get_first_non_zero_index.h"
@@ -118,7 +119,9 @@ void MdLatticeNode::FindViolated(std::vector<LatticeMd>& found, SimilarityVector
 void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
                                                  SimilarityVector& cur_rhs,
                                                  size_t this_node_index) {
-    // By this point, the RHS of the node for lhs should be zeroed out, so no check is needed.
+    // The root node should be handled separately.
+    assert(static_cast<size_t>(std::count(lhs.begin(), lhs.end(), 0.0)) != lhs.size());
+
     for (size_t i = 0; i < rhs_.size(); ++i) {
         double const rhs_threshold = rhs_[i];
         double& cur_rhs_threshold = cur_rhs[i];
@@ -126,6 +129,36 @@ void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
             cur_rhs_threshold = rhs_threshold;
         }
     }
+
+    auto const& child_array_end = children_.end();
+    for (size_t cur_node_index = this_node_index;
+         (cur_node_index = util::GetFirstNonZeroIndex(lhs, cur_node_index)) != lhs.size();
+         ++cur_node_index) {
+        size_t const child_array_index = cur_node_index - this_node_index;
+        auto it = children_.find(child_array_index);
+        if (it == child_array_end) continue;
+        for (auto const& [threshold, node] : it->second) {
+            if (threshold > lhs[cur_node_index]) {
+                break;
+            }
+            node->GetMaxValidGeneralizationRhs(lhs, cur_rhs, cur_node_index + 1);
+        }
+    }
+    /* alternative: go through all indices, check for zeroes in LHS
+    for (auto const& [index, threshold_mapping] : children_) {
+        size_t const cur_node_index = this_node_index + index;
+        assert(cur_node_index < lhs.size());
+        if (lhs[cur_node_index] == 0.0) continue;
+        for (auto const& [threshold, node] : threshold_mapping) {
+            if (threshold > lhs[cur_node_index]) {
+                break;
+            }
+            node->GetMaxValidGeneralizationRhs(lhs, cur_rhs, cur_node_index + 1);
+        }
+    }
+     */
+    /* old way, node has to be removed first (zeroed out RHS).
+    // By this point, the RHS of the node for lhs should be zeroed out, so no check is needed.
     for (auto const& [index, threshold_mapping] : children_) {
         size_t const cur_node_index = this_node_index + index;
         assert(cur_node_index < lhs.size());
@@ -137,6 +170,7 @@ void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
             node->GetMaxValidGeneralizationRhs(lhs, cur_rhs, cur_node_index + 1);
         }
     }
+     */
 }
 
 void MdLatticeNode::GetLevel(std::vector<LatticeNodeSims>& collected,
