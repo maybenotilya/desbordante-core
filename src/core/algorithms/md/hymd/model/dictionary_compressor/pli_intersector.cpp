@@ -92,8 +92,6 @@ bool iter::IncValueIds() {
 }
 
 std::vector<size_t> iter::GetCluster() {
-    std::vector<std::vector<size_t>> clusters;
-    clusters.reserve(value_ids_.size());
     using IterType = std::vector<size_t>::const_iterator;
     std::vector<std::pair<IterType, IterType>> iters;
     iters.reserve(value_ids_.size());
