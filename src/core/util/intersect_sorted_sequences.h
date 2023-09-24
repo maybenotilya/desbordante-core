@@ -27,7 +27,14 @@ IteratorType IntersectSortedSequences(
             }
             if (*current_iterator != value) {
                 value = *current_iterator;
-                cur_index = 0;
+                assert(first_iterator != first_end_iterator);
+                IteratorType original_first_iterator = first_iterator;
+                while (*first_iterator < value) {
+                    ++first_iterator;
+                    if (first_iterator == first_end_iterator) return original_first_iterator;
+                }
+                value = *first_iterator;
+                cur_index = 1;
                 continue;
             }
             ++cur_index;
