@@ -267,26 +267,30 @@ void HyMD::FillSimilarities() {
             }
             std::sort(sim_rec_id_vec.begin(), sim_rec_id_vec.end(), std::greater<>{});
             std::vector<RecordIdentifier> records;
-            for (auto [sim, rec] : sim_rec_id_vec) {
+            records.reserve(sim_rec_id_vec.size());
+            for (auto [_, rec] : sim_rec_id_vec) {
                 records.push_back(rec);
             }
-            std::vector<RecordIdentifier> temp_records;
             SimInfo sim_info;
-            double prev_sim = -1.0;
-            for (auto it = sim_rec_id_vec.begin(); it != sim_rec_id_vec.end(); ++it) {
-                auto [similarity, record] = *it;
-                if (similarity != prev_sim) {
-                    temp_records = {records.begin() + (it - sim_rec_id_vec.begin()), records.end()};
-                    std::sort(temp_records.begin(), temp_records.end());
-                    sim_info[similarity] = std::move(temp_records);
-                }
+            assert(!sim_rec_id_vec.empty());
+            double previous_similarity = sim_rec_id_vec.begin()->first;
+            auto const it_begin = records.begin();
+            for (size_t j = 0; j < sim_rec_id_vec.size(); ++j) {
+                double similarity = sim_rec_id_vec[j].first;
+                if (similarity == previous_similarity) continue;
+                auto const it_end = it_begin + static_cast<long>(j);
+                std::sort(it_begin, it_end);
+                sim_info[previous_similarity] = {it_begin, it_end};
+                previous_similarity = similarity;
             }
+            std::sort(records.begin(), records.end());
+            sim_info[previous_similarity] = std::move(records);
             sim_index[value_id_left] = std::move(sim_info);
         }
         std::sort(similarities.begin(), similarities.end());
         similarities.erase(std::unique(similarities.begin(), similarities.end()),
                            similarities.end());
-        natural_decision_bounds_[i] = similarities;
+        natural_decision_bounds_[i] = std::move(similarities);
     }
 }
 
