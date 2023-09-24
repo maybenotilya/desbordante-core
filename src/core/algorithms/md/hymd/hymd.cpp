@@ -124,7 +124,7 @@ bool HyMD::TraverseLattice(bool traverse_all) {
             continue;
         }
         for (model::LatticeNodeSims const& node : cur) {
-            //md_lattice_->RemoveNode(node.lhs_sims);
+            md_lattice_->RemoveNode(node.lhs_sims);
             model::SimilarityVector const& lhs_sims = node.lhs_sims;
             model::SimilarityVector const& rhs_sims = node.rhs_sims;
             std::vector<double> gen_max_rhs = md_lattice_->GetMaxValidGeneralizationRhs(lhs_sims);
