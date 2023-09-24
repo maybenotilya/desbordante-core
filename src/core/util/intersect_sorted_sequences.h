@@ -6,9 +6,9 @@
 namespace util {
 
 template <typename ReceiverFunc, typename IteratorType>
-IteratorType IntersectSortedSequences(
-        ReceiverFunc receive, std::vector<std::pair<IteratorType, IteratorType>> iterators) {
-    if (iterators.empty()) return {};
+void IntersectSortedSequences(ReceiverFunc receive,
+                              std::vector<std::pair<IteratorType, IteratorType>> iterators) {
+    if (iterators.empty()) return;
     size_t const iterator_num = iterators.size();
     std::pair<IteratorType, IteratorType>& first_iter_pair = iterators[0];
     IteratorType& first_iterator = first_iter_pair.first;
@@ -20,10 +20,10 @@ IteratorType IntersectSortedSequences(
             std::pair<IteratorType, IteratorType>& iter_pair = iterators[cur_index];
             IteratorType& current_iterator = iter_pair.first;
             IteratorType const& current_end_iterator = iter_pair.second;
-            if (current_iterator == current_end_iterator) return first_iterator;
+            if (current_iterator == current_end_iterator) return;
             while (*current_iterator < value) {
                 ++current_iterator;
-                if (current_iterator == current_end_iterator) return first_iterator;
+                if (current_iterator == current_end_iterator) return;
             }
             if (*current_iterator != value) {
                 value = *current_iterator;
@@ -31,7 +31,7 @@ IteratorType IntersectSortedSequences(
                 IteratorType original_first_iterator = first_iterator;
                 while (*first_iterator < value) {
                     ++first_iterator;
-                    if (first_iterator == first_end_iterator) return original_first_iterator;
+                    if (first_iterator == first_end_iterator) return;
                 }
                 value = *first_iterator;
                 cur_index = 1;
@@ -44,7 +44,6 @@ IteratorType IntersectSortedSequences(
         }
         receive(value);
     }
-    return first_iterator;
 }
 
 }  // namespace util

@@ -103,13 +103,13 @@ std::vector<size_t> iter::GetCluster() {
     }
     std::vector<size_t>& cluster = *clusters.begin();
     auto it = cluster.begin();
-    cluster.erase(util::IntersectSortedSequences(
-                                  [&it](size_t rec) {
-                                      *it = rec;
-                                      ++it;
-                                  },
-                                  iters),
-                          cluster.end());
+    util::IntersectSortedSequences(
+            [&it](size_t rec) {
+                *it = rec;
+                ++it;
+            },
+            iters);
+    cluster.erase(it, cluster.end());
     return cluster;
 }
 
