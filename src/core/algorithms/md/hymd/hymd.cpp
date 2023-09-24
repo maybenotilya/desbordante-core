@@ -248,6 +248,8 @@ void HyMD::FillSimilarities() {
         similarities.reserve(left_mapping.size() * right_mapping.size());
         sim_matrix.resize(left_mapping.size());
         sim_index.resize(left_mapping.size());
+        // TODO: replace with typed_relation_data_left_, typed_relation_data_right_
+        // Don't forget about nulls and empties.
         for (auto const& [value_left, value_id_left] : left_mapping) {
             std::vector<std::pair<double, RecordIdentifier>> sim_rec_id_vec;
             for (auto const& [value_right, value_id_right] : right_mapping) {
