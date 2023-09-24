@@ -424,8 +424,7 @@ void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliClu
                 all_zeroes = false;
                 ValueIdentifier const left_value_id = left_record[col_match];
                 ValueIdentifier const right_value_id = right_record[col_match];
-                double record_similarity =
-                        sim_matrices_[col_match][left_value_id][right_value_id];
+                double record_similarity = sim_matrices_[col_match][left_value_id][right_value_id];
                 if (record_similarity < rhs_min_similarities_[col_match]) record_similarity = 0.0;
                 if (threshold > record_similarity) {
                     threshold = record_similarity;
