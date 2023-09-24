@@ -97,6 +97,7 @@ std::vector<size_t> iter::GetCluster() {
         std::set_intersection(cluster.begin(), cluster.end(), new_cluster.begin(),
                               new_cluster.end(), std::back_inserter(intersected));
         cluster.swap(intersected);
+        intersected.clear();
     }
     return cluster;
 }

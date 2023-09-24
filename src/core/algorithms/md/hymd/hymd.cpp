@@ -389,6 +389,7 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
                                       new_records.begin(), new_records.end(),
                                       std::back_inserter(intersected));
                 similar_records.swap(intersected);
+                intersected.clear();
             }
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records);
             support += cluster.size() * similar_records.size();
