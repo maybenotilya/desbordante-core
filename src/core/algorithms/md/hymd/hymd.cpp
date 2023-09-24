@@ -59,7 +59,13 @@ void HyMD::LoadDataInternal() {
     }
 
     records_left_ = model::DictionaryCompressor::CreateFrom(*left_table_);
+    left_table_->Reset();
+    typed_relation_data_left_ =
+            ::model::ColumnLayoutTypedRelationData::CreateFrom(*left_table_, is_null_equal_null_);
     records_right_ = model::DictionaryCompressor::CreateFrom(*right_table_);
+    right_table_->Reset();
+    typed_relation_data_right_ =
+            ::model::ColumnLayoutTypedRelationData::CreateFrom(*right_table_, is_null_equal_null_);
 }
 
 unsigned long long HyMD::ExecuteInternal() {

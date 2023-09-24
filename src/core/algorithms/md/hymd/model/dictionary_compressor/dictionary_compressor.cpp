@@ -1,4 +1,4 @@
-#include "dictionary_compressor.h"
+#include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
 
 #include <numeric>
 

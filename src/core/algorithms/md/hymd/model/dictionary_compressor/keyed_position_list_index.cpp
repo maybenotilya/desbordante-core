@@ -1,4 +1,4 @@
-#include "keyed_position_list_index.h"
+#include "algorithms/md/hymd/model/dictionary_compressor/keyed_position_list_index.h"
 
 namespace algos::hymd::model {
 

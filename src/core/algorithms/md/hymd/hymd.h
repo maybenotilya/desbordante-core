@@ -14,6 +14,7 @@
 #include "algorithms/md/md_algorithm.h"
 #include "config/tabular_data/input_table_type.h"
 #include "model/table/relational_schema.h"
+#include "model/table/column_layout_typed_relation_data.h"
 
 namespace std {
 template <>
@@ -44,6 +45,10 @@ private:
 
     std::unique_ptr<model::DictionaryCompressor> records_left_;
     std::unique_ptr<model::DictionaryCompressor> records_right_;
+
+    bool is_null_equal_null_ = true;
+    std::unique_ptr<::model::ColumnLayoutTypedRelationData> typed_relation_data_left_;
+    std::unique_ptr<::model::ColumnLayoutTypedRelationData> typed_relation_data_right_;
 
     std::vector<std::tuple<std::string, std::string, std::string>> column_matches_option_;
     std::vector<model::ColumnMatchInternal> column_matches_;
