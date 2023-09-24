@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <limits>
 
 #include "util/intersect_sorted_sequences.h"
 
@@ -96,21 +97,22 @@ std::vector<size_t> iter::GetCluster() {
     using IterType = std::vector<size_t>::const_iterator;
     std::vector<std::pair<IterType, IterType>> iters;
     iters.reserve(value_ids_.size());
+    size_t min_size = std::numeric_limits<size_t>::max();
     for (size_t i = 0; i < value_ids_.size(); ++i) {
-        clusters.push_back((*plis_)[i]->GetClusters()[value_ids_[i]]);
-        std::vector<size_t> const& last_cluster = clusters.back();
-        iters.emplace_back(last_cluster.begin(), last_cluster.end());
+        std::vector<size_t> const& cur_cluster = (*plis_)[i]->GetClusters()[value_ids_[i]];
+        iters.emplace_back(cur_cluster.begin(), cur_cluster.end());
+        min_size = std::min(cur_cluster.size(), min_size);
     }
-    std::vector<size_t>& cluster = *clusters.begin();
-    auto it = cluster.begin();
+    std::vector<size_t> new_cluster;
+    new_cluster.reserve(min_size);
+    auto it = new_cluster.begin();
     util::IntersectSortedSequences(
             [&it](size_t rec) {
                 *it = rec;
                 ++it;
             },
             iters);
-    cluster.erase(it, cluster.end());
-    return cluster;
+    return new_cluster;
 }
 
 }
