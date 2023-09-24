@@ -409,17 +409,21 @@ void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliClu
         for (RecordIdentifier record_id_left : cluster) {
             std::vector<ValueIdentifier> const& left_record = left_records[record_id_left];
             bool recommend = false;
+            bool all_zeroes = true;
             for (size_t col_match = 0; col_match < col_matches_size; ++col_match) {
+                double& threshold = rhs_thresholds[col_match];
+                if (threshold == 0.0) continue;
+                all_zeroes = false;
                 ValueIdentifier const left_value_id = left_record[col_match];
                 ValueIdentifier const right_value_id = right_record[col_match];
                 double const record_similarity =
                         sim_matrices_[col_match][left_value_id][right_value_id];
-                double& threshold = rhs_thresholds[col_match];
                 if (threshold > record_similarity) {
                     threshold = record_similarity;
                     recommend = true;
                 }
             }
+            if (all_zeroes) return;
             if (recommend) recommendations_.emplace_back(record_id_left, record_id_right_);
         }
     }
