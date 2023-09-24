@@ -103,11 +103,9 @@ std::vector<size_t> iter::GetCluster() {
     }
     std::vector<size_t> new_cluster;
     new_cluster.reserve(min_size);
-    auto it = new_cluster.begin();
     util::IntersectSortedSequences(
-            [&it](size_t rec) {
-                *it = rec;
-                ++it;
+            [&new_cluster](size_t rec) {
+                new_cluster.push_back(rec);
             },
             iters);
     return new_cluster;
