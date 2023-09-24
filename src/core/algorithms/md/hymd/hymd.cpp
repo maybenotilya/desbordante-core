@@ -416,7 +416,7 @@ void HyMD::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliClu
                     recommend = true;
                 }
             }
-            if (recommend) recommendations_.emplace_back(record_id_right_, record_id_left);
+            if (recommend) recommendations_.emplace_back(record_id_left, record_id_right_);
         }
     }
 }
