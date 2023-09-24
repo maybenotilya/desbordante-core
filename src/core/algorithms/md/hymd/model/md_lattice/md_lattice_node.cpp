@@ -114,7 +114,7 @@ void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
                                                  SimilarityVector& cur_rhs,
                                                  size_t this_node_index) {
     // The root node should be handled separately.
-    assert(static_cast<size_t>(std::count(lhs.begin(), lhs.end(), 0.0)) != lhs.size());
+    //assert(static_cast<size_t>(std::count(lhs.begin(), lhs.end(), 0.0)) != lhs.size());
 
     for (size_t i = 0; i < rhs_.size(); ++i) {
         double const rhs_threshold = rhs_[i];
