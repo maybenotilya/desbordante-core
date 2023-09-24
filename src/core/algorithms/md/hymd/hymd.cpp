@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "algorithms/md/hymd/model/dictionary_compressor/pli_intersector.h"
+#include "util/intersect_sorted_sequences.h"
 
 namespace {
 std::vector<size_t> GetNonZeroIndices(algos::hymd::model::SimilarityVector const& lhs) {
@@ -375,22 +376,27 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
         }
         model::PliIntersector intersector(plis);
         for (auto const& [val_ids, cluster] : intersector) {
-            std::vector<RecordIdentifier> similar_records = GetSimilarRecords(
-                    val_ids[col_match_to_val_ids_idx[non_zero_indices[0]]],
-                    lhs_sims[non_zero_indices[0]], sim_indexes_[non_zero_indices[0]]);
-            std::vector<RecordIdentifier> new_records;
-            std::vector<RecordIdentifier> intersected;
-            for (size_t i = 1; i < non_zero_indices.size(); ++i) {
-                size_t const column_match_index = non_zero_indices[i];
-                new_records = GetSimilarRecords(
+            std::vector<std::vector<RecordIdentifier>> rec_vecs;
+            rec_vecs.reserve(non_zero_indices.size());
+            using IterType = std::vector<RecordIdentifier>::const_iterator;
+            std::vector<std::pair<IterType, IterType>> iters;
+            iters.reserve(non_zero_indices.size());
+            for (size_t column_match_index : non_zero_indices) {
+                rec_vecs.push_back(GetSimilarRecords(
                         val_ids[col_match_to_val_ids_idx[column_match_index]],
-                        lhs_sims[column_match_index], sim_indexes_[column_match_index]);
-                std::set_intersection(similar_records.begin(), similar_records.end(),
-                                      new_records.begin(), new_records.end(),
-                                      std::back_inserter(intersected));
-                similar_records.swap(intersected);
-                intersected.clear();
+                        lhs_sims[column_match_index], sim_indexes_[column_match_index]));
+                std::vector<RecordIdentifier> const& last_rec_vec = rec_vecs.back();
+                iters.emplace_back(last_rec_vec.begin(), last_rec_vec.end());
             }
+            std::vector<RecordIdentifier>& similar_records = *rec_vecs.begin();
+            auto it = similar_records.begin();
+            similar_records.erase(util::IntersectSortedSequences(
+                                          [&it](RecordIdentifier rec) {
+                                              *it = rec;
+                                              ++it;
+                                          },
+                                          iters),
+                                  similar_records.end());
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records);
             support += cluster.size() * similar_records.size();
         }

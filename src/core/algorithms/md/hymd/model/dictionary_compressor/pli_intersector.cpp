@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cassert>
 
+#include "util/intersect_sorted_sequences.h"
+
 namespace {
 using algos::hymd::model::KeyedPositionListIndex;
 std::vector<size_t> GetEndingValueIds(std::vector<KeyedPositionListIndex const*> const& plis) {
@@ -89,16 +91,25 @@ bool iter::IncValueIds() {
 }
 
 std::vector<size_t> iter::GetCluster() {
-    std::vector<size_t> cluster = (*plis_)[0]->GetClusters()[value_ids_[0]];
-    std::vector<size_t> new_cluster;
-    std::vector<size_t> intersected;
-    for (size_t i = 1; i < value_ids_.size(); ++i) {
-        new_cluster = (*plis_)[i]->GetClusters()[value_ids_[i]];
-        std::set_intersection(cluster.begin(), cluster.end(), new_cluster.begin(),
-                              new_cluster.end(), std::back_inserter(intersected));
-        cluster.swap(intersected);
-        intersected.clear();
+    std::vector<std::vector<size_t>> clusters;
+    clusters.reserve(value_ids_.size());
+    using IterType = std::vector<size_t>::const_iterator;
+    std::vector<std::pair<IterType, IterType>> iters;
+    iters.reserve(value_ids_.size());
+    for (size_t i = 0; i < value_ids_.size(); ++i) {
+        clusters.push_back((*plis_)[i]->GetClusters()[value_ids_[i]]);
+        std::vector<size_t> const& last_cluster = clusters.back();
+        iters.emplace_back(last_cluster.begin(), last_cluster.end());
     }
+    std::vector<size_t>& cluster = *clusters.begin();
+    auto it = cluster.begin();
+    cluster.erase(util::IntersectSortedSequences(
+                                  [&it](size_t rec) {
+                                      *it = rec;
+                                      ++it;
+                                  },
+                                  iters),
+                          cluster.end());
     return cluster;
 }
 
