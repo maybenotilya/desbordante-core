@@ -17,10 +17,10 @@ public:
 
     private:
         std::vector<KeyedPositionListIndex const*> const* plis_;
+        size_t pli_num_;
+        std::vector<size_t> pli_sizes_;
         std::vector<size_t> value_ids_;
         std::vector<size_t> intersection_;
-        std::vector<size_t> pli_sizes_;
-        size_t pli_num_;
 
         std::vector<size_t> GetCluster();
         bool ValueIdsAreValid();

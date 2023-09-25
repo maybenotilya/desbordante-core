@@ -49,10 +49,10 @@ bool operator==(iter const& a, iter const& b) {
 iter::const_iterator(std::vector<KeyedPositionListIndex const*> const* plis,
                      std::vector<size_t> value_ids)
     : plis_(plis),
-      value_ids_(std::move(value_ids)),
-      intersection_(GetCluster()),
+      pli_num_(plis->size()),
       pli_sizes_(GetPliSizes(*plis)),
-      pli_num_(plis->size()) {
+      value_ids_(std::move(value_ids)),
+      intersection_(GetCluster()) {
     assert(!plis_->empty());
     assert(ValueIdsAreValid());
     if (intersection_.empty()) ++*this;
@@ -60,10 +60,10 @@ iter::const_iterator(std::vector<KeyedPositionListIndex const*> const* plis,
 
 iter::const_iterator(std::vector<KeyedPositionListIndex const*> const* plis)
     : plis_(plis),
-      value_ids_(GetEndingValueIds(*plis)),
-      intersection_(),
+      pli_num_(plis->size()),
       pli_sizes_(GetPliSizes(*plis)),
-      pli_num_(plis->size()) {}
+      value_ids_(GetEndingValueIds(*plis)),
+      intersection_() {}
 
 bool iter::ValueIdsAreValid() {
     for (size_t i = 0; i < pli_num_; ++i) {
