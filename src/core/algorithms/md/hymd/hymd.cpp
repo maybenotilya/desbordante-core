@@ -130,6 +130,8 @@ bool HyMD::TraverseLattice(bool traverse_all) {
             if (!traverse_all) return false;
             continue;
         }
+        std::vector<model::LatticeMd> mds_to_add;
+        std::vector<model::LatticeMd> mds_to_add_if_min;
         for (model::LatticeNodeSims const& node : cur) {
             md_lattice_->RemoveNode(node.lhs_sims);
             model::SimilarityVector const& lhs_sims = node.lhs_sims;
@@ -145,7 +147,7 @@ bool HyMD::TraverseLattice(bool traverse_all) {
                 model::Similarity const new_rhs_sim = new_rhs_sims[i];
                 if (new_rhs_sim > lhs_sims[i] && new_rhs_sim >= rhs_min_similarities_[i] &&
                     new_rhs_sim > gen_max_rhs[i]) {
-                    md_lattice_->Add({lhs_sims, new_rhs_sim, i});
+                    mds_to_add.emplace_back(lhs_sims, new_rhs_sim, i);
                 }
             }
             for (size_t i = 0; i < col_matches_num; ++i) {
@@ -157,10 +159,16 @@ bool HyMD::TraverseLattice(bool traverse_all) {
                     model::Similarity const new_lhs_sim = new_lhs_sims.value()[j];
                     model::Similarity const rhs_sim = rhs_sims[j];
                     if (rhs_sim > new_lhs_sim) {
-                        md_lattice_->AddIfMin({new_lhs_sims.value(), rhs_sim, j});
+                        mds_to_add_if_min.emplace_back(new_lhs_sims.value(), rhs_sim, j);
                     }
                 }
             }
+        }
+        for (auto& md : mds_to_add) {
+            md_lattice_->Add(md);
+        }
+        for (auto& md : mds_to_add_if_min) {
+            md_lattice_->AddIfMin(md);
         }
     }
     return true;
