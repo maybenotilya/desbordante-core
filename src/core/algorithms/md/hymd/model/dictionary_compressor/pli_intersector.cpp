@@ -51,10 +51,10 @@ iter::const_iterator(std::vector<KeyedPositionListIndex const*> const* plis,
     : plis_(plis),
       pli_num_(plis->size()),
       pli_sizes_(GetPliSizes(*plis)),
-      value_ids_(std::move(value_ids)),
-      intersection_(GetCluster()) {
+      value_ids_(std::move(value_ids)) {
     assert(!plis_->empty());
     assert(ValueIdsAreValid());
+    GetCluster();
     if (intersection_.empty()) ++*this;
 }
 
@@ -62,8 +62,7 @@ iter::const_iterator(std::vector<KeyedPositionListIndex const*> const* plis)
     : plis_(plis),
       pli_num_(plis->size()),
       pli_sizes_(GetPliSizes(*plis)),
-      value_ids_(GetEndingValueIds(*plis)),
-      intersection_() {}
+      value_ids_(GetEndingValueIds(*plis)) {}
 
 bool iter::ValueIdsAreValid() {
     for (size_t i = 0; i < pli_num_; ++i) {
@@ -82,7 +81,7 @@ iter PliIntersector::begin() const {
 
 iter& iter::operator++() {
     while (IncValueIds()) {
-        intersection_ = GetCluster();
+        GetCluster();
         if (!intersection_.empty()) return *this;
     }
     intersection_.clear();
@@ -91,6 +90,7 @@ iter& iter::operator++() {
 
 bool iter::IncValueIds() {
     assert(ValueIdsAreValid());
+    assert(pli_num_ != 0);
     size_t cur_index = pli_num_ - 1;
     ++value_ids_[cur_index];
     if (value_ids_[cur_index] >= pli_sizes_[cur_index]) {
@@ -106,7 +106,7 @@ bool iter::IncValueIds() {
     return true;
 }
 
-std::vector<size_t> iter::GetCluster() {
+void iter::GetCluster() {
     using IterType = std::vector<size_t>::const_iterator;
     std::vector<std::pair<IterType, IterType>> iters;
     iters.reserve(pli_num_);
@@ -117,14 +117,10 @@ std::vector<size_t> iter::GetCluster() {
         size_t const cur_cluster_size = cur_cluster.size();
         if (cur_cluster_size < min_size) min_size = cur_cluster_size;
     }
-    std::vector<size_t> new_cluster;
-    new_cluster.reserve(min_size);
-    util::IntersectSortedSequences(
-            [&new_cluster](size_t rec) {
-                new_cluster.push_back(rec);
-            },
-            iters);
-    return new_cluster;
+
+    intersection_.reserve(min_size);
+    intersection_.clear();
+    util::IntersectSortedSequences([this](size_t rec) { intersection_.push_back(rec); }, iters);
 }
 
 }

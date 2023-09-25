@@ -22,7 +22,7 @@ public:
         std::vector<size_t> value_ids_;
         std::vector<size_t> intersection_;
 
-        std::vector<size_t> GetCluster();
+        void GetCluster();
         bool ValueIdsAreValid();
         bool IncValueIds();
 
