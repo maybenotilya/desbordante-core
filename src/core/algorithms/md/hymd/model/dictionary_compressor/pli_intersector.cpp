@@ -119,7 +119,6 @@ void iter::GetCluster() {
         if (cur_cluster_size < min_size) min_size = cur_cluster_size;
     }
 
-    intersection_.reserve(min_size);
     intersection_.clear();
     util::IntersectSortedSequences([this](size_t rec) { intersection_.push_back(rec); }, iters_);
 }
