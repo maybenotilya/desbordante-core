@@ -7,7 +7,7 @@ namespace util {
 
 template <typename ReceiverFunc, typename IteratorType>
 void IntersectSortedSequences(ReceiverFunc receive,
-                              std::vector<std::pair<IteratorType, IteratorType>> iterators) {
+                              std::vector<std::pair<IteratorType, IteratorType>>& iterators) {
     if (iterators.empty()) return;
     size_t const iterator_num = iterators.size();
     std::pair<IteratorType, IteratorType>& first_iter_pair = iterators[0];
