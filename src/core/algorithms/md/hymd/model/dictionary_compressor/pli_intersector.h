@@ -16,11 +16,13 @@ public:
         using reference = value_type &;
 
     private:
-        std::vector<KeyedPositionListIndex const*> const* plis_;
-        size_t pli_num_;
-        std::vector<size_t> pli_sizes_;
+        std::vector<KeyedPositionListIndex const*> const* const plis_;
+        size_t const pli_num_;
+        std::vector<size_t> const pli_sizes_;
         std::vector<size_t> value_ids_;
         std::vector<size_t> intersection_;
+        using IterType = std::vector<size_t>::const_iterator;
+        std::vector<std::pair<IterType, IterType>> iters_;
 
         void GetCluster();
         bool ValueIdsAreValid();

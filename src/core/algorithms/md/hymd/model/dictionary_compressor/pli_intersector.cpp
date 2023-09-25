@@ -51,7 +51,8 @@ iter::const_iterator(std::vector<KeyedPositionListIndex const*> const* plis,
     : plis_(plis),
       pli_num_(plis->size()),
       pli_sizes_(GetPliSizes(*plis)),
-      value_ids_(std::move(value_ids)) {
+      value_ids_(std::move(value_ids)),
+      iters_(pli_num_) {
     assert(!plis_->empty());
     assert(ValueIdsAreValid());
     GetCluster();
@@ -84,7 +85,6 @@ iter& iter::operator++() {
         GetCluster();
         if (!intersection_.empty()) return *this;
     }
-    intersection_.clear();
     return *this;
 }
 
@@ -107,20 +107,21 @@ bool iter::IncValueIds() {
 }
 
 void iter::GetCluster() {
-    using IterType = std::vector<size_t>::const_iterator;
-    std::vector<std::pair<IterType, IterType>> iters;
-    iters.reserve(pli_num_);
     size_t min_size = std::numeric_limits<size_t>::max();
+    assert(pli_num_ != 0);
+    assert(iters_.size() == pli_num_);
     for (size_t i = 0; i < pli_num_; ++i) {
         std::vector<size_t> const& cur_cluster = (*plis_)[i]->GetClusters()[value_ids_[i]];
-        iters.emplace_back(cur_cluster.begin(), cur_cluster.end());
+        auto& [start_iter, end_iter] = iters_[i];
+        start_iter = cur_cluster.begin();
+        end_iter = cur_cluster.end();
         size_t const cur_cluster_size = cur_cluster.size();
         if (cur_cluster_size < min_size) min_size = cur_cluster_size;
     }
 
     intersection_.reserve(min_size);
     intersection_.clear();
-    util::IntersectSortedSequences([this](size_t rec) { intersection_.push_back(rec); }, iters);
+    util::IntersectSortedSequences([this](size_t rec) { intersection_.push_back(rec); }, iters_);
 }
 
 }
