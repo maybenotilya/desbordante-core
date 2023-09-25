@@ -111,7 +111,7 @@ void iter::GetCluster() {
     assert(pli_num_ != 0);
     assert(iters_.size() == pli_num_);
     for (size_t i = 0; i < pli_num_; ++i) {
-        std::vector<size_t> const& cur_cluster = (*plis_)[i]->GetClusters()[value_ids_[i]];
+        std::vector<size_t> const& cur_cluster = plis_->operator[](i)->GetClusters()[value_ids_[i]];
         auto& [start_iter, end_iter] = iters_[i];
         start_iter = cur_cluster.begin();
         end_iter = cur_cluster.end();
