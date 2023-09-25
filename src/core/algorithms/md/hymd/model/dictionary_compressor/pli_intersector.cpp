@@ -23,6 +23,7 @@ std::vector<size_t> GetPliSizes(std::vector<KeyedPositionListIndex const*> const
     for (KeyedPositionListIndex const* pli_ptr : plis) {
         pli_sizes.push_back(pli_ptr->GetClusters().size());
     }
+    return pli_sizes;
 }
 }
 
