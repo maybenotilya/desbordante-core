@@ -86,7 +86,7 @@ iter& iter::operator++() {
         cluster = GetCluster();
         if (!cluster.empty()) break;
     }
-    intersection_ = cluster;
+    intersection_ = std::move(cluster);
     return *this;
 }
 
