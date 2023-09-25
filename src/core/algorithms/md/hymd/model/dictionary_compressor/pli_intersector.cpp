@@ -81,12 +81,11 @@ iter PliIntersector::begin() const {
 }
 
 iter& iter::operator++() {
-    std::vector<size_t> cluster;
     while (IncValueIds()) {
-        cluster = GetCluster();
-        if (!cluster.empty()) break;
+        intersection_ = GetCluster();
+        if (!intersection_.empty()) return *this;
     }
-    intersection_ = std::move(cluster);
+    intersection_.clear();
     return *this;
 }
 
