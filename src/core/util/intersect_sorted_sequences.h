@@ -28,6 +28,8 @@ void IntersectSortedSequences(ReceiverFunc receive,
             if (*current_iterator != value) {
                 value = *current_iterator;
                 assert(first_iterator != first_end_iterator);
+                ++first_iterator;
+                if (first_iterator == first_end_iterator) return;
                 while (*first_iterator < value) {
                     ++first_iterator;
                     if (first_iterator == first_end_iterator) return;
