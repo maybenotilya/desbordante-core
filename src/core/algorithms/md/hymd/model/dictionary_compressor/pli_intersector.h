@@ -6,12 +6,7 @@
 namespace algos::hymd::model {
 
 class PliIntersector {
-private:
-    std::vector<KeyedPositionListIndex const*>  plis_;
-
 public:
-    explicit PliIntersector(std::vector<KeyedPositionListIndex const*> plis);
-
     struct const_iterator {
     public:
         using iterator_category = std::forward_iterator_tag;
@@ -24,6 +19,8 @@ public:
         std::vector<KeyedPositionListIndex const*> const* plis_;
         std::vector<size_t> value_ids_;
         std::vector<size_t> intersection_;
+        std::vector<size_t> pli_sizes_;
+        size_t pli_num_;
 
         std::vector<size_t> GetCluster();
         bool ValueIdsAreValid();
@@ -43,8 +40,15 @@ public:
         friend bool operator!=(const_iterator const& a, const_iterator const& b);
     };
 
+private:
+    std::vector<KeyedPositionListIndex const*>  plis_;
+    const_iterator end_iter_;
+
+public:
+    explicit PliIntersector(std::vector<KeyedPositionListIndex const*> plis);
+
     [[nodiscard]] const_iterator begin() const;
-    [[nodiscard]] const_iterator end() const;
+    [[nodiscard]] const_iterator const& end() const;
 };
 
 }  // namespace algos::hymd::model
