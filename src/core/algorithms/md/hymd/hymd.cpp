@@ -282,11 +282,12 @@ void HyMD::FillSimilarities() {
         sim_matrix.resize(left_clusters.size());
         sim_index.resize(left_clusters.size());
         for (size_t value_id_left = 0; value_id_left < left_clusters.size(); ++value_id_left) {
-            PliCluster const& left_cluster = left_clusters[0];
+            PliCluster const& left_cluster = left_clusters[value_id_left];
             RecordIdentifier left_record = left_cluster[0];
             std::vector<std::pair<double, RecordIdentifier>> sim_rec_id_vec;
-            for (size_t value_id_right = 0; value_id_right < left_clusters.size(); ++value_id_right) {
-                PliCluster const& right_cluster = right_clusters[0];
+            for (size_t value_id_right = 0; value_id_right < right_clusters.size();
+                 ++value_id_right) {
+                PliCluster const& right_cluster = right_clusters[value_id_right];
                 RecordIdentifier right_record = right_cluster[0];
                 model::Similarity similarity =
                         GetSimilarity(column_match_index, left_record, right_record);
