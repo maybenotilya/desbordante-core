@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <vector>
 
 namespace util {
@@ -8,7 +9,7 @@ namespace util {
 template <typename ReceiverFunc, typename IteratorType>
 void IntersectSortedSequences(ReceiverFunc receive,
                               std::vector<std::pair<IteratorType, IteratorType>>& iterators) {
-    if (iterators.empty()) return;
+    assert(!iterators.empty());
     size_t const iterator_num = iterators.size();
     std::pair<IteratorType, IteratorType>& first_iter_pair = iterators[0];
     IteratorType& first_iterator = first_iter_pair.first;
