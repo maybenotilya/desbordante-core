@@ -239,31 +239,57 @@ bool HyMD::ShouldKeepInferring(size_t records_checked, size_t mds_refined) const
            (mds_refined != 0 && records_checked / mds_refined < efficiency_reciprocal_);
 }
 
+model::Similarity HyMD::GetSimilarity(size_t column_match, RecordIdentifier left,
+                                      RecordIdentifier right) const {
+    ::model::TypedColumnData const& left_data =
+            typed_relation_data_left_->GetColumnData(column_matches_[column_match].left_col_index);
+    ::model::TypedColumnData const& right_data = typed_relation_data_right_->GetColumnData(
+            column_matches_[column_match].right_col_index);
+    if (left_data.IsNull(left)) {
+        if (is_null_equal_null_ && right_data.IsNull(right)) return 1.0;
+        return 0.0;
+    }
+    if (left_data.IsEmpty(left)) {
+        if (right_data.IsEmpty(right)) return 1.0;
+        return 0.0; // ?
+    }
+    model::ColumnMatchInternal::ValueComparisonFunction const& similarity_measure =
+            column_matches_[column_match].similarity_function_;
+    std::byte const* left_value = left_data.GetValue(left);
+    ::model::Type const& left_type = left_data.GetType();
+    std::byte const* right_value = right_data.GetValue(right);
+    ::model::Type const& right_type = right_data.GetType();
+    return similarity_measure(left_type, left_value, right_type, right_value);
+}
+
 void HyMD::FillSimilarities() {
     sim_matrices_.resize(column_matches_.size());
     sim_indexes_.resize(column_matches_.size());
     natural_decision_bounds_.resize(column_matches_.size());
-    for (size_t i = 0; i < column_matches_.size(); ++i) {
-        model::ColumnMatchInternal const& column_match = column_matches_[i];
-        SimilarityMatrix& sim_matrix = sim_matrices_[i];
-        SimilarityIndex& sim_index = sim_indexes_[i];
+    for (size_t column_match_index = 0; column_match_index < column_matches_.size();
+         ++column_match_index) {
+        model::ColumnMatchInternal const& column_match = column_matches_[column_match_index];
+        SimilarityMatrix& sim_matrix = sim_matrices_[column_match_index];
+        SimilarityIndex& sim_index = sim_indexes_[column_match_index];
         model::KeyedPositionListIndex const& left_pli =
                 records_left_->GetPlis()[column_match.left_col_index];
         model::KeyedPositionListIndex const& right_pli =
                 records_right_->GetPlis()[column_match.right_col_index];
-        std::unordered_map<std::string, size_t> const& left_mapping = left_pli.GetMapping();
-        std::unordered_map<std::string, size_t> const& right_mapping = right_pli.GetMapping();
+        std::vector<PliCluster> const& left_clusters = left_pli.GetClusters();
+        std::vector<PliCluster> const& right_clusters = right_pli.GetClusters();
         std::vector<model::Similarity> similarities;
-        similarities.reserve(left_mapping.size() * right_mapping.size());
-        sim_matrix.resize(left_mapping.size());
-        sim_index.resize(left_mapping.size());
-        // TODO: replace with typed_relation_data_left_, typed_relation_data_right_
-        // Don't forget about nulls and empties.
-        for (auto const& [value_left, value_id_left] : left_mapping) {
+        similarities.reserve(left_clusters.size() * right_clusters.size());
+        sim_matrix.resize(left_clusters.size());
+        sim_index.resize(left_clusters.size());
+        for (size_t value_id_left = 0; value_id_left < left_clusters.size(); ++value_id_left) {
+            PliCluster const& left_cluster = left_clusters[0];
+            RecordIdentifier left_record = left_cluster[0];
             std::vector<std::pair<double, RecordIdentifier>> sim_rec_id_vec;
-            for (auto const& [value_right, value_id_right] : right_mapping) {
+            for (size_t value_id_right = 0; value_id_right < left_clusters.size(); ++value_id_right) {
+                PliCluster const& right_cluster = right_clusters[0];
+                RecordIdentifier right_record = right_cluster[0];
                 model::Similarity similarity =
-                        column_match.similarity_function_(value_left, value_right);
+                        GetSimilarity(column_match_index, left_record, right_record);
                 /*
                  * Only relevant for user-supplied functions, benchmark the
                  * slowdown from this check and deal with it if it is
@@ -307,7 +333,7 @@ void HyMD::FillSimilarities() {
         std::sort(similarities.begin(), similarities.end());
         similarities.erase(std::unique(similarities.begin(), similarities.end()),
                            similarities.end());
-        natural_decision_bounds_[i] = std::move(similarities);
+        natural_decision_bounds_[column_match_index] = std::move(similarities);
     }
 }
 

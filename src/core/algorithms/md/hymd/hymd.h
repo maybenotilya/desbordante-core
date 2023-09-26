@@ -106,6 +106,9 @@ private:
             std::vector<size_t> const& col_match_indices);
     size_t GetPliIndex(size_t column_match_index);
 
+    model::Similarity GetSimilarity(size_t column_match, RecordIdentifier left,
+                                    RecordIdentifier right) const;
+
     void RegisterResults();
 
 public:
