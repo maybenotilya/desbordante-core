@@ -358,11 +358,10 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
         size_t const non_zero_index = non_zero_indices[0];
         std::vector<std::vector<size_t>> const& clusters =
                 records_left_->GetPlis()[GetPliIndex(non_zero_index)].GetClusters();
-        SimilarityIndex const& sim_index = sim_indexes_[non_zero_index];
         for (size_t value_id = 0; value_id < clusters.size(); ++value_id) {
             std::vector<RecordIdentifier> const& cluster = clusters[value_id];
             std::vector<RecordIdentifier> similar_records =
-                    GetSimilarRecords(value_id, lhs_sims[non_zero_index], sim_index);
+                    GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
             support += cluster.size() * similar_records.size();
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records);
         }
@@ -392,7 +391,7 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
             for (size_t column_match_index : non_zero_indices) {
                 rec_vecs.push_back(GetSimilarRecords(
                         val_ids[col_match_to_val_ids_idx[column_match_index]],
-                        lhs_sims[column_match_index], sim_indexes_[column_match_index]));
+                        lhs_sims[column_match_index], column_match_index));
                 std::vector<RecordIdentifier> const& last_rec_vec = rec_vecs.back();
                 iters.emplace_back(last_rec_vec.begin(), last_rec_vec.end());
             }
@@ -414,9 +413,9 @@ std::pair<model::SimilarityVector, size_t> HyMD::GetMaxRhsDecBounds(
 }
 
 std::vector<HyMD::RecordIdentifier> HyMD::GetSimilarRecords(ValueIdentifier value_id,
-                                                           model::Similarity similarity,
-                                                           SimilarityIndex const& sim_index) {
-    auto const& val_index = sim_index[value_id];
+                                                            model::Similarity similarity,
+                                                            size_t column_match_index) {
+    auto const& val_index = sim_indexes_[column_match_index][value_id];
     auto it = val_index.lower_bound(similarity);
     if (it == val_index.end()) return {};
     return it->second;

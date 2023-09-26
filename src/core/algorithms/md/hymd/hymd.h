@@ -97,9 +97,9 @@ private:
     // AKA `Validate`
     std::pair<model::SimilarityVector, size_t> GetMaxRhsDecBounds(
             model::SimilarityVector const& lhs_sims);
-    static std::vector<RecordIdentifier> GetSimilarRecords(ValueIdentifier value_id,
-                                                           model::Similarity similarity,
-                                                           SimilarityIndex const& sim_index);
+    std::vector<RecordIdentifier> GetSimilarRecords(ValueIdentifier value_id,
+                                                    model::Similarity similarity,
+                                                    size_t column_match_index);
     void DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
                                std::vector<size_t> const& similar_records);
     std::map<size_t, std::vector<size_t>> MakeColToColMatchMapping(
