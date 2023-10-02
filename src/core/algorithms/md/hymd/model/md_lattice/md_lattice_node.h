@@ -21,15 +21,15 @@ private:
 
 public:
     void GetLevel(std::vector<LatticeNodeSims>& collected, SimilarityVector& this_node_lhs,
-                  size_t this_node_index, size_t sims_left);
+                  size_t this_node_index, size_t sims_left) const;
     void GetMaxValidGeneralizationRhs(SimilarityVector const& lhs, SimilarityVector& cur_rhs,
-                                      size_t this_node_index);
+                                      size_t this_node_index) const;
 
     void Add(LatticeMd const& md, size_t this_node_index);
-    bool HasGeneralization(LatticeMd const& md, size_t this_node_index);
+    bool HasGeneralization(LatticeMd const& md, size_t this_node_index) const;
 
     void FindViolated(std::vector<LatticeMd>& found, SimilarityVector& this_node_lhs,
-                      SimilarityVector const& similarity_vector, size_t this_node_index);
+                      SimilarityVector const& similarity_vector, size_t this_node_index) const;
 
     void RemoveMd(LatticeMd const& md, size_t this_node_index);
     void RemoveNode(SimilarityVector const& node, size_t this_node_index);

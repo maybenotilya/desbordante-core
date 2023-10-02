@@ -38,20 +38,20 @@ void MdLattice::RemoveMd(LatticeMd const& md) {
     root_.RemoveMd(md, 0);
 }
 
-std::vector<LatticeMd> MdLattice::FindViolated(SimilarityVector const& similarity_vector) {
+std::vector<LatticeMd> MdLattice::FindViolated(SimilarityVector const& similarity_vector) const {
     std::vector<LatticeMd> found;
     SimilarityVector lhs(similarity_vector.size(), 0.0);
     root_.FindViolated(found, lhs, similarity_vector, 0);
     return found;
 }
 
-SimilarityVector MdLattice::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs) {
+SimilarityVector MdLattice::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs) const {
     SimilarityVector rhs(lhs.size(), 0.0);
     root_.GetMaxValidGeneralizationRhs(lhs, rhs, 0);
     return rhs;
 }
 
-std::vector<LatticeNodeSims> MdLattice::GetLevel(size_t level) {
+std::vector<LatticeNodeSims> MdLattice::GetLevel(size_t level) const {
     std::vector<LatticeNodeSims> collected;
     SimilarityVector lhs(column_matches_size_, 0.0);
     root_.GetLevel(collected, lhs, 0, level);

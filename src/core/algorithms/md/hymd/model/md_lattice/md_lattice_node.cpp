@@ -31,7 +31,7 @@ void MdLatticeNode::Add(LatticeMd const& md, size_t const this_node_index) {
     node_ptr->Add(md, first_non_zero_index + 1);
 }
 
-bool MdLatticeNode::HasGeneralization(LatticeMd const& md, size_t this_node_index) {
+bool MdLatticeNode::HasGeneralization(LatticeMd const& md, size_t this_node_index) const {
     if (rhs_[md.rhs_index] >= md.rhs_sim) return true;
     SimilarityVector const& lhs_vec = md.lhs_sims;
     for (auto const& [index, threshold_mapping] : children_) {
@@ -88,7 +88,7 @@ void MdLatticeNode::RemoveNode(SimilarityVector const& lhs_vec, size_t this_node
 
 void MdLatticeNode::FindViolated(std::vector<LatticeMd>& found, SimilarityVector& this_node_lhs,
                                  SimilarityVector const& similarity_vector,
-                                 size_t this_node_index) {
+                                 size_t this_node_index) const {
     for (size_t i = 0; i < rhs_.size(); ++i) {
         double const assumed_rhs = rhs_[i];
         if (similarity_vector[i] < assumed_rhs) {
@@ -112,7 +112,7 @@ void MdLatticeNode::FindViolated(std::vector<LatticeMd>& found, SimilarityVector
 
 void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
                                                  SimilarityVector& cur_rhs,
-                                                 size_t this_node_index) {
+                                                 size_t this_node_index) const {
     // The root node should be handled separately.
     //assert(static_cast<size_t>(std::count(lhs.begin(), lhs.end(), 0.0)) != lhs.size());
 
@@ -169,7 +169,7 @@ void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
 
 void MdLatticeNode::GetLevel(std::vector<LatticeNodeSims>& collected,
                              SimilarityVector& this_node_lhs, size_t this_node_index,
-                             size_t sims_left) {
+                             size_t sims_left) const {
     if (sims_left == 0) {
         collected.emplace_back(this_node_lhs, rhs_);
         return;

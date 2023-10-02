@@ -22,8 +22,8 @@ private:
 public:
     explicit DictionaryCompressor(size_t attribute_num);
     void AddRecord(std::vector<std::string> record);
-    [[nodiscard]] std::vector<KeyedPositionListIndex> const& GetPlis() const {
-        return plis_;
+    [[nodiscard]] KeyedPositionListIndex const& GetPli(size_t column_index) const {
+        return plis_[column_index];
     };
     [[nodiscard]] std::vector<CompressedRecord> const& GetRecords() const {
         return records_;
@@ -32,7 +32,7 @@ public:
         return records_processed_;
     }
 
-    static std::unique_ptr<DictionaryCompressor> CreateFrom(::model::IDatasetStream& stream);
+    static DictionaryCompressor CreateFrom(::model::IDatasetStream& stream);
 };
 
 }  // namespace algos::hymd::model

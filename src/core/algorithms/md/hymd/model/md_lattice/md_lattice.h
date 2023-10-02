@@ -19,12 +19,12 @@ private:
 
 public:
     [[nodiscard]] size_t GetMaxLevel() const;
-    std::vector<LatticeNodeSims> GetLevel(size_t level);
-    SimilarityVector GetMaxValidGeneralizationRhs(SimilarityVector const& lhs);
+    std::vector<LatticeNodeSims> GetLevel(size_t level) const;
+    SimilarityVector GetMaxValidGeneralizationRhs(SimilarityVector const& lhs) const;
 
     void Add(LatticeMd const& md);
     void AddIfMin(LatticeMd const& md);
-    std::vector<LatticeMd> FindViolated(SimilarityVector const& similarity_vector);
+    std::vector<LatticeMd> FindViolated(SimilarityVector const& similarity_vector) const;
 
     void RemoveMd(LatticeMd const& md);
     void RemoveNode(SimilarityVector const& lhs);

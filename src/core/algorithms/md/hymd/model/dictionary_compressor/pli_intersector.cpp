@@ -8,20 +8,22 @@
 
 namespace {
 using algos::hymd::model::KeyedPositionListIndex;
-std::vector<size_t> GetEndingValueIds(std::vector<KeyedPositionListIndex const*> const& plis) {
+using algos::hymd::PliCluster;
+std::vector<size_t> GetEndingValueIds(
+        std::vector<std::vector<PliCluster> const*> const& cluster_collections) {
     std::vector<size_t> value_ids;
-    value_ids.reserve(plis.size());
-    for (auto const* pli : plis) {
-        value_ids.push_back(pli->GetClusters().size() - 1);
+    value_ids.reserve(cluster_collections.size());
+    for (auto const* collection_ptr : cluster_collections) {
+        value_ids.push_back(collection_ptr->size() - 1);
     }
-    ++value_ids[value_ids.size() - 1];
+    ++value_ids.back();
     return value_ids;
 }
-std::vector<size_t> GetPliSizes(std::vector<KeyedPositionListIndex const*> const& plis) {
+std::vector<size_t> GetPliSizes(std::vector<std::vector<PliCluster> const*> const& cluster_collections) {
     std::vector<size_t> pli_sizes;
-    pli_sizes.reserve(plis.size());
-    for (KeyedPositionListIndex const* pli_ptr : plis) {
-        pli_sizes.push_back(pli_ptr->GetClusters().size());
+    pli_sizes.reserve(cluster_collections.size());
+    for (auto const* collection_ptr : cluster_collections) {
+        pli_sizes.push_back(collection_ptr->size());
     }
     return pli_sizes;
 }
@@ -31,8 +33,8 @@ namespace algos::hymd::model {
 
 using iter = PliIntersector::const_iterator;
 
-PliIntersector::PliIntersector(std::vector<KeyedPositionListIndex const*> plis)
-    : plis_(std::move(plis)), end_iter_(&plis_) {}
+PliIntersector::PliIntersector(std::vector<std::vector<PliCluster> const*> cluster_collections)
+    : cluster_collections_(std::move(cluster_collections)), end_iter_(&cluster_collections_) {}
 
 iter::value_type iter::operator*() {
     return {value_ids_, intersection_};
@@ -43,27 +45,28 @@ bool operator!=(iter const& a, iter const& b) {
 }
 
 bool operator==(iter const& a, iter const& b) {
-    return a.plis_ == b.plis_ && a.value_ids_ == b.value_ids_ && a.intersection_ == b.intersection_;
+    return a.cluster_indexes_ == b.cluster_indexes_ && a.value_ids_ == b.value_ids_ &&
+           a.intersection_ == b.intersection_;
 }
 
-iter::const_iterator(std::vector<KeyedPositionListIndex const*> const* plis,
+iter::const_iterator(std::vector<std::vector<PliCluster> const*> const* const cluster_collections,
                      std::vector<size_t> value_ids)
-    : plis_(plis),
-      pli_num_(plis->size()),
-      pli_sizes_(GetPliSizes(*plis)),
+    : cluster_indexes_(cluster_collections),
+      pli_num_(cluster_indexes_->size()),
+      pli_sizes_(GetPliSizes(*cluster_indexes_)),
       value_ids_(std::move(value_ids)),
       iters_(pli_num_) {
-    assert(!plis_->empty());
+    assert(!cluster_indexes_->empty());
     assert(ValueIdsAreValid());
     GetCluster();
     if (intersection_.empty()) ++*this;
 }
 
-iter::const_iterator(std::vector<KeyedPositionListIndex const*> const* plis)
-    : plis_(plis),
-      pli_num_(plis->size()),
-      pli_sizes_(GetPliSizes(*plis)),
-      value_ids_(GetEndingValueIds(*plis)) {}
+iter::const_iterator(std::vector<std::vector<PliCluster> const*> const* const cluster_collections)
+    : cluster_indexes_(cluster_collections),
+      pli_num_(cluster_indexes_->size()),
+      pli_sizes_(GetPliSizes(*cluster_indexes_)),
+      value_ids_(GetEndingValueIds(*cluster_indexes_)) {}
 
 bool iter::ValueIdsAreValid() {
     for (size_t i = 0; i < pli_num_; ++i) {

@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "algorithms/md/hymd/model/dictionary_compressor/keyed_position_list_index.h"
+#include "algorithms/md/hymd/types.h"
 
 namespace algos::hymd::model {
 
@@ -12,11 +13,11 @@ public:
         using iterator_category = std::forward_iterator_tag;
         using difference_type = std::ptrdiff_t;
         using value_type = std::pair<std::vector<size_t>, std::vector<size_t>>;
-        using pointer = value_type *;
-        using reference = value_type &;
+        using pointer = value_type*;
+        using reference = value_type&;
 
     private:
-        std::vector<KeyedPositionListIndex const*> const* const plis_;
+        std::vector<std::vector<PliCluster> const*> const* const cluster_indexes_;
         size_t const pli_num_;
         std::vector<size_t> const pli_sizes_;
         std::vector<size_t> value_ids_;
@@ -28,9 +29,10 @@ public:
         bool ValueIdsAreValid();
         bool IncValueIds();
 
-        const_iterator(std::vector<KeyedPositionListIndex const*> const* plis,
+        const_iterator(std::vector<std::vector<PliCluster> const*> const* const cluster_collections,
                        std::vector<size_t> value_ids);
-        const_iterator(std::vector<KeyedPositionListIndex const*> const* plis);
+        const_iterator(
+                std::vector<std::vector<PliCluster> const*> const* const cluster_collections);
 
     public:
         friend class PliIntersector;
@@ -43,11 +45,11 @@ public:
     };
 
 private:
-    std::vector<KeyedPositionListIndex const*>  plis_;
+    std::vector<std::vector<PliCluster> const*> const cluster_collections_;
     const_iterator end_iter_;
 
 public:
-    explicit PliIntersector(std::vector<KeyedPositionListIndex const*> plis);
+    explicit PliIntersector(std::vector<std::vector<PliCluster> const*> plis);
 
     [[nodiscard]] const_iterator begin() const;
     [[nodiscard]] const_iterator const& end() const;
