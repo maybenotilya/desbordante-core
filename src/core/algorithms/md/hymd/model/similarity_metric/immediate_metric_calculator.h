@@ -3,8 +3,8 @@
 #include <functional>
 #include <unordered_set>
 
+#include "algorithms/md/hymd/model/data_info.h"
 #include "algorithms/md/hymd/model/similarity_metric/similarity_metric_calculator.h"
-#include "algorithms/md/hymd/model/value_info.h"
 #include "config/exceptions.h"
 
 namespace algos::hymd::model {

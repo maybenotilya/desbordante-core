@@ -6,13 +6,36 @@
 #include <typeindex>
 #include <typeinfo>
 
+#include "algorithms/md/hymd/model/data_info.h"
 #include "algorithms/md/hymd/model/dictionary_compressor/keyed_position_list_index.h"
 #include "algorithms/md/hymd/model/similarity_metric/similarity_metric_calculator.h"
-#include "algorithms/md/hymd/model/value_info.h"
 #include "model/types/builtin.h"
 #include "model/types/null_type.h"
+#include "model/types/numeric_type.h"
+#include "model/types/type.h"
 
 namespace algos::hymd::model {
+
+class SimilarityMetric {
+public:
+    using SimilarityFunction =
+            std::function<std::unique_ptr<std::byte const>(std::byte const*, std::byte const*)>;
+
+private:
+    std::string const name_;
+    std::unique_ptr<::model::Type> const arg_type_;
+    std::unique_ptr<::model::INumericType> const ret_type_;
+    SimilarityFunction const compute_similarity_;
+
+public:
+    SimilarityMetric(std::string name, std::unique_ptr<::model::Type> arg_type,
+                     std::unique_ptr<::model::INumericType> ret_type,
+                     SimilarityFunction compute_similarity)
+        : name_(std::move(name)),
+          arg_type_(std::move(arg_type)),
+          ret_type_(std::move(ret_type)),
+          compute_similarity_(std::move(compute_similarity)) {}
+};
 
 class AbstractSimilarityMetric {
     std::string name_;
@@ -38,7 +61,7 @@ public:
 };
 
 template <typename T, typename RetType>
-class SimilarityMetric : AbstractSimilarityMetric {
+class SimilarityMetricOld : AbstractSimilarityMetric {
     std::function<RetType(T const&, T const&)> get_similarity_;
 
     [[nodiscard]] std::type_index GetTypeIndex() const final {
@@ -83,7 +106,7 @@ class SimilarityMetric : AbstractSimilarityMetric {
             bool is_null_equal_null) const = 0;
 
 protected:
-    SimilarityMetric(std::string name, std::function<RetType(T const&, T const&)> get_similarity)
+    SimilarityMetricOld(std::string name, std::function<RetType(T const&, T const&)> get_similarity)
         : AbstractSimilarityMetric(std::move(name)), get_similarity_(std::move(get_similarity)) {}
 };
 
