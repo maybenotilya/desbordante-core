@@ -59,8 +59,6 @@ void HyMD::LoadDataInternal() {
     }
 
     compressed_records_ = model::CompressedRecords::CreateFrom(*left_table_, *right_table_);
-    left_table_->Reset();
-    right_table_->Reset();
 }
 
 unsigned long long HyMD::ExecuteInternal() {
