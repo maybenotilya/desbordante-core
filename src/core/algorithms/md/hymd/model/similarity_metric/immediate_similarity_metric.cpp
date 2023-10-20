@@ -1,5 +1,7 @@
 #include "algorithms/md/hymd/model/similarity_metric/immediate_similarity_metric.h"
 
+#include "config/exceptions.h"
+
 namespace algos::hymd::model {
 
 Similarity GetSimilarity(DataInfo const& data_info_left, DataInfo const& data_info_right,
@@ -46,8 +48,8 @@ ImmediateSimilarityMetric::MakeIndexes(std::shared_ptr<DataInfo const> data_info
                     // Configuration error because bundled similarity functions
                     // are certain to be correct, but the same cannot be said
                     // about user-supplied functions
-                    throw config::OutOfRange("Unexpected similarity (" +
-                                             std::to_string(similarity) + ")");
+                    throw config::ConfigurationError("Unexpected similarity (" +
+                                                     std::to_string(similarity) + ")");
                 }
             }
             if (similarity < min_sim) continue;
