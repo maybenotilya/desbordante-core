@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <map>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -24,4 +26,7 @@ using SimilarityMatrix = std::vector<std::unordered_map<ValueIdentifier, model::
 using SimInfo = std::map<model::Similarity, std::vector<ValueIdentifier>>;
 using SimilarityIndex = std::vector<SimInfo>;
 using Recommendations = std::vector<std::pair<RecordIdentifier, RecordIdentifier>>;
+
+using SimilarityFunction =
+        std::function<std::unique_ptr<std::byte const>(std::byte const*, std::byte const*)>;
 }  // namespace algos::hymd

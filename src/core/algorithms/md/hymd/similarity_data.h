@@ -6,6 +6,7 @@
 #include "algorithms/md/hymd/types.h"
 #include "algorithms/md/hymd/model/compressed_records.h"
 #include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
+#include "algorithms/md/hymd/model/similarity_metric/similarity_metric.h"
 
 namespace algos::hymd {
 
@@ -54,9 +55,10 @@ public:
           sim_indexes_(std::move(sim_indexes)) {}
 
     static std::unique_ptr<SimilarityData> CreateFrom(
-            model::CompressedRecords* compressed_records,
-            model::SimilarityVector min_similarities,
-            std::vector<std::pair<size_t, size_t>> column_match_col_indices);
+            model::CompressedRecords* compressed_records, model::SimilarityVector min_similarities,
+            std::vector<std::pair<size_t, size_t>> column_match_col_indices,
+            std::vector<model::SimilarityMeasure const*> const& sim_measures,
+            bool is_null_equal_null);
 
     [[nodiscard]] std::vector<std::vector<model::Similarity>> const& GetNaturalDecisionBounds()
             const {
@@ -77,6 +79,10 @@ public:
 
     [[nodiscard]] size_t GetColumnMatchNumber() const {
         return column_match_col_indices_.size();
+    }
+
+    [[nodiscard]] std::pair<size_t, size_t> GetColMatchIndices(size_t index) const {
+        return column_match_col_indices_[index];
     }
 
     [[nodiscard]] model::DictionaryCompressor const& GetLeftRecords() const {

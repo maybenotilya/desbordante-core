@@ -9,10 +9,11 @@
 
 namespace algos::hymd::model {
 
-struct DataInfo {
+class DataInfo {
+private:
     std::unique_ptr<std::byte[]> const data_;
-    size_t elements_;
-    size_t type_size_;
+    size_t const elements_;
+    size_t const type_size_;
     std::unordered_set<ValueIdentifier> const nulls_;
     std::unordered_set<ValueIdentifier> const empty_;
 
@@ -26,6 +27,14 @@ public:
 
     size_t GetElementNumber() const {
         return elements_;
+    }
+
+    std::unordered_set<ValueIdentifier> const& GetNulls() const {
+        return nulls_;
+    }
+
+    std::unordered_set<ValueIdentifier> const& GetEmpty() const {
+        return empty_;
     }
 
     static std::shared_ptr<DataInfo> MakeFrom(KeyedPositionListIndex const& pli,

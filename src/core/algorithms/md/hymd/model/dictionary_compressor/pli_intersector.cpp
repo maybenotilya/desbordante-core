@@ -80,7 +80,7 @@ iter const& PliIntersector::end() const {
 }
 
 iter PliIntersector::begin() const {
-    return {&plis_, std::vector<size_t>(plis_.size(), 0)};
+    return {&cluster_collections_, std::vector<size_t>(cluster_collections_.size(), 0)};
 }
 
 iter& iter::operator++() {
@@ -102,7 +102,7 @@ bool iter::IncValueIds() {
             --cur_index;
         } while (value_ids_[cur_index] == pli_sizes_[cur_index] - 1);
         ++value_ids_[cur_index];
-        for (++cur_index; cur_index < plis_->size(); ++cur_index) {
+        for (++cur_index; cur_index < cluster_indexes_->size(); ++cur_index) {
             value_ids_[cur_index] = 0;
         }
     }
@@ -114,7 +114,7 @@ void iter::GetCluster() {
     assert(pli_num_ != 0);
     assert(iters_.size() == pli_num_);
     for (size_t i = 0; i < pli_num_; ++i) {
-        std::vector<size_t> const& cur_cluster = plis_->operator[](i)->GetClusters()[value_ids_[i]];
+        PliCluster const& cur_cluster = cluster_indexes_->operator[](i)->operator[](value_ids_[i]);
         auto& [start_iter, end_iter] = iters_[i];
         start_iter = cur_cluster.begin();
         end_iter = cur_cluster.end();

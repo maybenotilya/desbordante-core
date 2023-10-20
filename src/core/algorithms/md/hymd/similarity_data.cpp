@@ -20,83 +20,37 @@ namespace algos::hymd {
 std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         model::CompressedRecords* const compressed_records,
         model::SimilarityVector min_similarities,
-        std::vector<std::pair<size_t, size_t>> column_match_col_indices) {
+        std::vector<std::pair<size_t, size_t>> column_match_col_indices,
+        std::vector<model::SimilarityMeasure const*> const& sim_measures, bool is_null_equal_null) {
+    assert(column_match_col_indices.size() == sim_measures.size());
+
     size_t const col_match_number = column_match_col_indices.size();
-    std::vector<DecisionBoundsVector> natural_decision_bounds(col_match_number);
-    std::vector<SimilarityMatrix> sim_matrices(col_match_number);
-    std::vector<SimilarityIndex> sim_indexes(col_match_number);
-    // TODO: Parallelize, make infrastructure for metrics like
+    std::vector<DecisionBoundsVector> natural_decision_bounds{};
+    natural_decision_bounds.reserve(col_match_number);
+    std::vector<SimilarityMatrix> sim_matrices{};
+    sim_matrices.reserve(col_match_number);
+    std::vector<SimilarityIndex> sim_indexes{};
+    sim_indexes.reserve(col_match_number);
+    // TODO: Parallelize, cache data info, make infrastructure for metrics like
     //  abs(left_value - right_value) / (max - min) <- max and min for every left value or for all
     //  values in a column match? Option? Memory limits?
     for (size_t column_match_index = 0; column_match_index < col_match_number;
          ++column_match_index) {
         auto [left_col_index, right_col_index] = column_match_col_indices[column_match_index];
-        SimilarityMatrix& sim_matrix = sim_matrices[column_match_index];
-        SimilarityIndex& sim_index = sim_indexes[column_match_index];
-        model::KeyedPositionListIndex const& left_pli =
-                compressed_records->GetLeftRecords().GetPli(left_col_index);
-        model::KeyedPositionListIndex const& right_pli =
-                compressed_records->GetRightRecords().GetPli(right_col_index);
-        std::vector<PliCluster> const& left_clusters = left_pli.GetClusters();
-        std::vector<PliCluster> const& right_clusters = right_pli.GetClusters();
-        std::vector<model::Similarity> similarities;
-        similarities.reserve(left_clusters.size() * right_clusters.size());
-        sim_matrix.resize(left_clusters.size());
-        sim_index.resize(left_clusters.size());
-        for (size_t value_id_left = 0; value_id_left < left_clusters.size(); ++value_id_left) {
-            PliCluster const& left_cluster = left_clusters[value_id_left];
-            RecordIdentifier left_record = left_cluster[0];
-            std::vector<std::pair<double, RecordIdentifier>> sim_rec_id_vec;
-            for (size_t value_id_right = 0; value_id_right < right_clusters.size();
-                 ++value_id_right) {
-                PliCluster const& right_cluster = right_clusters[value_id_right];
-                RecordIdentifier right_record = right_cluster[0];
-                model::Similarity similarity =
-                        GetSimilarity(column_match_index, left_record, right_record);
-                /*
-                 * Only relevant for user-supplied functions, benchmark the
-                 * slowdown from this check and deal with it if it is
-                 * significant.
-                if (!(similarity >= 0 && similarity <= 1)) {
-                    // Configuration error because bundled similarity functions
-                    // are going to be correct, but the same cannot be said about
-                    // user-supplied functions
-                    throw config::OutOfRange("Unexpected similarity (" + std::to_string(similarity)
-                + ")");
-                }
-                 */
-                similarities.push_back(similarity);
-                sim_matrix[value_id_left][value_id_right] = similarity;
-                for (RecordIdentifier record_id : right_pli.GetClusters()[value_id_right]) {
-                    sim_rec_id_vec.emplace_back(similarity, record_id);
-                }
-            }
-            std::sort(sim_rec_id_vec.begin(), sim_rec_id_vec.end(), std::greater<>{});
-            std::vector<RecordIdentifier> records;
-            records.reserve(sim_rec_id_vec.size());
-            for (auto [_, rec] : sim_rec_id_vec) {
-                records.push_back(rec);
-            }
-            SimInfo sim_info;
-            assert(!sim_rec_id_vec.empty());
-            double previous_similarity = sim_rec_id_vec.begin()->first;
-            auto const it_begin = records.begin();
-            for (size_t j = 0; j < sim_rec_id_vec.size(); ++j) {
-                double similarity = sim_rec_id_vec[j].first;
-                if (similarity == previous_similarity) continue;
-                auto const it_end = it_begin + static_cast<long>(j);
-                std::sort(it_begin, it_end);
-                sim_info[previous_similarity] = {it_begin, it_end};
-                previous_similarity = similarity;
-            }
-            std::sort(records.begin(), records.end());
-            sim_info[previous_similarity] = std::move(records);
-            sim_index[value_id_left] = std::move(sim_info);
-        }
-        std::sort(similarities.begin(), similarities.end());
-        similarities.erase(std::unique(similarities.begin(), similarities.end()),
-                           similarities.end());
-        natural_decision_bounds[column_match_index] = std::move(similarities);
+        model::SimilarityMeasure const& measure = *sim_measures[column_match_index];
+        auto const& left_pli = compressed_records->GetLeftRecords().GetPli(left_col_index);
+        // shared_ptr for caching
+        std::shared_ptr<model::DataInfo const> data_info_left =
+                model::DataInfo::MakeFrom(left_pli, measure.GetArgType());
+        auto const& right_pli = compressed_records->GetRightRecords().GetPli(right_col_index);
+        std::shared_ptr<model::DataInfo const> data_info_right =
+                model::DataInfo::MakeFrom(right_pli, measure.GetArgType());
+        auto [dec_bounds, sim_matrix, sim_index] = measure.MakeIndexes(
+                std::move(data_info_left), std::move(data_info_right), &right_pli.GetClusters(),
+                min_similarities[column_match_index], is_null_equal_null);
+        natural_decision_bounds.push_back(std::move(dec_bounds));
+        sim_matrices.push_back(std::move(sim_matrix));
+        sim_indexes.push_back(std::move(sim_index));
     }
     return std::make_unique<SimilarityData>(
             compressed_records, std::move(min_similarities), std::move(column_match_col_indices),

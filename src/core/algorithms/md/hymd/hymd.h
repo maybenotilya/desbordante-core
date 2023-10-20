@@ -36,20 +36,16 @@ private:
     std::unique_ptr<RecordPairInferrer> record_pair_inferrer_;
 
     bool is_null_equal_null_ = true;
-    // TODO: make a better class for this.
-    std::unique_ptr<::model::ColumnLayoutTypedRelationData> typed_relation_data_left_;
-    std::unique_ptr<::model::ColumnLayoutTypedRelationData> typed_relation_data_right_;
 
-    // Measure should have its own type
-    std::vector<std::tuple<std::string, std::string, std::string>> column_matches_option_;
+    // ??: need different types of sim measures, need to have
+    std::vector<model::SimilarityMeasure*> sim_measures_;
+    std::vector<std::tuple<std::string, std::string, std::unique_ptr<model::SimilarityMeasure>>>
+            column_matches_option_;
     model::SimilarityVector rhs_min_similarities_;
 
     void ResetStateMd() final;
     void LoadDataInternal() final;
     unsigned long long ExecuteInternal() final;
-
-    /*model::Similarity GetSimilarity(size_t column_match, RecordIdentifier left,
-                                    RecordIdentifier right) const;*/
 
     void RegisterResults();
 
