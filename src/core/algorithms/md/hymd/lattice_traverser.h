@@ -23,10 +23,11 @@ class LatticeTraverser {
 
 public:
     LatticeTraverser(SimilarityData* similarity_data, model::FullLattice* lattice,
-                     Recommendations* recommendations_ptr)
+                     Recommendations* recommendations_ptr, size_t min_support)
         : similarity_data_(similarity_data),
           lattice_(lattice),
-          recommendations_ptr_(recommendations_ptr) {}
+          recommendations_ptr_(recommendations_ptr),
+          min_support_(min_support) {}
 
     bool TraverseLattice(bool traverse_all);
 };

@@ -36,6 +36,7 @@ private:
     std::unique_ptr<RecordPairInferrer> record_pair_inferrer_;
 
     bool is_null_equal_null_ = true;
+    size_t min_support_ = 0;
 
     // ??: need different types of sim measures, need to have
     std::vector<model::SimilarityMeasure*> sim_measures_;

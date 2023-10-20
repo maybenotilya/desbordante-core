@@ -43,7 +43,7 @@ void HyMD::ResetStateMd() {
     lattice_ = std::make_unique<model::FullLattice>(similarity_data_->GetColumnMatchNumber());
     recommendations_.clear();
     lattice_traverser_ = std::make_unique<LatticeTraverser>(similarity_data_.get(), lattice_.get(),
-                                                            &recommendations_);
+                                                            &recommendations_, min_support_);
     record_pair_inferrer_ = std::make_unique<RecordPairInferrer>(similarity_data_.get(),
                                                                  lattice_.get(), &recommendations_);
 }
