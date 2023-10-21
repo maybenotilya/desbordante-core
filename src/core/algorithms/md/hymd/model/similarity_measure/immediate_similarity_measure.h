@@ -1,10 +1,10 @@
 #pragma once
 
-#include "algorithms/md/hymd/model/similarity_metric/similarity_metric.h"
+#include "algorithms/md/hymd/model/similarity_measure/similarity_measure.h"
 
 namespace algos::hymd::model {
 
-class ImmediateSimilarityMetric final : public SimilarityMeasure {
+class ImmediateSimilarityMeasure final : public SimilarityMeasure {
     bool const should_check_ = false;
 
     [[nodiscard]] std::tuple<DecisionBoundsVector, SimilarityMatrix, SimilarityIndex> MakeIndexes(
@@ -14,7 +14,7 @@ class ImmediateSimilarityMetric final : public SimilarityMeasure {
             bool is_null_equal_null) const final;
 
 public:
-    ImmediateSimilarityMetric(std::string name, std::unique_ptr<::model::Type> arg_type,
+    ImmediateSimilarityMeasure(std::string name, std::unique_ptr<::model::Type> arg_type,
                               std::unique_ptr<::model::INumericType> ret_type,
                               SimilarityFunction compute_similarity, bool should_check)
         : SimilarityMeasure(std::move(name), std::move(arg_type), std::move(ret_type),

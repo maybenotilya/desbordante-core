@@ -7,6 +7,7 @@
 #include "algorithms/md/hymd/lattice_traverser.h"
 #include "algorithms/md/hymd/model/compressed_records.h"
 #include "algorithms/md/hymd/model/similarity.h"
+#include "algorithms/md/hymd/model/similarity_measure/similarity_measure.h"
 #include "algorithms/md/hymd/record_pair_inferrer.h"
 #include "algorithms/md/hymd/similarity_data.h"
 #include "algorithms/md/hymd/types.h"

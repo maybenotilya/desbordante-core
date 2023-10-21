@@ -1,4 +1,4 @@
-#include "algorithms/md/hymd/model/similarity_metric/immediate_similarity_metric.h"
+#include "algorithms/md/hymd/model/similarity_measure/immediate_similarity_measure.h"
 
 #include "config/exceptions.h"
 
@@ -28,7 +28,7 @@ Similarity GetSimilarity(DataInfo const& data_info_left, DataInfo const& data_in
 }
 
 std::tuple<DecisionBoundsVector, SimilarityMatrix, SimilarityIndex>
-ImmediateSimilarityMetric::MakeIndexes(std::shared_ptr<DataInfo const> data_info_left,
+ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_info_left,
                                        std::shared_ptr<DataInfo const> data_info_right,
                                        std::vector<PliCluster> const* clusters_right, double min_sim,
                                        bool is_null_equal_null) const {

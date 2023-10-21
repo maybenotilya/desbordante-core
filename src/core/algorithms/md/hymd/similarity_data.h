@@ -6,7 +6,7 @@
 #include "algorithms/md/hymd/types.h"
 #include "algorithms/md/hymd/model/compressed_records.h"
 #include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
-#include "algorithms/md/hymd/model/similarity_metric/similarity_metric.h"
+#include "algorithms/md/hymd/model/similarity_measure/similarity_measure.h"
 
 namespace algos::hymd {
 
