@@ -16,10 +16,10 @@ class LatticeTraverser {
     model::FullLattice* lattice_;
     Recommendations* recommendations_ptr_;
 
-    std::unique_ptr<model::MinPickerLattice> min_picker_lattice_;
-
     size_t cur_level_ = 0;
-    size_t min_support_ = 0;
+    size_t min_support_;
+
+    std::unique_ptr<model::MinPickerLattice> min_picker_lattice_;
 
 public:
     LatticeTraverser(SimilarityData* similarity_data, model::FullLattice* lattice,
@@ -27,7 +27,9 @@ public:
         : similarity_data_(similarity_data),
           lattice_(lattice),
           recommendations_ptr_(recommendations_ptr),
-          min_support_(min_support) {}
+          min_support_(min_support),
+          min_picker_lattice_(std::make_unique<model::MinPickerLattice>(
+                  similarity_data_->GetColumnMatchNumber())) {}
 
     bool TraverseLattice(bool traverse_all);
 };

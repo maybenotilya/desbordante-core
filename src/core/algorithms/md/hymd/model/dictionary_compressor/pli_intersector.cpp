@@ -9,16 +9,6 @@
 namespace {
 using algos::hymd::model::KeyedPositionListIndex;
 using algos::hymd::PliCluster;
-std::vector<size_t> GetEndingValueIds(
-        std::vector<std::vector<PliCluster> const*> const& cluster_collections) {
-    std::vector<size_t> value_ids;
-    value_ids.reserve(cluster_collections.size());
-    for (auto const* collection_ptr : cluster_collections) {
-        value_ids.push_back(collection_ptr->size() - 1);
-    }
-    ++value_ids.back();
-    return value_ids;
-}
 std::vector<size_t> GetPliSizes(std::vector<std::vector<PliCluster> const*> const& cluster_collections) {
     std::vector<size_t> pli_sizes;
     pli_sizes.reserve(cluster_collections.size());
@@ -34,7 +24,7 @@ namespace algos::hymd::model {
 using iter = PliIntersector::const_iterator;
 
 PliIntersector::PliIntersector(std::vector<std::vector<PliCluster> const*> cluster_collections)
-    : cluster_collections_(std::move(cluster_collections)), end_iter_(&cluster_collections_) {}
+    : cluster_collections_(std::move(cluster_collections)) {}
 
 iter::value_type iter::operator*() {
     return {value_ids_, intersection_};
@@ -45,8 +35,8 @@ bool operator!=(iter const& a, iter const& b) {
 }
 
 bool operator==(iter const& a, iter const& b) {
-    return a.cluster_indexes_ == b.cluster_indexes_ && a.value_ids_ == b.value_ids_ &&
-           a.intersection_ == b.intersection_;
+    assert(b.is_end_);
+    return a.is_end_ == b.is_end_;
 }
 
 iter::const_iterator(std::vector<std::vector<PliCluster> const*> const* const cluster_collections,
@@ -62,11 +52,7 @@ iter::const_iterator(std::vector<std::vector<PliCluster> const*> const* const cl
     if (intersection_.empty()) ++*this;
 }
 
-iter::const_iterator(std::vector<std::vector<PliCluster> const*> const* const cluster_collections)
-    : cluster_indexes_(cluster_collections),
-      pli_num_(cluster_indexes_->size()),
-      pli_sizes_(GetPliSizes(*cluster_indexes_)),
-      value_ids_(GetEndingValueIds(*cluster_indexes_)) {}
+iter::const_iterator() : is_end_(true) {}
 
 bool iter::ValueIdsAreValid() {
     for (size_t i = 0; i < pli_num_; ++i) {
@@ -75,8 +61,8 @@ bool iter::ValueIdsAreValid() {
     return true;
 }
 
-iter const& PliIntersector::end() const {
-    return end_iter_;
+iter PliIntersector::end() const {
+    return const_iterator{};
 }
 
 iter PliIntersector::begin() const {
@@ -88,6 +74,7 @@ iter& iter::operator++() {
         GetCluster();
         if (!intersection_.empty()) return *this;
     }
+    is_end_ = true;
     return *this;
 }
 

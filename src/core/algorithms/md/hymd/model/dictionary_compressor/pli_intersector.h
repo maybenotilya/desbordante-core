@@ -19,9 +19,10 @@ public:
         using reference = value_type&;
 
     private:
-        std::vector<std::vector<PliCluster> const*> const* const cluster_indexes_;
-        size_t const pli_num_;
-        std::vector<size_t> const pli_sizes_;
+        bool is_end_ = false;
+        std::vector<std::vector<PliCluster> const*> const* const cluster_indexes_ = {};
+        size_t const pli_num_ = {};
+        std::vector<size_t> const pli_sizes_ = {};
         std::vector<size_t> value_ids_;
         std::vector<size_t> intersection_;
         using IterType = std::vector<size_t>::const_iterator;
@@ -33,8 +34,7 @@ public:
 
         const_iterator(std::vector<std::vector<PliCluster> const*> const* const cluster_collections,
                        std::vector<size_t> value_ids);
-        const_iterator(
-                std::vector<std::vector<PliCluster> const*> const* const cluster_collections);
+        const_iterator();
 
     public:
         friend class PliIntersector;
@@ -48,13 +48,12 @@ public:
 
 private:
     std::vector<std::vector<PliCluster> const*> const cluster_collections_;
-    const_iterator end_iter_;
 
 public:
     explicit PliIntersector(std::vector<std::vector<PliCluster> const*> plis);
 
     [[nodiscard]] const_iterator begin() const;
-    [[nodiscard]] const_iterator const& end() const;
+    [[nodiscard]] const_iterator end() const;
 };
 
 }  // namespace algos::hymd::model
