@@ -22,9 +22,10 @@ using MetricResultIndex = std::vector<std::map<MetricReturnType, std::vector<Val
 using RecordIdentifier = size_t;
 using PliCluster = std::vector<RecordIdentifier>;
 using DecisionBoundsVector = std::vector<model::Similarity>;
-using SimilarityMatrix = std::vector<std::unordered_map<ValueIdentifier, model::Similarity>>;
-using SimInfo = std::map<model::Similarity, std::vector<ValueIdentifier>>;
-using SimilarityIndex = std::vector<SimInfo>;
+using SimilarityMatrix =
+        std::unordered_map<ValueIdentifier, std::unordered_map<ValueIdentifier, model::Similarity>>;
+using SimInfo = std::map<model::Similarity, std::vector<RecordIdentifier>>;
+using SimilarityIndex = std::unordered_map<ValueIdentifier, SimInfo>;
 using Recommendations = std::vector<std::pair<RecordIdentifier, RecordIdentifier>>;
 
 using SimilarityFunction =
