@@ -89,9 +89,21 @@ std::vector<std::pair<size_t, size_t>> SimilarityData::DecreaseRhsThresholds(
                 all_zeroes = false;
                 ValueIdentifier const left_value_id = left_record[col_match];
                 ValueIdentifier const right_value_id = right_record[col_match];
-                // TODO: not at, "get or default"
-                double record_similarity =
-                        sim_matrices_[col_match][left_value_id].at(right_value_id);
+                SimilarityMatrix const& sim_matrix = sim_matrices_[col_match];
+                double record_similarity = 0.0;
+                auto it_left = sim_matrix.find(left_value_id);
+                if (it_left == sim_matrix.end()) {
+                    threshold = 0.0;
+                    continue;
+                }
+                auto const& row = it_left->second;
+                auto it_right = row.find(right_value_id);
+                if (it_right == row.end()) {
+                    threshold = 0.0;
+                    continue;
+                }
+                record_similarity = it_right->second;
+
                 if (record_similarity < rhs_min_similarities_[col_match]) record_similarity = 0.0;
                 if (threshold > record_similarity) {
                     threshold = record_similarity;
@@ -112,7 +124,19 @@ model::SimilarityVector SimilarityData::GetSimilarityVector(size_t left_record,
     std::vector<ValueIdentifier> right_values = GetRightRecords().GetRecords()[right_record];
     for (size_t i = 0; i < column_match_col_indices_.size(); ++i) {
         // TODO: not at, "get or default"
-        sims[i] = sim_matrices_[i][left_values[i]].at(right_values[i]);
+        SimilarityMatrix const& sim_matrix = sim_matrices_[i];
+        auto row_it = sim_matrix.find(left_values[i]);
+        if (row_it == sim_matrix.end()) {
+            sims[i] = 0.0;
+            continue;
+        }
+        auto const& row = row_it->second;
+        auto sim_it = row.find(right_values[i]);
+        if (sim_it == row.end()) {
+            sims[i] = 0.0;
+            continue;
+        }
+        sims[i] = sim_it->second;
     }
     return sims;
 }
@@ -120,7 +144,10 @@ model::SimilarityVector SimilarityData::GetSimilarityVector(size_t left_record,
 std::vector<RecordIdentifier> SimilarityData::GetSimilarRecords(ValueIdentifier value_id,
                                                                 model::Similarity similarity,
                                                                 size_t column_match_index) const {
-    auto const& val_index = sim_indexes_[column_match_index][value_id];
+    SimilarityIndex const& sim_index = sim_indexes_[column_match_index];
+    auto val_index_it = sim_index.find(value_id);
+    if (val_index_it == sim_index.end()) return {};
+    auto const& val_index = val_index_it->second;
     auto it = val_index.lower_bound(similarity);
     if (it == val_index.end()) return {};
     return it->second;
