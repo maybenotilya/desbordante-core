@@ -27,6 +27,7 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
     size_t const col_match_number = column_match_col_indices.size();
     std::vector<DecisionBoundsVector> natural_decision_bounds{};
     natural_decision_bounds.reserve(col_match_number);
+    std::vector<model::Similarity> lowest_sims;
     std::vector<SimilarityMatrix> sim_matrices{};
     sim_matrices.reserve(col_match_number);
     std::vector<SimilarityIndex> sim_indexes{};
@@ -45,16 +46,18 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         auto const& right_pli = compressed_records->GetRightRecords().GetPli(right_col_index);
         std::shared_ptr<model::DataInfo const> data_info_right =
                 model::DataInfo::MakeFrom(right_pli, measure.GetArgType());
-        auto [dec_bounds, sim_matrix, sim_index] = measure.MakeIndexes(
+        auto [dec_bounds, lowest_similarity, sim_matrix, sim_index] = measure.MakeIndexes(
                 std::move(data_info_left), std::move(data_info_right), &right_pli.GetClusters(),
                 min_similarities[column_match_index], is_null_equal_null);
         natural_decision_bounds.push_back(std::move(dec_bounds));
+        lowest_sims.push_back(lowest_similarity);
         sim_matrices.push_back(std::move(sim_matrix));
         sim_indexes.push_back(std::move(sim_index));
     }
     return std::make_unique<SimilarityData>(
             compressed_records, std::move(min_similarities), std::move(column_match_col_indices),
-            std::move(natural_decision_bounds), std::move(sim_matrices), std::move(sim_indexes));
+            std::move(natural_decision_bounds), std::move(lowest_sims), std::move(sim_matrices),
+            std::move(sim_indexes));
 }
 
 std::map<size_t, std::vector<size_t>> SimilarityData::MakeColToColMatchMapping(
@@ -182,9 +185,8 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
     Recommendations& recommendations = *recommendations_ptr;
     if (cardinality == 0) {
         assert(column_match_col_indices_.size() == lhs_sims.size());
-        for (size_t i = 0; i < column_match_col_indices_.size(); ++i) {
-            rhs_thresholds[i] = natural_decision_bounds_[i][0];
-        }
+        assert(rhs_thresholds.size() == lowest_sims_.size());
+        rhs_thresholds = lowest_sims_;
         support = GetLeftRecords().GetNumberOfRecords() * GetRightRecords().GetNumberOfRecords();
     }
     else if (cardinality == 1) {

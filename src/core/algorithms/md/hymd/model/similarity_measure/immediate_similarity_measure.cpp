@@ -27,7 +27,7 @@ Similarity GetSimilarity(DataInfo const& data_info_left, DataInfo const& data_in
     return ::model::Type::GetValue<double>(compute_similarity(value_left, value_right).get());
 }
 
-std::tuple<DecisionBoundsVector, SimilarityMatrix, SimilarityIndex>
+std::tuple<DecisionBoundsVector, Similarity, SimilarityMatrix, SimilarityIndex>
 ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_info_left,
                                        std::shared_ptr<DataInfo const> data_info_right,
                                        std::vector<PliCluster> const* clusters_right, double min_sim,
@@ -37,6 +37,7 @@ ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_inf
     SimilarityIndex similarity_index;
     auto const& data_left_size = data_info_left->GetElementNumber();
     auto const& data_right_size = data_info_right->GetElementNumber();
+    double lowest = 1.0;
     for (size_t value_id_left = 0; value_id_left < data_left_size; ++value_id_left) {
         std::vector<std::pair<Similarity, RecordIdentifier>> sim_rec_id_vec;
         for (size_t value_id_right = 0; value_id_right < data_right_size; ++value_id_right) {
@@ -52,6 +53,7 @@ ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_inf
                                                      std::to_string(similarity) + ")");
                 }
             }
+            if (lowest > similarity) lowest = similarity;
             if (similarity < min_sim) continue;
             decision_bounds.push_back(similarity);
             similarity_matrix[value_id_left][value_id_right] = similarity;
@@ -84,7 +86,8 @@ ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_inf
     std::sort(decision_bounds.begin(), decision_bounds.end());
     decision_bounds.erase(std::unique(decision_bounds.begin(), decision_bounds.end()),
                           decision_bounds.end());
-    return {std::move(decision_bounds), std::move(similarity_matrix), std::move(similarity_index)};
+    return {std::move(decision_bounds), lowest, std::move(similarity_matrix),
+            std::move(similarity_index)};
 }
 
 }

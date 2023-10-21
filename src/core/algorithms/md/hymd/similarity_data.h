@@ -18,6 +18,7 @@ private:
     std::vector<std::pair<size_t, size_t>> column_match_col_indices_;
 
     std::vector<std::vector<model::Similarity>> natural_decision_bounds_;
+    std::vector<model::Similarity> lowest_sims_;
     std::vector<SimilarityMatrix> sim_matrices_;
     std::vector<SimilarityIndex> sim_indexes_;
 
@@ -45,12 +46,14 @@ public:
                    model::SimilarityVector rhs_min_similarities,
                    std::vector<std::pair<size_t, size_t>> column_match_col_indices,
                    std::vector<DecisionBoundsVector> natural_decision_bounds,
+                   std::vector<model::Similarity> lowest_sims,
                    std::vector<SimilarityMatrix> sim_matrices,
                    std::vector<SimilarityIndex> sim_indexes)
         : compressed_records_(compressed_records),
           rhs_min_similarities_(std::move(rhs_min_similarities)),
           column_match_col_indices_(std::move(column_match_col_indices)),
           natural_decision_bounds_(std::move(natural_decision_bounds)),
+          lowest_sims_(std::move(lowest_sims)),
           sim_matrices_(std::move(sim_matrices)),
           sim_indexes_(std::move(sim_indexes)) {}
 

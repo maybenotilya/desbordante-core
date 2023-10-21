@@ -7,9 +7,9 @@
 #include <typeindex>
 #include <typeinfo>
 
-#include "algorithms/md/hymd/types.h"
 #include "algorithms/md/hymd/model/data_info.h"
 #include "algorithms/md/hymd/model/dictionary_compressor/keyed_position_list_index.h"
+#include "algorithms/md/hymd/types.h"
 #include "model/types/builtin.h"
 #include "model/types/null_type.h"
 #include "model/types/numeric_type.h"
@@ -28,8 +28,8 @@ protected:
 
 public:
     SimilarityMeasure(std::string name, std::unique_ptr<::model::Type> arg_type,
-                     std::unique_ptr<::model::INumericType> ret_type,
-                     SimilarityFunction compute_similarity)
+                      std::unique_ptr<::model::INumericType> ret_type,
+                      SimilarityFunction compute_similarity)
         : name_(std::move(name)),
           arg_type_(std::move(arg_type)),
           ret_type_(std::move(ret_type)),
@@ -49,11 +49,12 @@ public:
         return name_;
     }
 
-    [[nodiscard]] virtual std::tuple<DecisionBoundsVector, SimilarityMatrix, SimilarityIndex>
+    [[nodiscard]] virtual std::tuple<DecisionBoundsVector, Similarity, SimilarityMatrix,
+                                     SimilarityIndex>
     MakeIndexes(std::shared_ptr<DataInfo const> data_info_left,
                 std::shared_ptr<DataInfo const> data_info_right,
                 std::vector<PliCluster> const* clusters_right, double min_sim,
                 bool is_null_equal_null) const = 0;
 };
 
-}
+}  // namespace algos::hymd::model

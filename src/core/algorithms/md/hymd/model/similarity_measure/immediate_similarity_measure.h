@@ -7,11 +7,11 @@ namespace algos::hymd::model {
 class ImmediateSimilarityMeasure final : public SimilarityMeasure {
     bool const should_check_ = false;
 
-    [[nodiscard]] std::tuple<DecisionBoundsVector, SimilarityMatrix, SimilarityIndex> MakeIndexes(
-            std::shared_ptr<DataInfo const> data_info_left,
-            std::shared_ptr<DataInfo const> data_info_right,
-            std::vector<PliCluster> const* clusters_right, double min_sim,
-            bool is_null_equal_null) const final;
+    [[nodiscard]] std::tuple<DecisionBoundsVector, Similarity, SimilarityMatrix, SimilarityIndex>
+    MakeIndexes(std::shared_ptr<DataInfo const> data_info_left,
+                std::shared_ptr<DataInfo const> data_info_right,
+                std::vector<PliCluster> const* clusters_right, double min_sim,
+                bool is_null_equal_null) const final;
 
 public:
     ImmediateSimilarityMeasure(std::string name, std::unique_ptr<::model::Type> arg_type,
