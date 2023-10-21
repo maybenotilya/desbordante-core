@@ -10,6 +10,11 @@ private:
     MdLattice md_lattice_;
     SupportLattice support_lattice_;
 
+    void AddIfMin(LatticeMd const& md) {
+        assert(!support_lattice_.IsUnsupported(md.lhs_sims));
+        md_lattice_.AddIfMin(md);
+    }
+
 public:
     [[nodiscard]] size_t GetMaxLevel() const {
         return md_lattice_.GetMaxLevel();
@@ -25,11 +30,6 @@ public:
 
     void Add(LatticeMd const& md) {
         md_lattice_.Add(md);
-    }
-
-    void AddIfMin(LatticeMd const& md) {
-        assert(!support_lattice_.IsUnsupported(md.lhs_sims));
-        md_lattice_.AddIfMin(md);
     }
 
     void AddIfMinAndNotUnsupported(LatticeMd const& md) {

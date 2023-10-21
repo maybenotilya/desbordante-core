@@ -59,7 +59,7 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             lattice.Add(md);
         }
         for (auto& md : mds_to_add_if_min) {
-            lattice.AddIfMin(md);
+            lattice.AddIfMinAndNotUnsupported(md);;
         }
     }
     return true;

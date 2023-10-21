@@ -68,7 +68,7 @@ unsigned long long HyMD::ExecuteInternal() {
     bool done;
     do {
         done = record_pair_inferrer_->InferFromRecordPairs();
-        done = lattice_traverser_->TraverseLattice(done);
+        //done = lattice_traverser_->TraverseLattice(done);
     } while (!done);
 
     RegisterResults();

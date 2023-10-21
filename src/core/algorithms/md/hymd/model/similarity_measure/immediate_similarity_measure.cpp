@@ -38,7 +38,7 @@ ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_inf
     auto const& data_left_size = data_info_left->GetElementNumber();
     auto const& data_right_size = data_info_right->GetElementNumber();
     for (size_t value_id_left = 0; value_id_left < data_left_size; ++value_id_left) {
-        std::vector<std::pair<double, RecordIdentifier>> sim_rec_id_vec;
+        std::vector<std::pair<Similarity, RecordIdentifier>> sim_rec_id_vec;
         for (size_t value_id_right = 0; value_id_right < data_right_size; ++value_id_right) {
             Similarity similarity =
                     GetSimilarity(*data_info_left, *data_info_right, compute_similarity_,
