@@ -87,7 +87,7 @@ void HyMD::RegisterResults() {
     size_t const column_match_number = similarity_data_->GetColumnMatchNumber();
     for (size_t level = 0; level <= lattice_->GetMaxLevel(); ++level) {
         std::vector<model::LatticeNodeSims> mds = lattice_->GetLevel(level);
-        for (auto const& md: mds) {
+        for (auto const& md : mds) {
             for (size_t i = 0; i < md.rhs_sims.size(); ++i) {
                 double const rhs_sim = md.rhs_sims[i];
                 if (rhs_sim == 0.0) continue;
