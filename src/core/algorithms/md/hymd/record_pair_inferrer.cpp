@@ -20,7 +20,7 @@ size_t RecordPairInferrer::CheckRecordPair(size_t left_record, size_t right_reco
         model::SimilarityVector const& md_lhs = md.lhs_sims;
         model::Similarity const md_lhs_on_rhs = md_lhs[rhs_index];
         if (rec_rhs_sim >= rhs_min_similarities[rhs_index] && rec_rhs_sim > md_lhs[rhs_index]) {
-            if (!prune_nondisjoint || md_lhs_on_rhs != 0.0)
+            if (!prune_nondisjoint || md_lhs_on_rhs == 0.0)
                 lattice_->AddIfMinAndNotUnsupported({md.lhs_sims, rec_rhs_sim, rhs_index});
         }
         for (size_t i = 0; i < col_match_number; ++i) {
@@ -29,7 +29,7 @@ size_t RecordPairInferrer::CheckRecordPair(size_t left_record, size_t right_reco
                     similarity_data_->SpecializeLhs(md_lhs, i, sim[i]);
             if (!new_lhs.has_value()) continue;
             if (md.rhs_sim > new_lhs.value()[md.rhs_index]) {
-                lattice_->AddIfMinAndNotUnsupported({new_lhs.value(), md.rhs_sim, md.rhs_index});
+                lattice_->AddIfMinAndNotUnsupported({new_lhs.value(), md.rhs_sim, rhs_index});
             }
         }
     }

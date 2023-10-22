@@ -65,7 +65,7 @@ unsigned long long HyMD::ExecuteInternal() {
     assert(similarity_data_->GetColumnMatchNumber() != 0);
     auto const start_time = std::chrono::system_clock::now();
 
-    bool done;
+    bool done = false;
     do {
         done = record_pair_inferrer_->InferFromRecordPairs();
         done = lattice_traverser_->TraverseLattice(done);
