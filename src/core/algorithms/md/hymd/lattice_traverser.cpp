@@ -28,7 +28,7 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all, bool prune_nondisjoint
             model::SimilarityVector const& rhs_sims = node.rhs_sims;
             std::vector<double> gen_max_rhs = lattice.GetMaxValidGeneralizationRhs(lhs_sims);
             auto [new_rhs_sims, support] = similarity_data.GetMaxRhsDecBounds(
-                    lhs_sims, recommendations_ptr_, min_support_, prune_nondisjoint);
+                    lhs_sims, recommendations_ptr_, min_support_, rhs_sims, prune_nondisjoint);
             if (support < min_support_) {
                 lattice.MarkUnsupported(lhs_sims);
                 continue;

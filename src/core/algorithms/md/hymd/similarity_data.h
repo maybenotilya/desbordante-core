@@ -110,7 +110,9 @@ public:
 
     [[nodiscard]] LhsData GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
                                              Recommendations* recommendations_ptr,
-                                             size_t min_support, bool prune_disjoint = false) const;
+                                             size_t min_support,
+                                             model::SimilarityVector rhs_thresholds,
+                                             bool prune_disjoint = false) const;
 };
 
 }  // namespace algos::hymd

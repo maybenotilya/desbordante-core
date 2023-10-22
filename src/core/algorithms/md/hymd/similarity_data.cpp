@@ -201,8 +201,9 @@ std::optional<model::SimilarityVector> SimilarityData::SpecializeLhs(
 
 SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
                                                            Recommendations* recommendations_ptr,
-                                                           size_t min_support, bool prune_disjoint) const {
-    model::SimilarityVector rhs_thresholds(lhs_sims.size(), 1.0);
+                                                           size_t min_support,
+                                                           model::SimilarityVector rhs_thresholds,
+                                                           bool prune_disjoint) const {
     size_t support = 0;
     std::vector<size_t> non_zero_indices = GetNonZeroIndices(lhs_sims);
     size_t const cardinality = non_zero_indices.size();
