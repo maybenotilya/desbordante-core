@@ -3,10 +3,10 @@
 #include <optional>
 #include <vector>
 
-#include "algorithms/md/hymd/types.h"
 #include "algorithms/md/hymd/model/compressed_records.h"
 #include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
 #include "algorithms/md/hymd/model/similarity_measure/similarity_measure.h"
+#include "algorithms/md/hymd/types.h"
 
 namespace algos::hymd {
 
@@ -26,12 +26,16 @@ private:
             std::vector<size_t> const& col_match_indices) const;
     [[nodiscard]] size_t GetLeftPliIndex(size_t column_match_index) const;
 
-    [[nodiscard]] std::vector<std::pair<size_t, size_t>> DecreaseRhsThresholds(
-            model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
-            std::vector<size_t> const& similar_records) const;
+    [[nodiscard]] void DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds,
+                                             PliCluster const& cluster,
+                                             std::vector<size_t> const& similar_records,
+                                             Recommendations* recommendations_ptr) const;
     [[nodiscard]] std::vector<RecordIdentifier> GetSimilarRecords(ValueIdentifier value_id,
                                                                   model::Similarity similarity,
                                                                   size_t column_match_index) const;
+    void LowerForColumnMatch(double& threshold, size_t col_match, PliCluster const& cluster,
+                             std::vector<size_t> const& similar_records,
+                             Recommendations* recommendations_ptr) const;
 
 public:
     struct LhsData {
@@ -106,7 +110,8 @@ public:
                                                               size_t right_record) const;
 
     [[nodiscard]] LhsData GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
-                                             Recommendations* recommendations_ptr) const;
+                                             Recommendations* recommendations_ptr,
+                                             size_t min_support) const;
 };
 
 }  // namespace algos::hymd
