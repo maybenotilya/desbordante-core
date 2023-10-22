@@ -32,7 +32,7 @@ private:
 
     size_t efficiency_reciprocal_ = 100;
 
-    size_t CheckRecordPair(size_t left_record, size_t right_record);
+    size_t CheckRecordPair(size_t left_record, size_t right_record, bool prune_nondisjoint = true);
     bool ShouldKeepInferring(size_t records_checked, size_t mds_refined) const;
 
 public:

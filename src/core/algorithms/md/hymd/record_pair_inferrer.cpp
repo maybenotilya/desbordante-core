@@ -7,7 +7,8 @@ bool RecordPairInferrer::ShouldKeepInferring(size_t records_checked, size_t mds_
            (mds_refined != 0 && records_checked / mds_refined < efficiency_reciprocal_);
 }
 
-size_t RecordPairInferrer::CheckRecordPair(size_t left_record, size_t right_record) {
+size_t RecordPairInferrer::CheckRecordPair(size_t left_record, size_t right_record,
+                                           bool prune_nondisjoint) {
     model::SimilarityVector sim = similarity_data_->GetSimilarityVector(left_record, right_record);
     std::vector<model::LatticeMd> violated = lattice_->FindViolated(sim);
     model::SimilarityVector const& rhs_min_similarities = similarity_data_->GetRhsMinSimilarities();
@@ -17,10 +18,13 @@ size_t RecordPairInferrer::CheckRecordPair(size_t left_record, size_t right_reco
         size_t const rhs_index = md.rhs_index;
         model::Similarity const rec_rhs_sim = sim[rhs_index];
         model::SimilarityVector const& md_lhs = md.lhs_sims;
+        model::Similarity const md_lhs_on_rhs = md_lhs[rhs_index];
         if (rec_rhs_sim >= rhs_min_similarities[rhs_index] && rec_rhs_sim > md_lhs[rhs_index]) {
-            lattice_->AddIfMinAndNotUnsupported({md.lhs_sims, rec_rhs_sim, rhs_index});
+            if (!prune_nondisjoint || md_lhs_on_rhs != 0.0)
+                lattice_->AddIfMinAndNotUnsupported({md.lhs_sims, rec_rhs_sim, rhs_index});
         }
         for (size_t i = 0; i < col_match_number; ++i) {
+            if (prune_nondisjoint && i == rhs_index) continue;
             std::optional<model::SimilarityVector> const& new_lhs =
                     similarity_data_->SpecializeLhs(md_lhs, i, sim[i]);
             if (!new_lhs.has_value()) continue;

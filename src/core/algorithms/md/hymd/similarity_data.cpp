@@ -77,42 +77,53 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
                                          PliCluster const& cluster,
                                          std::vector<size_t> const& similar_records,
                                          Recommendations* recommendations_ptr) const {
+    if (threshold == 0.0) return;
+    using RecValueIds = std::vector<ValueIdentifier> const;
+
     auto const& right_records = GetRightRecords().GetRecords();
     auto const& left_records = GetLeftRecords().GetRecords();
-    std::unordered_map<ValueIdentifier, std::unordered_set<ValueIdentifier>> compared;
+
+    std::unordered_map<ValueIdentifier, std::vector<RecordIdentifier>> grouped;
     for (RecordIdentifier record_id_left : cluster) {
         std::vector<ValueIdentifier> const& left_record = left_records[record_id_left];
+        grouped[left_record[col_match]].push_back(record_id_left);
+    }
+    for (auto const& [left_value_id, records_left] : grouped) {
         for (RecordIdentifier record_id_right : similar_records) {
-            std::vector<ValueIdentifier> const& right_record = right_records[record_id_right];
-            ValueIdentifier const left_value_id = left_record[col_match];
+            RecValueIds& right_record = right_records[record_id_right];
             ValueIdentifier const right_value_id = right_record[col_match];
-            auto& already_checked = compared[left_value_id];
-            if (already_checked.insert(right_value_id).second) continue;
             SimilarityMatrix const& sim_matrix = sim_matrices_[col_match];
-            double record_similarity = 0.0;
             auto it_left = sim_matrix.find(left_value_id);
             if (it_left == sim_matrix.end()) {
                 threshold = 0.0;
-                recommendations_ptr->emplace_back(record_id_left, record_id_right);
+                for (RecordIdentifier record_id_left : records_left) {
+                    recommendations_ptr->emplace_back(record_id_left, record_id_right);
+                }
                 return;
             }
             auto const& row = it_left->second;
             auto it_right = row.find(right_value_id);
             if (it_right == row.end()) {
                 threshold = 0.0;
-                recommendations_ptr->emplace_back(record_id_left, record_id_right);
+                for (RecordIdentifier record_id_left : records_left) {
+                    recommendations_ptr->emplace_back(record_id_left, record_id_right);
+                }
                 return;
             }
-            record_similarity = it_right->second;
+            double record_similarity = it_right->second;
 
             if (record_similarity < rhs_min_similarities_[col_match]) {
                 threshold = 0.0;
-                recommendations_ptr->emplace_back(record_id_left, record_id_right);
+                for (RecordIdentifier record_id_left : records_left) {
+                    recommendations_ptr->emplace_back(record_id_left, record_id_right);
+                }
                 return;
             }
             if (threshold > record_similarity) {
                 threshold = record_similarity;
-                recommendations_ptr->emplace_back(record_id_left, record_id_right);
+                for (RecordIdentifier record_id_left : records_left) {
+                    recommendations_ptr->emplace_back(record_id_left, record_id_right);
+                }
             }
         }
     }
@@ -127,9 +138,8 @@ void SimilarityData::DecreaseRhsThresholds(model::SimilarityVector& rhs_threshol
     std::vector<std::unordered_map<ValueIdentifier, std::unordered_set<ValueIdentifier>>>
             compared_values(col_matches_size);
     for (size_t col_match = 0; col_match < col_matches_size; ++col_match) {
-        double& threshold = rhs_thresholds[col_match];
-        if (threshold == 0.0) continue;
-        LowerForColumnMatch(threshold, col_match, cluster, similar_records, recommendations_ptr);
+        LowerForColumnMatch(rhs_thresholds[col_match], col_match, cluster, similar_records,
+                            recommendations_ptr);
     }
 }
 
@@ -191,12 +201,11 @@ std::optional<model::SimilarityVector> SimilarityData::SpecializeLhs(
 
 SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
                                                            Recommendations* recommendations_ptr,
-                                                           size_t min_support) const {
+                                                           size_t min_support, bool prune_disjoint) const {
     model::SimilarityVector rhs_thresholds(lhs_sims.size(), 1.0);
     size_t support = 0;
     std::vector<size_t> non_zero_indices = GetNonZeroIndices(lhs_sims);
     size_t const cardinality = non_zero_indices.size();
-    Recommendations& recommendations = *recommendations_ptr;
     if (cardinality == 0) {
         assert(column_match_col_indices_.size() == lhs_sims.size());
         assert(rhs_thresholds.size() == lowest_sims_.size());
@@ -204,6 +213,7 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(model::SimilarityVect
         support = GetLeftRecords().GetNumberOfRecords() * GetRightRecords().GetNumberOfRecords();
     } else if (cardinality == 1) {
         size_t const non_zero_index = non_zero_indices[0];
+        if (prune_disjoint) rhs_thresholds[non_zero_index] = 0.0;
         std::vector<std::vector<size_t>> const& clusters =
                 GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
         for (size_t value_id = 0; value_id < clusters.size(); ++value_id) {
@@ -212,13 +222,16 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(model::SimilarityVect
                     GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
             support += cluster.size() * similar_records.size();
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records, recommendations_ptr);
-            if (std::count(rhs_thresholds.begin(), rhs_thresholds.end(), 0.0) ==
-                        rhs_thresholds.size() &&
+            if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
+                            [](model::Similarity val) { return val == 0.0; }) &&
                 support >= min_support) {
                 break;
             }
         }
     } else {
+        if (prune_disjoint) for (size_t idx : non_zero_indices) {
+            rhs_thresholds[idx] = 0.0;
+        }
         std::map<size_t, std::vector<size_t>> col_col_match_mapping =
                 MakeColToColMatchMapping(non_zero_indices);
         std::vector<std::vector<PliCluster> const*> cluster_collections;
@@ -258,8 +271,8 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(model::SimilarityVect
             similar_records.erase(it, similar_records.end());
             support += cluster.size() * similar_records.size();
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records, recommendations_ptr);
-            if (std::count(rhs_thresholds.begin(), rhs_thresholds.end(), 0.0) ==
-                        rhs_thresholds.size() &&
+            if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
+                            [](model::Similarity val) { return val == 0.0; }) &&
                 support >= min_support) {
                 break;
             }

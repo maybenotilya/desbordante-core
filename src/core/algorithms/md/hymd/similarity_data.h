@@ -26,10 +26,9 @@ private:
             std::vector<size_t> const& col_match_indices) const;
     [[nodiscard]] size_t GetLeftPliIndex(size_t column_match_index) const;
 
-    [[nodiscard]] void DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds,
-                                             PliCluster const& cluster,
-                                             std::vector<size_t> const& similar_records,
-                                             Recommendations* recommendations_ptr) const;
+    void DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
+                               std::vector<size_t> const& similar_records,
+                               Recommendations* recommendations_ptr) const;
     [[nodiscard]] std::vector<RecordIdentifier> GetSimilarRecords(ValueIdentifier value_id,
                                                                   model::Similarity similarity,
                                                                   size_t column_match_index) const;
@@ -111,7 +110,7 @@ public:
 
     [[nodiscard]] LhsData GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
                                              Recommendations* recommendations_ptr,
-                                             size_t min_support) const;
+                                             size_t min_support, bool prune_disjoint = false) const;
 };
 
 }  // namespace algos::hymd

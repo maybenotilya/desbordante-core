@@ -31,7 +31,7 @@ public:
           min_picker_lattice_(std::make_unique<model::MinPickerLattice>(
                   similarity_data_->GetColumnMatchNumber())) {}
 
-    bool TraverseLattice(bool traverse_all);
+    bool TraverseLattice(bool traverse_all, bool prune_nondisjoint = true);
 };
 
 }  // namespace algos::hymd
