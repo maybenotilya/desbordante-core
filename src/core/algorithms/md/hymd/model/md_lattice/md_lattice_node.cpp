@@ -171,7 +171,8 @@ void MdLatticeNode::GetLevel(std::vector<LatticeNodeSims>& collected,
                              SimilarityVector& this_node_lhs, size_t this_node_index,
                              size_t sims_left) const {
     if (sims_left == 0) {
-        collected.emplace_back(this_node_lhs, rhs_);
+        if (std::any_of(rhs_.begin(), rhs_.end(), [](Similarity val) { return val != 0.0; }))
+            collected.emplace_back(this_node_lhs, rhs_);
         return;
     }
     for (auto const& [index, threshold_mapping] : children_) {
