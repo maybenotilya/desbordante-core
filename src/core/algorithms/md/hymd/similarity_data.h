@@ -22,18 +22,21 @@ private:
     std::vector<SimilarityMatrix> sim_matrices_;
     std::vector<SimilarityIndex> sim_indexes_;
 
+    bool prune_nondisjoint_ = true;
+
     [[nodiscard]] std::map<size_t, std::vector<size_t>> MakeColToColMatchMapping(
             std::vector<size_t> const& col_match_indices) const;
     [[nodiscard]] size_t GetLeftPliIndex(size_t column_match_index) const;
 
     void DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
-                               std::vector<size_t> const& similar_records,
+                               std::vector<size_t> const& similar_records, model::SimilarityVector const& gen_max_rhs,
                                Recommendations* recommendations_ptr) const;
     [[nodiscard]] std::vector<RecordIdentifier> GetSimilarRecords(ValueIdentifier value_id,
                                                                   model::Similarity similarity,
                                                                   size_t column_match_index) const;
     void LowerForColumnMatch(double& threshold, size_t col_match, PliCluster const& cluster,
                              std::vector<size_t> const& similar_records,
+                             model::SimilarityVector const& gen_max_rhs,
                              Recommendations* recommendations_ptr) const;
 
 public:
@@ -111,8 +114,7 @@ public:
     [[nodiscard]] LhsData GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
                                              Recommendations* recommendations_ptr,
                                              size_t min_support,
-                                             model::SimilarityVector rhs_thresholds,
-                                             bool prune_disjoint = false) const;
+                                             model::SimilarityVector rhs_thresholds, model::SimilarityVector const& gen_max_rhs) const;
 };
 
 }  // namespace algos::hymd

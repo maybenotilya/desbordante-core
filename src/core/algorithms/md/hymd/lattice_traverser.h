@@ -21,6 +21,8 @@ class LatticeTraverser {
 
     std::unique_ptr<model::MinPickerLattice> min_picker_lattice_;
 
+    bool prune_nondisjoint_ = true;
+
 public:
     LatticeTraverser(SimilarityData* similarity_data, model::FullLattice* lattice,
                      Recommendations* recommendations_ptr, size_t min_support)
@@ -31,7 +33,7 @@ public:
           min_picker_lattice_(std::make_unique<model::MinPickerLattice>(
                   similarity_data_->GetColumnMatchNumber())) {}
 
-    bool TraverseLattice(bool traverse_all, bool prune_nondisjoint = true);
+    bool TraverseLattice(bool traverse_all);
 };
 
 }  // namespace algos::hymd

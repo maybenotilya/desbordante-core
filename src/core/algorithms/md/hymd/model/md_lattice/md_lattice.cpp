@@ -46,7 +46,7 @@ std::vector<LatticeMd> MdLattice::FindViolated(SimilarityVector const& similarit
 }
 
 SimilarityVector MdLattice::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs) const {
-    SimilarityVector rhs(lhs.size(), 0.0);
+    SimilarityVector rhs = lhs;
     root_.GetMaxValidGeneralizationRhs(lhs, rhs, 0);
     return rhs;
 }

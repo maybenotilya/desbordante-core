@@ -76,8 +76,11 @@ size_t SimilarityData::GetLeftPliIndex(size_t column_match_index) const {
 void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
                                          PliCluster const& cluster,
                                          std::vector<size_t> const& similar_records,
+                                         model::SimilarityVector const& gen_max_rhs,
                                          Recommendations* recommendations_ptr) const {
     if (threshold == 0.0) return;
+    double const cur_gen_max_rhs = gen_max_rhs[col_match];
+    double const cur_min_sim = rhs_min_similarities_[col_match];
     using RecValueIds = std::vector<ValueIdentifier> const;
 
     auto const& right_records = GetRightRecords().GetRecords();
@@ -124,6 +127,12 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
                 for (RecordIdentifier record_id_left : records_left) {
                     recommendations_ptr->emplace_back(record_id_left, record_id_right);
                 }
+                if (!(threshold > cur_gen_max_rhs && threshold >= cur_min_sim)) {
+                    // shouldUpdateViolations (if violation collection is too small, keep going) not
+                    // done, idk what it does, but the algo should still work
+                    threshold = 0.0;
+                    return;
+                }
             }
         }
     }
@@ -132,14 +141,12 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
 void SimilarityData::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds,
                                            PliCluster const& cluster,
                                            std::vector<size_t> const& similar_records,
+                                           model::SimilarityVector const& gen_max_rhs,
                                            Recommendations* recommendations_ptr) const {
-    auto const col_matches_size = column_match_col_indices_.size();
-    std::vector<std::pair<size_t, size_t>> recommendations;
-    std::vector<std::unordered_map<ValueIdentifier, std::unordered_set<ValueIdentifier>>>
-            compared_values(col_matches_size);
+    size_t const col_matches_size = column_match_col_indices_.size();
     for (size_t col_match = 0; col_match < col_matches_size; ++col_match) {
         LowerForColumnMatch(rhs_thresholds[col_match], col_match, cluster, similar_records,
-                            recommendations_ptr);
+                            gen_max_rhs, recommendations_ptr);
     }
 }
 
@@ -199,11 +206,10 @@ std::optional<model::SimilarityVector> SimilarityData::SpecializeLhs(
     return new_lhs;
 }
 
-SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
-                                                           Recommendations* recommendations_ptr,
-                                                           size_t min_support,
-                                                           model::SimilarityVector rhs_thresholds,
-                                                           bool prune_disjoint) const {
+SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
+        model::SimilarityVector const& lhs_sims, Recommendations* recommendations_ptr,
+        size_t min_support, model::SimilarityVector rhs_thresholds,
+        model::SimilarityVector const& gen_max_rhs) const {
     size_t support = 0;
     std::vector<size_t> non_zero_indices = GetNonZeroIndices(lhs_sims);
     size_t const cardinality = non_zero_indices.size();
@@ -214,7 +220,7 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(model::SimilarityVect
         support = GetLeftRecords().GetNumberOfRecords() * GetRightRecords().GetNumberOfRecords();
     } else if (cardinality == 1) {
         size_t const non_zero_index = non_zero_indices[0];
-        if (prune_disjoint) rhs_thresholds[non_zero_index] = 0.0;
+        if (prune_nondisjoint_) rhs_thresholds[non_zero_index] = 0.0;
         std::vector<std::vector<size_t>> const& clusters =
                 GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
         for (size_t value_id = 0; value_id < clusters.size(); ++value_id) {
@@ -222,7 +228,8 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(model::SimilarityVect
             std::vector<RecordIdentifier> similar_records =
                     GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
             support += cluster.size() * similar_records.size();
-            DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records, recommendations_ptr);
+            DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records, gen_max_rhs,
+                                  recommendations_ptr);
             if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
                             [](model::Similarity val) { return val == 0.0; }) &&
                 support >= min_support) {
@@ -230,7 +237,7 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(model::SimilarityVect
             }
         }
     } else {
-        if (prune_disjoint) for (size_t idx : non_zero_indices) {
+        if (prune_nondisjoint_) for (size_t idx : non_zero_indices) {
             rhs_thresholds[idx] = 0.0;
         }
         std::map<size_t, std::vector<size_t>> col_col_match_mapping =
@@ -271,7 +278,8 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(model::SimilarityVect
                     iters);
             similar_records.erase(it, similar_records.end());
             support += cluster.size() * similar_records.size();
-            DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records, recommendations_ptr);
+            DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records, gen_max_rhs,
+                                  recommendations_ptr);
             if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
                             [](model::Similarity val) { return val == 0.0; }) &&
                 support >= min_support) {
