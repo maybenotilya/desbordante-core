@@ -5,6 +5,20 @@
 #include "algorithms/md/hymd/model/dictionary_compressor/pli_intersector.h"
 #include "util/intersect_sorted_sequences.h"
 
+namespace std {
+template <>
+struct hash<std::vector<algos::hymd::RecordIdentifier>> {
+    std::size_t operator()(std::vector<algos::hymd::RecordIdentifier> const& p) const {
+        auto hasher = std::hash<size_t>{};
+        std::size_t hash = 0;
+        for (size_t el : p) {
+            hash ^= hasher(el);
+        }
+        return hash;
+    }
+};
+}  // namespace std
+
 namespace {
 std::vector<size_t> GetNonZeroIndices(algos::hymd::model::SimilarityVector const& lhs) {
     std::vector<size_t> indices;
@@ -286,7 +300,7 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
                             [](model::Similarity val) { return val == 0.0; }) &&
                 support >= min_support) {
-                break;
+                return {std::move(rhs_thresholds), support};
             }
         }
     } else {
@@ -296,20 +310,37 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             }
         std::map<size_t, std::vector<size_t>> col_col_match_mapping =
                 MakeColToColMatchMapping(non_zero_indices);
-        std::vector<std::vector<PliCluster> const*> cluster_collections;
         std::unordered_map<size_t, size_t> col_match_to_val_ids_idx;
         {
             size_t idx = 0;
-            for (auto [pli_idx, col_match_idxs] : col_col_match_mapping) {
-                cluster_collections.push_back(&GetLeftRecords().GetPli(pli_idx).GetClusters());
-                for (size_t col_match_idx : col_match_idxs) {
+            for (auto const& [pli_idx, col_match_idxs] : col_col_match_mapping) {
+                for (size_t const col_match_idx : col_match_idxs) {
                     col_match_to_val_ids_idx[col_match_idx] = idx;
                 }
                 ++idx;
             }
         }
-        model::PliIntersector intersector(cluster_collections);
-        for (auto const& [val_ids, cluster] : intersector) {
+        auto const& left_records_info = GetLeftRecords();
+        auto const& left_records = left_records_info.GetRecords();
+        std::vector<PliCluster> const& first_pli =
+                left_records_info.GetPli(col_col_match_mapping.begin()->first).GetClusters();
+        size_t const first_pli_size = first_pli.size();
+        // TODO: use ptrs to actual compressed records
+        std::unordered_map<std::vector<ValueIdentifier>, std::vector<RecordIdentifier>>
+                grouped;
+        for (size_t first_value_id = 0; first_value_id < first_pli_size; ++first_value_id) {
+            PliCluster const& cluster = first_pli[first_value_id];
+            for (RecordIdentifier record_id : cluster) {
+                size_t idx = 0;
+                std::vector<ValueIdentifier> value_ids(col_col_match_mapping.size());
+                std::vector<ValueIdentifier> const& record = left_records[record_id];
+                for (auto const& [pli_idx, col_match_idxs] : col_col_match_mapping) {
+                    value_ids[idx++] = record[pli_idx];
+                }
+                grouped[std::move(value_ids)].push_back(record_id);
+            }
+        }
+        for (auto const& [val_ids, cluster] : grouped) {
             std::vector<std::vector<RecordIdentifier>> rec_vecs;
             rec_vecs.reserve(non_zero_indices.size());
             using IterType = std::vector<RecordIdentifier>::const_iterator;
@@ -337,11 +368,10 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
                             [](model::Similarity val) { return val == 0.0; }) &&
                 support >= min_support) {
-                break;
+                return {std::move(rhs_thresholds), support};
             }
         }
     }
-
     return {std::move(rhs_thresholds), support};
 }
 

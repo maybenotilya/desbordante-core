@@ -8,6 +8,7 @@
 
 namespace algos::hymd::model {
 
+// TODO: rework, this should be based on array multimaps of records with values
 class PliIntersector {
 public:
     struct const_iterator {
