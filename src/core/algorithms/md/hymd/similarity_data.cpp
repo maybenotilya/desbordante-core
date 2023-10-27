@@ -218,6 +218,7 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         assert(rhs_thresholds.size() == lowest_sims_.size());
         rhs_thresholds = lowest_sims_;
         support = GetLeftRecords().GetNumberOfRecords() * GetRightRecords().GetNumberOfRecords();
+        return {std::move(rhs_thresholds), support};
     } else if (cardinality == 1) {
         size_t const non_zero_index = non_zero_indices[0];
         if (prune_nondisjoint_) rhs_thresholds[non_zero_index] = 0.0;
