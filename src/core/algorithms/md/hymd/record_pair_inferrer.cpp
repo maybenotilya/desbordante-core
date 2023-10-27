@@ -51,6 +51,7 @@ bool RecordPairInferrer::InferFromRecordPairs() {
         ++records_checked;
         if (!ShouldKeepInferring(records_checked, mds_refined)) {
             efficiency_reciprocal_ *= 2;
+            recommendations.clear();
             return false;
         }
     }
