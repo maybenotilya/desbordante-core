@@ -83,7 +83,6 @@ void HyMD::RegisterResults() {
     // number of nodes), then by similarity in each node, lexicographically:
     // [0.0 0.0] [0.1 0.0] [0.4 0.0] [1.0 0.0] [0.0 0.3] [0.0 0.6] [0.0 1.0]
     // [0.1 0.3] [0.1 0.6] [0.1 1.0] [0.4 0.3] [0.4 0.6] ...
-    auto const& natural_decision_bounds_ = similarity_data_->GetNaturalDecisionBounds();
     size_t const column_match_number = similarity_data_->GetColumnMatchNumber();
     for (size_t level = 0; level <= lattice_->GetMaxLevel(); ++level) {
         std::vector<model::LatticeNodeSims> mds = lattice_->GetLevel(level);
@@ -102,12 +101,8 @@ void HyMD::RegisterResults() {
                 }
                 std::vector<::model::LhsColumnSimilarityClassifier> lhs;
                 for (size_t j = 0; j < md.lhs_sims.size(); ++j) {
-                    double const lhs_sim = md.lhs_sims[j];
-                    std::vector<double> bounds = natural_decision_bounds_[j];
-                    auto it = std::lower_bound(bounds.begin(), bounds.end(), lhs_sim);
-                    std::optional<double> max_disproved_bound;
-                    if (it != bounds.begin()) max_disproved_bound = *--it;
-                    lhs.emplace_back(max_disproved_bound, j, lhs_sim);
+                    model::Similarity const lhs_sim = md.lhs_sims[j];
+                    lhs.emplace_back(similarity_data_->GetPreviousSimilarity(lhs_sim, j), j, lhs_sim);
                 }
                 ::model::ColumnSimilarityClassifier rhs{i, rhs_sim};
                 RegisterMd({left_schema_.get(), right_schema_.get(), column_matches, std::move(lhs),

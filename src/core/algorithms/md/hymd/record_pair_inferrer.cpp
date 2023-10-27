@@ -42,8 +42,9 @@ bool RecordPairInferrer::InferFromRecordPairs() {
 
     Recommendations& recommendations = *recommendations_ptr_;
     while (!recommendations.empty()) {
-        std::pair<size_t, size_t> rec_pair = recommendations.back();
-        recommendations.pop_back();
+        auto it = recommendations.begin();
+        std::pair<size_t, size_t> rec_pair = *it;
+        recommendations.erase(it);
         auto const [left_record, right_record] = rec_pair;
         mds_refined += CheckRecordPair(left_record, right_record);
         checked_recommendations_.emplace(rec_pair);
@@ -53,8 +54,8 @@ bool RecordPairInferrer::InferFromRecordPairs() {
             return false;
         }
     }
-    size_t const left_size = similarity_data_->GetLeftRecords().GetNumberOfRecords();
-    size_t const right_size = similarity_data_->GetRightRecords().GetNumberOfRecords();
+    size_t const left_size = similarity_data_->GetLeftSize();
+    size_t const right_size = similarity_data_->GetRightSize();
     while (cur_record_left_ < left_size) {
         while (cur_record_right_ < right_size) {
             if (checked_recommendations_.find({cur_record_left_, cur_record_right_}) !=

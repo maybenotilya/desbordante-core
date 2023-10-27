@@ -28,16 +28,25 @@ private:
             std::vector<size_t> const& col_match_indices) const;
     [[nodiscard]] size_t GetLeftPliIndex(size_t column_match_index) const;
 
+    model::DictionaryCompressor const& GetLeftRecords() const {
+        return compressed_records_->GetLeftRecords();
+    }
+
+    model::DictionaryCompressor const& GetRightRecords() const {
+        return compressed_records_->GetRightRecords();
+    }
+
     void DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
-                               std::vector<size_t> const& similar_records, model::SimilarityVector const& gen_max_rhs,
+                               std::vector<size_t> const& similar_records,
+                               model::SimilarityVector const& gen_max_rhs,
                                Recommendations* recommendations_ptr) const;
-    [[nodiscard]] std::vector<RecordIdentifier> GetSimilarRecords(ValueIdentifier value_id,
-                                                                  model::Similarity similarity,
-                                                                  size_t column_match_index) const;
     void LowerForColumnMatch(double& threshold, size_t col_match, PliCluster const& cluster,
                              std::vector<size_t> const& similar_records,
                              model::SimilarityVector const& gen_max_rhs,
                              Recommendations* recommendations_ptr) const;
+    [[nodiscard]] std::vector<RecordIdentifier> GetSimilarRecords(ValueIdentifier value_id,
+                                                                  model::Similarity similarity,
+                                                                  size_t column_match_index) const;
 
 public:
     struct LhsData {
@@ -69,19 +78,6 @@ public:
             std::vector<model::SimilarityMeasure const*> const& sim_measures,
             bool is_null_equal_null);
 
-    [[nodiscard]] std::vector<std::vector<model::Similarity>> const& GetNaturalDecisionBounds()
-            const {
-        return natural_decision_bounds_;
-    }
-
-    [[nodiscard]] std::vector<SimilarityMatrix> const& GetSimilarityMatrices() const {
-        return sim_matrices_;
-    }
-
-    [[nodiscard]] std::vector<SimilarityIndex> const& GetSimilarityIndexes() const {
-        return sim_indexes_;
-    }
-
     [[nodiscard]] model::SimilarityVector const& GetRhsMinSimilarities() const {
         return rhs_min_similarities_;
     }
@@ -94,12 +90,12 @@ public:
         return column_match_col_indices_[index];
     }
 
-    [[nodiscard]] model::DictionaryCompressor const& GetLeftRecords() const {
-        return compressed_records_->GetLeftRecords();
+    [[nodiscard]] size_t GetLeftSize() const {
+        return compressed_records_->GetLeftRecords().GetNumberOfRecords();
     }
 
-    [[nodiscard]] model::DictionaryCompressor const& GetRightRecords() const {
-        return compressed_records_->GetRightRecords();
+    [[nodiscard]] size_t GetRightSize() const {
+        return compressed_records_->GetRightRecords().GetNumberOfRecords();
     }
 
     [[nodiscard]] std::optional<model::SimilarityVector> SpecializeLhs(
@@ -114,7 +110,11 @@ public:
     [[nodiscard]] LhsData GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
                                              Recommendations* recommendations_ptr,
                                              size_t min_support,
-                                             model::SimilarityVector rhs_thresholds, model::SimilarityVector const& gen_max_rhs) const;
+                                             model::SimilarityVector rhs_thresholds,
+                                             model::SimilarityVector const& gen_max_rhs) const;
+
+    [[nodiscard]] std::optional<model::Similarity> GetPreviousSimilarity(model::Similarity lhs_sim,
+                                                                         size_t col_match) const;
 };
 
 }  // namespace algos::hymd

@@ -31,7 +31,7 @@ private:
     // shared_ptr(?)
     std::unique_ptr<SimilarityData> similarity_data_;
     std::unique_ptr<model::FullLattice> lattice_;
-    std::vector<std::pair<size_t, size_t>> recommendations_;
+    Recommendations recommendations_;
 
     std::unique_ptr<LatticeTraverser> lattice_traverser_;
     std::unique_ptr<RecordPairInferrer> record_pair_inferrer_;

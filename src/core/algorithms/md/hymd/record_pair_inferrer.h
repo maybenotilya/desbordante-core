@@ -6,16 +6,6 @@
 #include "algorithms/md/hymd/similarity_data.h"
 #include "md/hymd/model/full_lattice.h"
 
-namespace std {
-template <>
-struct hash<std::pair<size_t, size_t>> {
-    std::size_t operator()(std::pair<size_t, size_t> const& p) const {
-        auto hasher = std::hash<size_t>{};
-        return hasher(p.first) ^ hasher(p.second);
-    }
-};
-}  // namespace std
-
 namespace algos::hymd {
 
 class RecordPairInferrer {
