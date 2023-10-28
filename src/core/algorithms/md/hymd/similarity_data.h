@@ -98,6 +98,8 @@ public:
         return compressed_records_->GetRightRecords().GetNumberOfRecords();
     }
 
+    [[nodiscard]] std::optional<model::Similarity> SpecializeOneLhs(
+            size_t col_match_index, model::Similarity similarity) const;
     [[nodiscard]] std::optional<model::SimilarityVector> SpecializeLhs(
             model::SimilarityVector const& lhs, size_t col_match_index) const;
     [[nodiscard]] std::optional<model::SimilarityVector> SpecializeLhs(

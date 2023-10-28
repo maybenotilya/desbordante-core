@@ -205,6 +205,18 @@ std::optional<model::SimilarityVector> SimilarityData::SpecializeLhs(
     return new_lhs;
 }
 
+[[nodiscard]] std::optional<model::Similarity> SimilarityData::SpecializeOneLhs(
+        size_t col_match_index, model::Similarity similarity) const {
+    std::vector<model::Similarity> const& decision_bounds =
+            natural_decision_bounds_[col_match_index];
+    auto end_bounds = decision_bounds.end();
+    auto upper = std::upper_bound(decision_bounds.begin(), end_bounds, similarity);
+    if (upper == end_bounds) {
+        return std::nullopt;
+    }
+    return *upper;
+}
+
 SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         model::SimilarityVector const& lhs_sims, Recommendations* recommendations_ptr,
         size_t min_support, model::SimilarityVector rhs_thresholds,
@@ -237,9 +249,10 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             }
         }
     } else {
-        if (prune_nondisjoint_) for (size_t idx : non_zero_indices) {
-            rhs_thresholds[idx] = 0.0;
-        }
+        if (prune_nondisjoint_)
+            for (size_t idx : non_zero_indices) {
+                rhs_thresholds[idx] = 0.0;
+            }
         std::map<size_t, std::vector<size_t>> col_col_match_mapping =
                 MakeColToColMatchMapping(non_zero_indices);
         std::vector<std::vector<PliCluster> const*> cluster_collections;
