@@ -10,30 +10,66 @@ bool RecordPairInferrer::ShouldKeepInferring(size_t records_checked, size_t mds_
 size_t RecordPairInferrer::CheckRecordPair(size_t left_record, size_t right_record,
                                            bool prune_nondisjoint) {
     model::SimilarityVector sim = similarity_data_->GetSimilarityVector(left_record, right_record);
-    std::vector<model::LatticeMd> violated = lattice_->FindViolated(sim);
+    std::vector<model::MdLatticeNodeInfo> violated_in_lattice = lattice_->FindViolated(sim);
+    size_t violated_mds = 0;
     model::SimilarityVector const& rhs_min_similarities = similarity_data_->GetRhsMinSimilarities();
     size_t const col_match_number = similarity_data_->GetColumnMatchNumber();
-    for (model::LatticeMd const& md : violated) {
-        lattice_->RemoveMd(md);
-        size_t const rhs_index = md.rhs_index;
-        model::Similarity const rec_rhs_sim = sim[rhs_index];
-        model::SimilarityVector const& md_lhs = md.lhs_sims;
-        model::Similarity const md_lhs_on_rhs = md_lhs[rhs_index];
-        if (rec_rhs_sim >= rhs_min_similarities[rhs_index] && rec_rhs_sim > md_lhs[rhs_index]) {
-            if (!prune_nondisjoint || md_lhs_on_rhs == 0.0)
-                lattice_->AddIfMinAndNotUnsupported({md.lhs_sims, rec_rhs_sim, rhs_index});
-        }
-        for (size_t i = 0; i < col_match_number; ++i) {
-            if (prune_nondisjoint && i == rhs_index) continue;
-            std::optional<model::SimilarityVector> const& new_lhs =
-                    similarity_data_->SpecializeLhs(md_lhs, i, sim[i]);
-            if (!new_lhs.has_value()) continue;
-            if (md.rhs_sim > new_lhs.value()[md.rhs_index]) {
-                lattice_->AddIfMinAndNotUnsupported({new_lhs.value(), md.rhs_sim, rhs_index});
+    for (model::MdLatticeNodeInfo const& md : violated_in_lattice) {
+        model::SimilarityVector& rhs_sims = *md.rhs_sims;
+        model::SimilarityVector lhs_sims = md.lhs_sims;
+        for (size_t rhs_index = 0; rhs_index < col_match_number; ++rhs_index) {
+            model::Similarity const pair_rhs_sim = sim[rhs_index];
+            model::Similarity const md_rhs_sim = rhs_sims[rhs_index];
+            model::Similarity const lhs_sim_on_rhs = lhs_sims[rhs_index];
+            assert(!(prune_nondisjoint && lhs_sim_on_rhs != 0.0) || md_rhs_sim == 0.0);
+            if (pair_rhs_sim >= md_rhs_sim) continue;
+            ++violated_mds;
+            do {
+                model::Similarity& md_rhs_sim_ref = rhs_sims[rhs_index];
+                md_rhs_sim_ref = 0.0;
+                // trivial
+                // also cuts off MDs with similarity that is too low, since
+                // only 0.0 can be a lower threshold than rhs_min_similarities[rhs_index],
+                // everything else is cut off during index building.
+                if (pair_rhs_sim <= lhs_sim_on_rhs) break;
+                // not minimal
+                if (lattice_->HasGeneralization(lhs_sims, pair_rhs_sim, rhs_index)) break;
+                // supposed to be interesting at this point
+                assert(pair_rhs_sim >= rhs_min_similarities[rhs_index]);
+                md_rhs_sim_ref = pair_rhs_sim;
+            } while(false);
+            auto const add_lhs_specialized_md = [this, &lhs_sims, md_rhs_sim, rhs_index,
+                                                 &sim](size_t i) {
+                model::Similarity& lhs_sim = lhs_sims[i];
+                std::optional<model::Similarity> new_lhs_value =
+                        similarity_data_->SpecializeOneLhs(i, sim[i]);
+                if (!new_lhs_value.has_value()) return;
+                model::Similarity const old_lhs_sim = lhs_sim;
+                lhs_sim = new_lhs_value.value();
+                lattice_->AddIfMinAndNotUnsupported(lhs_sims, md_rhs_sim, rhs_index);
+                lhs_sim = old_lhs_sim;
+            };
+            for (size_t i = 0; i < rhs_index; ++i) {
+                add_lhs_specialized_md(i);
+            }
+            for (size_t i = rhs_index + 1; i < col_match_number; ++i) {
+                add_lhs_specialized_md(i);
+            }
+            if (!prune_nondisjoint) {
+                model::Similarity& lhs_sim = lhs_sims[rhs_index];
+                std::optional<model::Similarity> new_lhs_value =
+                        similarity_data_->SpecializeOneLhs(rhs_index, sim[rhs_index]);
+                if (!new_lhs_value.has_value()) continue;
+                model::Similarity const old_lhs_sim = lhs_sim;
+                lhs_sim = new_lhs_value.value();
+                if (md_rhs_sim > lhs_sim) {
+                    lattice_->AddIfMinAndNotUnsupported(lhs_sims, md_rhs_sim, rhs_index);
+                }
+                lhs_sim = old_lhs_sim;
             }
         }
     }
-    return violated.size();
+    return violated_mds;
 }
 
 bool RecordPairInferrer::InferFromRecordPairs() {
