@@ -8,7 +8,7 @@ size_t GetCardinality(algos::hymd::model::SimilarityVector const& lhs) {
     return lhs.size() - std::count(lhs.begin(), lhs.end(), 0.0);
 }
 
-}
+}  // namespace
 
 namespace algos::hymd::model {
 
@@ -20,13 +20,23 @@ size_t MdLattice::GetMaxLevel() const {
     return max_level_;
 }
 
+void MdLattice::Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index) {
+    max_level_ = std::max(max_level_, GetCardinality(lhs_sims));
+    root_.Add(lhs_sims, rhs_sim, rhs_index, 0);
+}
+
 void MdLattice::Add(LatticeMd const& md) {
     max_level_ = std::max(max_level_, GetCardinality(md.lhs_sims));
-    root_.Add(md, 0);
+    root_.Add(md.lhs_sims, md.rhs_sim, md.rhs_index, 0);
+}
+
+void MdLattice::AddIfMin(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index) {
+    if (HasGeneralization(lhs_sims, rhs_sim, rhs_index)) return;
+    Add(lhs_sims, rhs_sim, rhs_index);
 }
 
 void MdLattice::AddIfMin(LatticeMd const& md) {
-    if (root_.HasGeneralization(md, 0)) return;
+    if (root_.HasGeneralization(md.lhs_sims, md.rhs_sim, md.rhs_index, 0)) return;
     Add(md);
 }
 
@@ -38,8 +48,20 @@ void MdLattice::RemoveMd(LatticeMd const& md) {
     root_.RemoveMd(md, 0);
 }
 
-std::vector<LatticeMd> MdLattice::FindViolated(SimilarityVector const& similarity_vector) const {
+bool MdLattice::HasGeneralization(SimilarityVector const& lhs_sims, Similarity rhs_sim,
+                                  size_t rhs_index) const {
+    return root_.HasGeneralization(lhs_sims, rhs_sim, rhs_index, 0);
+}
+
+std::vector<LatticeMd> MdLattice::FindViolatedOld(SimilarityVector const& similarity_vector) {
     std::vector<LatticeMd> found;
+    SimilarityVector lhs(similarity_vector.size(), 0.0);
+    root_.FindViolatedOld(found, lhs, similarity_vector, 0);
+    return found;
+}
+
+std::vector<MdLatticeNodeInfo> MdLattice::FindViolated(SimilarityVector const& similarity_vector) {
+    std::vector<MdLatticeNodeInfo> found;
     SimilarityVector lhs(similarity_vector.size(), 0.0);
     root_.FindViolated(found, lhs, similarity_vector, 0);
     return found;

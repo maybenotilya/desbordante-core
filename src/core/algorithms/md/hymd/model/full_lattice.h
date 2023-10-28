@@ -10,12 +10,17 @@ private:
     MdLattice md_lattice_;
     SupportLattice support_lattice_;
 
-    void AddIfMin(LatticeMd const& md) {
-        assert(!support_lattice_.IsUnsupported(md.lhs_sims));
-        md_lattice_.AddIfMin(md);
+    void AddIfMin(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index) {
+        assert(!support_lattice_.IsUnsupported(lhs_sims, rhs_sim, rhs_index));
+        md_lattice_.AddIfMin(lhs_sims, rhs_sim, rhs_index);
     }
 
 public:
+    [[nodiscard]] bool HasGeneralization(SimilarityVector const& lhs_sims, Similarity rhs_sim,
+                                         size_t rhs_index) const {
+        return md_lattice_.HasGeneralization(lhs_sims, rhs_sim, rhs_index);
+    }
+
     [[nodiscard]] size_t GetMaxLevel() const {
         return md_lattice_.GetMaxLevel();
     }
@@ -29,15 +34,25 @@ public:
     }
 
     void Add(LatticeMd const& md) {
-        md_lattice_.Add(md);
+        md_lattice_.Add(md.lhs_sims, md.rhs_sim, md.rhs_index);
+    }
+
+    void AddIfMinAndNotUnsupported(SimilarityVector const& lhs_sims, Similarity rhs_sim,
+                                   size_t rhs_index) {
+        if (support_lattice_.IsUnsupported(lhs_sims)) return;
+        AddIfMin(lhs_sims, rhs_sim, rhs_index);
     }
 
     void AddIfMinAndNotUnsupported(LatticeMd const& md) {
         if (support_lattice_.IsUnsupported(md.lhs_sims)) return;
-        AddIfMin(md);
+        AddIfMin(md.lhs_sims, md.rhs_sim, md.rhs_index);
     }
 
-    std::vector<LatticeMd> FindViolated(SimilarityVector const& similarity_vector) {
+    std::vector<LatticeMd> FindViolatedOld(SimilarityVector const& similarity_vector) {
+        return md_lattice_.FindViolatedOld(similarity_vector);
+    }
+
+    std::vector<MdLatticeNodeInfo> FindViolated(SimilarityVector const& similarity_vector) {
         return md_lattice_.FindViolated(similarity_vector);
     }
 

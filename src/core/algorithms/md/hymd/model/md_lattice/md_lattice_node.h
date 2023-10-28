@@ -1,14 +1,15 @@
 #pragma once
 
 #include <cstddef>
-#include <memory>
 #include <map>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
-#include "algorithms/md/hymd/model/similarity.h"
 #include "algorithms/md/hymd/model/md_lattice/lattice_md.h"
 #include "algorithms/md/hymd/model/md_lattice/lattice_node_sims.h"
+#include "algorithms/md/hymd/model/md_lattice/md_lattice_node_info.h"
+#include "algorithms/md/hymd/model/similarity.h"
 
 namespace algos::hymd::model {
 
@@ -25,11 +26,15 @@ public:
     void GetMaxValidGeneralizationRhs(SimilarityVector const& lhs, SimilarityVector& cur_rhs,
                                       size_t this_node_index) const;
 
-    void Add(LatticeMd const& md, size_t this_node_index);
-    bool HasGeneralization(LatticeMd const& md, size_t this_node_index) const;
+    void Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index,
+             size_t this_node_index);
+    [[nodiscard]] bool HasGeneralization(SimilarityVector const& lhs_sims, Similarity rhs_sim,
+                                         size_t rhs_index, size_t this_node_index) const;
 
-    void FindViolated(std::vector<LatticeMd>& found, SimilarityVector& this_node_lhs,
-                      SimilarityVector const& similarity_vector, size_t this_node_index) const;
+    void FindViolatedOld(std::vector<LatticeMd>& found, SimilarityVector& this_node_lhs,
+                         SimilarityVector const& similarity_vector, size_t this_node_index);
+    void FindViolated(std::vector<MdLatticeNodeInfo>& found, SimilarityVector& this_node_lhs,
+                      SimilarityVector const& similarity_vector, size_t this_node_index);
 
     void RemoveMd(LatticeMd const& md, size_t this_node_index);
     void RemoveNode(SimilarityVector const& node, size_t this_node_index);
@@ -38,4 +43,4 @@ public:
     explicit MdLatticeNode(SimilarityVector rhs) : rhs_(std::move(rhs)) {}
 };
 
-}
+}  // namespace algos::hymd::model
