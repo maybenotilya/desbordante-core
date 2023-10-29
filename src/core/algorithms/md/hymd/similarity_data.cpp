@@ -44,9 +44,14 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         // shared_ptr for caching
         std::shared_ptr<model::DataInfo const> data_info_left =
                 model::DataInfo::MakeFrom(left_pli, measure.GetArgType());
+        std::shared_ptr<model::DataInfo const> data_info_right;
         auto const& right_pli = compressed_records->GetRightRecords().GetPli(right_col_index);
-        std::shared_ptr<model::DataInfo const> data_info_right =
-                model::DataInfo::MakeFrom(right_pli, measure.GetArgType());
+        if (one_table_given && left_col_index == right_col_index) {
+            data_info_right = data_info_left;
+        }
+        else {
+            data_info_right = model::DataInfo::MakeFrom(right_pli, measure.GetArgType());
+        }
         auto [dec_bounds, lowest_similarity, sim_matrix, sim_index] = measure.MakeIndexes(
                 std::move(data_info_left), std::move(data_info_right), &right_pli.GetClusters(),
                 min_similarities[column_match_index], is_null_equal_null);

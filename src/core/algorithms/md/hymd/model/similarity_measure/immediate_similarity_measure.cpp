@@ -29,9 +29,9 @@ Similarity GetSimilarity(DataInfo const& data_info_left, DataInfo const& data_in
 
 std::tuple<DecisionBoundsVector, Similarity, SimilarityMatrix, SimilarityIndex>
 ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_info_left,
-                                       std::shared_ptr<DataInfo const> data_info_right,
-                                       std::vector<PliCluster> const* clusters_right, double min_sim,
-                                       bool is_null_equal_null) const {
+                                        std::shared_ptr<DataInfo const> data_info_right,
+                                        std::vector<PliCluster> const* clusters_right,
+                                        double min_sim, bool is_null_equal_null) const {
     DecisionBoundsVector decision_bounds;
     SimilarityMatrix similarity_matrix;
     SimilarityIndex similarity_index;
