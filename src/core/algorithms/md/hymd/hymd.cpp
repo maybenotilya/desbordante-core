@@ -49,16 +49,20 @@ void HyMD::ResetStateMd() {
 }
 
 void HyMD::LoadDataInternal() {
-    left_schema_ = std::make_unique<RelationalSchema>(left_table_->GetRelationName());
+    left_schema_ = std::make_shared<RelationalSchema>(left_table_->GetRelationName());
     for (size_t i = 0; i < left_table_->GetNumberOfColumns(); ++i) {
         left_schema_->AppendColumn(left_table_->GetColumnName(i));
     }
-    right_schema_ = std::make_unique<RelationalSchema>(right_table_->GetRelationName());
-    for (size_t i = 0; i < right_table_->GetNumberOfColumns(); ++i) {
-        right_schema_->AppendColumn(right_table_->GetColumnName(i));
+    if (right_table_ == nullptr) {
+        right_schema_ = left_schema_;
+        compressed_records_ = model::CompressedRecords::CreateFrom(*left_table_);
+    } else {
+        right_schema_ = std::make_unique<RelationalSchema>(right_table_->GetRelationName());
+        for (size_t i = 0; i < right_table_->GetNumberOfColumns(); ++i) {
+            right_schema_->AppendColumn(right_table_->GetColumnName(i));
+        }
+        compressed_records_ = model::CompressedRecords::CreateFrom(*left_table_, *right_table_);
     }
-
-    compressed_records_ = model::CompressedRecords::CreateFrom(*left_table_, *right_table_);
 }
 
 unsigned long long HyMD::ExecuteInternal() {

@@ -129,10 +129,11 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
     }
     for (auto const& [index, threshold_mapping] : children_) {
         size_t const cur_node_index = this_node_index + index;
+        Similarity const max = similarity_vector[cur_node_index];
         assert(cur_node_index < similarity_vector.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            if (threshold > similarity_vector[cur_node_index]) {
+            if (threshold > max) {
                 break;
             }
             this_node_lhs[cur_node_index] = threshold;

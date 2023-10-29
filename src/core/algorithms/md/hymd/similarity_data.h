@@ -23,6 +23,7 @@ private:
     std::vector<SimilarityIndex> sim_indexes_;
 
     bool prune_nondisjoint_ = true;
+    bool const single_table_;
 
     [[nodiscard]] std::map<size_t, std::vector<size_t>> MakeColToColMatchMapping(
             std::vector<size_t> const& col_match_indices) const;
@@ -63,14 +64,16 @@ public:
                    std::vector<DecisionBoundsVector> natural_decision_bounds,
                    std::vector<model::Similarity> lowest_sims,
                    std::vector<SimilarityMatrix> sim_matrices,
-                   std::vector<SimilarityIndex> sim_indexes)
+                   std::vector<SimilarityIndex> sim_indexes,
+                   bool single_table)
         : compressed_records_(compressed_records),
           rhs_min_similarities_(std::move(rhs_min_similarities)),
           column_match_col_indices_(std::move(column_match_col_indices)),
           natural_decision_bounds_(std::move(natural_decision_bounds)),
           lowest_sims_(std::move(lowest_sims)),
           sim_matrices_(std::move(sim_matrices)),
-          sim_indexes_(std::move(sim_indexes)) {}
+          sim_indexes_(std::move(sim_indexes)),
+          single_table_(single_table) {}
 
     static std::unique_ptr<SimilarityData> CreateFrom(
             model::CompressedRecords* compressed_records, model::SimilarityVector min_similarities,
@@ -106,6 +109,7 @@ public:
             model::SimilarityVector const& lhs, size_t col_match_index,
             model::Similarity similarity) const;
 
+    [[nodiscard]] DecBoundVectorUnorderedSet GetSimVecs(RecordIdentifier left_record) const;
     [[nodiscard]] model::SimilarityVector GetSimilarityVector(size_t left_record,
                                                               size_t right_record) const;
 

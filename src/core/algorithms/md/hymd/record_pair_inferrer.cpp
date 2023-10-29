@@ -6,10 +6,11 @@ bool RecordPairInferrer::ShouldKeepInferring(size_t records_checked, size_t mds_
     return records_checked < 5 ||
            (mds_refined != 0 && records_checked / mds_refined < efficiency_reciprocal_);
 }
+size_t RecordPairInferrer::CheckRecordPair(size_t left_record, size_t right_record) {
+    return ProcessSimVec(similarity_data_->GetSimilarityVector(left_record, right_record));
+}
 
-size_t RecordPairInferrer::CheckRecordPair(size_t left_record, size_t right_record,
-                                           bool prune_nondisjoint) {
-    model::SimilarityVector sim = similarity_data_->GetSimilarityVector(left_record, right_record);
+size_t RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
     std::vector<model::MdLatticeNodeInfo> violated_in_lattice = lattice_->FindViolated(sim);
     size_t violated_mds = 0;
     model::SimilarityVector const& rhs_min_similarities = similarity_data_->GetRhsMinSimilarities();
@@ -55,7 +56,7 @@ size_t RecordPairInferrer::CheckRecordPair(size_t left_record, size_t right_reco
             for (size_t i = rhs_index + 1; i < col_match_number; ++i) {
                 add_lhs_specialized_md(i);
             }
-            if (!prune_nondisjoint) {
+            if (!prune_nondisjoint_) {
                 model::Similarity& lhs_sim = lhs_sims[rhs_index];
                 std::optional<model::Similarity> new_lhs_value =
                         similarity_data_->SpecializeOneLhs(rhs_index, sim[rhs_index]);
@@ -79,11 +80,14 @@ bool RecordPairInferrer::InferFromRecordPairs() {
     Recommendations& recommendations = *recommendations_ptr_;
     while (!recommendations.empty()) {
         auto it = recommendations.begin();
-        std::pair<size_t, size_t> rec_pair = *it;
+        auto const [left_record, right_record] = *it;
         recommendations.erase(it);
-        auto const [left_record, right_record] = rec_pair;
-        mds_refined += CheckRecordPair(left_record, right_record);
-        checked_recommendations_.emplace(rec_pair);
+        auto const sim = similarity_data_->GetSimilarityVector(left_record, right_record);
+        if (avoid_same_sim_vec_processing_) {
+            auto [_, not_seen] = checked_sim_vecs_.insert(sim);
+            if (!not_seen) continue;
+        }
+        mds_refined += ProcessSimVec(sim);
         ++records_checked;
         if (!ShouldKeepInferring(records_checked, mds_refined)) {
             efficiency_reciprocal_ *= 2;
@@ -91,24 +95,38 @@ bool RecordPairInferrer::InferFromRecordPairs() {
             return false;
         }
     }
+    while (!sim_vecs_to_check_.empty()) {
+        auto node = sim_vecs_to_check_.extract(sim_vecs_to_check_.begin());
+        DecisionBoundsVector const sim = std::move(node.value());
+        if (avoid_same_sim_vec_processing_) {
+            auto [_, not_seen] = checked_sim_vecs_.insert(sim);
+            if (!not_seen) continue;
+        }
+        mds_refined += ProcessSimVec(sim);
+        ++records_checked;
+        if (!ShouldKeepInferring(records_checked, mds_refined)) {
+            efficiency_reciprocal_ *= 2;
+            return false;
+        }
+    }
     size_t const left_size = similarity_data_->GetLeftSize();
-    size_t const right_size = similarity_data_->GetRightSize();
     while (cur_record_left_ < left_size) {
-        while (cur_record_right_ < right_size) {
-            if (checked_recommendations_.find({cur_record_left_, cur_record_right_}) !=
-                checked_recommendations_.end()) {
-                ++cur_record_right_;
-                continue;
+        DecBoundVectorUnorderedSet sim_vecs = similarity_data_->GetSimVecs(cur_record_left_);
+        while (!sim_vecs.empty()) {
+            auto node = sim_vecs.extract(sim_vecs.begin());
+            DecisionBoundsVector const sim = std::move(node.value());
+            if (avoid_same_sim_vec_processing_) {
+                auto [_, not_seen] = checked_sim_vecs_.insert(sim);
+                if (!not_seen) continue;
             }
-            mds_refined += CheckRecordPair(cur_record_left_, cur_record_right_);
-            ++cur_record_right_;
+            mds_refined += ProcessSimVec(sim);
             ++records_checked;
             if (!ShouldKeepInferring(records_checked, mds_refined)) {
                 efficiency_reciprocal_ *= 2;
+                sim_vecs_to_check_ = std::move(sim_vecs);
                 return false;
             }
         }
-        cur_record_right_ = 0;
         ++cur_record_left_;
     }
     return true;

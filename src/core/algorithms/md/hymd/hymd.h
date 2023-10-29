@@ -23,8 +23,8 @@ private:
     config::InputTable left_table_;
     config::InputTable right_table_;
 
-    std::unique_ptr<RelationalSchema> left_schema_;
-    std::unique_ptr<RelationalSchema> right_schema_;
+    std::shared_ptr<RelationalSchema> left_schema_;
+    std::shared_ptr<RelationalSchema> right_schema_;
 
     std::unique_ptr<model::CompressedRecords> compressed_records_;
 

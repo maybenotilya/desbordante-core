@@ -24,6 +24,7 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         std::vector<model::SimilarityMeasure const*> const& sim_measures, bool is_null_equal_null) {
     assert(column_match_col_indices.size() == sim_measures.size());
 
+    bool const one_table_given = compressed_records->OneTableGiven();
     size_t const col_match_number = column_match_col_indices.size();
     std::vector<DecisionBoundsVector> natural_decision_bounds{};
     natural_decision_bounds.reserve(col_match_number);
@@ -57,7 +58,7 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
     return std::make_unique<SimilarityData>(
             compressed_records, std::move(min_similarities), std::move(column_match_col_indices),
             std::move(natural_decision_bounds), std::move(lowest_sims), std::move(sim_matrices),
-            std::move(sim_indexes));
+            std::move(sim_indexes), one_table_given);
 }
 
 std::map<size_t, std::vector<size_t>> SimilarityData::MakeColToColMatchMapping(
@@ -147,6 +148,39 @@ void SimilarityData::DecreaseRhsThresholds(model::SimilarityVector& rhs_threshol
         LowerForColumnMatch(rhs_thresholds[col_match], col_match, cluster, similar_records,
                             gen_max_rhs, recommendations_ptr);
     }
+}
+
+DecBoundVectorUnorderedSet SimilarityData::GetSimVecs(RecordIdentifier const left_record_id) const {
+    size_t const col_match_number = GetColumnMatchNumber();
+    CompressedRecord const& left_record = GetLeftRecords().GetRecords()[left_record_id];
+    std::vector<std::pair<SimilarityMatrixRow const*, size_t>> row_ptrs;
+    row_ptrs.reserve(col_match_number);
+    for (size_t col_match_idx = 0; col_match_idx < col_match_number; ++col_match_idx) {
+        SimilarityMatrix const& col_match_matrix = sim_matrices_[col_match_idx];
+        auto it = col_match_matrix.find(left_record[col_match_idx]);
+        if (it == col_match_matrix.end()) continue;
+        row_ptrs.emplace_back(&it->second, col_match_idx);
+    }
+    if (row_ptrs.empty()) return {DecisionBoundsVector(0.0, col_match_number)};
+    DecBoundVectorUnorderedSet sim_vecs;
+    auto const& right_records = GetRightRecords().GetRecords();
+    size_t const right_records_num = right_records.size();
+    DecisionBoundsVector sims;
+    // Do they do this in Metanome? Seems obvious, but I don't see it anywhere.
+    for (RecordIdentifier right_record_id = (single_table_ ? left_record_id + 1 : 0);
+         right_record_id < right_records_num; ++right_record_id) {
+        CompressedRecord const& right_record = right_records[right_record_id];
+        DecisionBoundsVector pair_sims(col_match_number);
+        for (auto [row_ptr, col_match_idx] : row_ptrs) {
+            auto it = row_ptr->find(right_record[col_match_idx]);
+            if (it == row_ptr->end()) {
+                continue;
+            }
+            pair_sims[col_match_idx] = it->second;
+        }
+        sim_vecs.insert(std::move(pair_sims));
+    }
+    return sim_vecs;
 }
 
 model::SimilarityVector SimilarityData::GetSimilarityVector(size_t left_record,

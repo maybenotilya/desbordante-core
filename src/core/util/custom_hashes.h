@@ -35,6 +35,27 @@ inline size_t CustomHashing::BitsetHash<CustomHashing::BitsetHashingMethod::kTri
     return copy_bitset.to_ulong();
 }
 
+template <typename T>
+class PyTupleHash {
+    size_t res_ = 0x345678UL;
+    size_t mult_ = 1000003UL;
+    std::hash<T> const hasher{};
+    size_t const expected_len_;
+
+public:
+    PyTupleHash(size_t expected_len) : expected_len_(expected_len) {}
+
+    [[nodiscard]] size_t GetResult() const {
+        return res_;
+    }
+
+    void AddValue(T const& value) noexcept {
+        size_t hash = hasher(value);
+        res_ = (res_ ^ hash) * mult_;
+        mult_ += 82520UL + expected_len_ + expected_len_;
+    }
+};
+
 namespace std {
 template <>
 struct hash<Vertical> {
