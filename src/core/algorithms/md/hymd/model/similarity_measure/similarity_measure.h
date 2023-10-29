@@ -11,7 +11,6 @@
 #include "algorithms/md/hymd/model/dictionary_compressor/keyed_position_list_index.h"
 #include "algorithms/md/hymd/types.h"
 #include "model/types/builtin.h"
-#include "model/types/null_type.h"
 #include "model/types/numeric_type.h"
 #include "model/types/type.h"
 

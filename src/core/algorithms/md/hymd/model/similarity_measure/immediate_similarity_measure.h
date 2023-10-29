@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algorithms/md/hymd/model/similarity_measure/similarity_measure.h"
+#include "model/types/double_type.h"
 
 namespace algos::hymd::model {
 
@@ -15,11 +16,10 @@ class ImmediateSimilarityMeasure final : public SimilarityMeasure {
 
 public:
     ImmediateSimilarityMeasure(std::string name, std::unique_ptr<::model::Type> arg_type,
-                              std::unique_ptr<::model::INumericType> ret_type,
-                              SimilarityFunction compute_similarity, bool should_check)
-        : SimilarityMeasure(std::move(name), std::move(arg_type), std::move(ret_type),
-                           std::move(compute_similarity)),
+                               SimilarityFunction compute_similarity, bool should_check)
+        : SimilarityMeasure(std::move(name), std::move(arg_type),
+                            std::make_unique<::model::DoubleType>(), std::move(compute_similarity)),
           should_check_(should_check){};
 };
 
-}
+}  // namespace algos::hymd::model
