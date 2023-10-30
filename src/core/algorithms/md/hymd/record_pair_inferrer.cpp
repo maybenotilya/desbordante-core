@@ -2,6 +2,7 @@
 
 namespace algos::hymd {
 
+// TODO: use different statistics to match Metanome
 bool RecordPairInferrer::ShouldKeepInferring(size_t records_checked, size_t mds_refined) const {
     return records_checked < 5 ||
            (mds_refined != 0 && records_checked / mds_refined < efficiency_reciprocal_);
@@ -80,7 +81,10 @@ bool RecordPairInferrer::InferFromRecordPairs() {
     Recommendations& recommendations = *recommendations_ptr_;
     while (!recommendations.empty()) {
         auto it = recommendations.begin();
-        auto const [left_record, right_record] = *it;
+        Recommendation recommendation = *it;
+        CompressedRecord const& left_record = *recommendation.left_record;
+        CompressedRecord const& right_record = *recommendation.right_record;
+        // All good, the above pointers point to the algorithm's index.
         recommendations.erase(it);
         auto const sim = similarity_data_->GetSimilarityVector(left_record, right_record);
         if (avoid_same_sim_vec_processing_) {

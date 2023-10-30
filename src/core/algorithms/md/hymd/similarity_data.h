@@ -110,6 +110,8 @@ public:
             model::Similarity similarity) const;
 
     [[nodiscard]] DecBoundVectorUnorderedSet GetSimVecs(RecordIdentifier left_record) const;
+    [[nodiscard]] model::SimilarityVector GetSimilarityVector(
+            CompressedRecord const& left_record, CompressedRecord const& right_record) const;
     [[nodiscard]] model::SimilarityVector GetSimilarityVector(size_t left_record,
                                                               size_t right_record) const;
 

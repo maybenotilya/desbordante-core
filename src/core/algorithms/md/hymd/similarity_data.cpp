@@ -91,10 +91,11 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
     auto const& right_records = GetRightRecords().GetRecords();
     auto const& left_records = GetLeftRecords().GetRecords();
 
-    std::unordered_map<ValueIdentifier, std::vector<RecordIdentifier>> grouped;
+    // TODO: try calculating sim vecs here.
+    std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped;
     for (RecordIdentifier record_id_left : cluster) {
         CompressedRecord const& left_record = left_records[record_id_left];
-        grouped[left_record[col_match]].push_back(record_id_left);
+        grouped[left_record[col_match]].push_back(&left_record);
     }
     for (auto const& [left_value_id, records_left] : grouped) {
         for (RecordIdentifier record_id_right : similar_records) {
@@ -102,10 +103,13 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
             ValueIdentifier const right_value_id = right_record[col_match];
             SimilarityMatrix const& sim_matrix = sim_matrices_[col_match];
             auto it_left = sim_matrix.find(left_value_id);
+            // note: We are calculating a part of the sim vec here. Will there
+            // be a speedup if we store the result somewhere?
+            // TODO: try storing the results somewhere, deferring other sim lookups.
             if (it_left == sim_matrix.end()) {
                 threshold = 0.0;
-                for (RecordIdentifier record_id_left : records_left) {
-                    recommendations_ptr->emplace(record_id_left, record_id_right);
+                for (CompressedRecord const* left_record_ptr : records_left) {
+                    recommendations_ptr->emplace(left_record_ptr, &right_record);
                 }
                 return;
             }
@@ -113,8 +117,8 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
             auto it_right = row.find(right_value_id);
             if (it_right == row.end()) {
                 threshold = 0.0;
-                for (RecordIdentifier record_id_left : records_left) {
-                    recommendations_ptr->emplace(record_id_left, record_id_right);
+                for (CompressedRecord const* left_record_ptr : records_left) {
+                    recommendations_ptr->emplace(left_record_ptr, &right_record);
                 }
                 return;
             }
@@ -122,15 +126,15 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
 
             if (record_similarity < rhs_min_similarities_[col_match]) {
                 threshold = 0.0;
-                for (RecordIdentifier record_id_left : records_left) {
-                    recommendations_ptr->emplace(record_id_left, record_id_right);
+                for (CompressedRecord const* left_record_ptr : records_left) {
+                    recommendations_ptr->emplace(left_record_ptr, &right_record);
                 }
                 return;
             }
             if (threshold > record_similarity) {
                 threshold = record_similarity;
-                for (RecordIdentifier record_id_left : records_left) {
-                    recommendations_ptr->emplace(record_id_left, record_id_right);
+                for (CompressedRecord const* left_record_ptr : records_left) {
+                    recommendations_ptr->emplace(left_record_ptr, &right_record);
                 }
                 if (!(threshold > cur_gen_max_rhs && threshold >= cur_min_sim)) {
                     // shouldUpdateViolations (if violation collection is too small, keep going) not
@@ -188,21 +192,26 @@ DecBoundVectorUnorderedSet SimilarityData::GetSimVecs(RecordIdentifier const lef
     return sim_vecs;
 }
 
-model::SimilarityVector SimilarityData::GetSimilarityVector(size_t left_record,
-                                                            size_t right_record) const {
+model::SimilarityVector SimilarityData::GetSimilarityVector(size_t left_record_id,
+                                                            size_t right_record_id) const {
+    CompressedRecord const& left_record = GetLeftRecords().GetRecords()[left_record_id];
+    CompressedRecord const& right_record = GetRightRecords().GetRecords()[right_record_id];
+    return GetSimilarityVector(left_record, right_record);
+}
+
+model::SimilarityVector SimilarityData::GetSimilarityVector(
+        CompressedRecord const& left_record, CompressedRecord const& right_record) const {
     model::SimilarityVector sims(column_match_col_indices_.size());
-    CompressedRecord left_values = GetLeftRecords().GetRecords()[left_record];
-    CompressedRecord right_values = GetRightRecords().GetRecords()[right_record];
     for (size_t i = 0; i < column_match_col_indices_.size(); ++i) {
         // TODO: not at, "get or default"
         SimilarityMatrix const& sim_matrix = sim_matrices_[i];
-        auto row_it = sim_matrix.find(left_values[i]);
+        auto row_it = sim_matrix.find(left_record[i]);
         if (row_it == sim_matrix.end()) {
             sims[i] = 0.0;
             continue;
         }
         auto const& row = row_it->second;
-        auto sim_it = row.find(right_values[i]);
+        auto sim_it = row.find(right_record[i]);
         if (sim_it == row.end()) {
             sims[i] = 0.0;
             continue;

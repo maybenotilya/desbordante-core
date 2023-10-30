@@ -22,8 +22,22 @@ using SimilarityMatrixRow = std::unordered_map<ValueIdentifier, model::Similarit
 using SimilarityMatrix = std::unordered_map<ValueIdentifier, SimilarityMatrixRow>;
 using SimInfo = std::map<model::Similarity, std::vector<RecordIdentifier>>;
 using SimilarityIndex = std::unordered_map<ValueIdentifier, SimInfo>;
-using Recommendations = std::unordered_set<std::pair<RecordIdentifier, RecordIdentifier>>;
 using CompressedRecord = std::vector<ValueIdentifier>;
+
+struct Recommendation {
+    CompressedRecord const* left_record;
+    CompressedRecord const* right_record;
+
+    Recommendation(CompressedRecord const* left_record, CompressedRecord const* right_record)
+        : left_record(left_record), right_record(right_record) {}
+
+    friend bool operator==(Recommendation const& a, Recommendation const& b) {
+        return *a.left_record == *b.left_record && *a.right_record == *b.right_record;
+    }
+
+    friend std::hash<Recommendation>;
+};
+using Recommendations = std::unordered_set<Recommendation>;
 
 using SimilarityFunction =
         std::function<std::unique_ptr<std::byte const>(std::byte const*, std::byte const*)>;
@@ -36,6 +50,27 @@ struct hash<std::pair<size_t, size_t>> {
         PyTupleHash<size_t> hasher{2};
         hasher.AddValue(p.first);
         hasher.AddValue(p.second);
+        return hasher.GetResult();
+    }
+};
+
+// This is probably unneeded, as it is unlikely to have two pairs where all
+// values are the same in one dataset, pointer comparison should suffice. If
+// there do happen to be pairs like this, they wouldn't cause as much of a
+// slowdown as hashing all this does.
+template <>
+struct hash<algos::hymd::Recommendation> {
+    std::size_t operator()(algos::hymd::Recommendation const& p) const noexcept {
+        using algos::hymd::CompressedRecord, algos::hymd::ValueIdentifier;
+        CompressedRecord const& left_record = *p.left_record;
+        CompressedRecord const& right_record = *p.right_record;
+        PyTupleHash<ValueIdentifier> hasher{left_record.size() * 2};
+        for (ValueIdentifier v : left_record) {
+            hasher.AddValue(v);
+        }
+        for (ValueIdentifier v : right_record) {
+            hasher.AddValue(v);
+        }
         return hasher.GetResult();
     }
 };
