@@ -112,8 +112,6 @@ public:
     [[nodiscard]] DecBoundVectorUnorderedSet GetSimVecs(RecordIdentifier left_record) const;
     [[nodiscard]] model::SimilarityVector GetSimilarityVector(
             CompressedRecord const& left_record, CompressedRecord const& right_record) const;
-    [[nodiscard]] model::SimilarityVector GetSimilarityVector(size_t left_record,
-                                                              size_t right_record) const;
 
     [[nodiscard]] LhsData GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
                                              Recommendations* recommendations_ptr,

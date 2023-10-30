@@ -48,10 +48,6 @@ public:
         AddIfMin(md.lhs_sims, md.rhs_sim, md.rhs_index);
     }
 
-    std::vector<LatticeMd> FindViolatedOld(SimilarityVector const& similarity_vector) {
-        return md_lattice_.FindViolatedOld(similarity_vector);
-    }
-
     std::vector<MdLatticeNodeInfo> FindViolated(SimilarityVector const& similarity_vector) {
         return md_lattice_.FindViolated(similarity_vector);
     }

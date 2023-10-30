@@ -53,13 +53,6 @@ bool MdLattice::HasGeneralization(SimilarityVector const& lhs_sims, Similarity r
     return root_.HasGeneralization(lhs_sims, rhs_sim, rhs_index, 0);
 }
 
-std::vector<LatticeMd> MdLattice::FindViolatedOld(SimilarityVector const& similarity_vector) {
-    std::vector<LatticeMd> found;
-    SimilarityVector lhs(similarity_vector.size(), 0.0);
-    root_.FindViolatedOld(found, lhs, similarity_vector, 0);
-    return found;
-}
-
 std::vector<MdLatticeNodeInfo> MdLattice::FindViolated(SimilarityVector const& similarity_vector) {
     std::vector<MdLatticeNodeInfo> found;
     SimilarityVector lhs(similarity_vector.size(), 0.0);

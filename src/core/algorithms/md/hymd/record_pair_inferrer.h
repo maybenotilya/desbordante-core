@@ -29,7 +29,6 @@ private:
     bool const prune_nondisjoint_ = true;
     bool const avoid_same_sim_vec_processing_ = false;
 
-    size_t CheckRecordPair(size_t left_record, size_t right_record);
     size_t ProcessSimVec(DecisionBoundsVector const& sim);
     bool ShouldKeepInferring(size_t records_checked, size_t mds_refined) const;
 

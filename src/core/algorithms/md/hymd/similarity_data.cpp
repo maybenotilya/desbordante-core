@@ -175,6 +175,7 @@ DecBoundVectorUnorderedSet SimilarityData::GetSimVecs(RecordIdentifier const lef
     auto const& right_records = GetRightRecords().GetRecords();
     size_t const right_records_num = right_records.size();
     DecisionBoundsVector sims;
+    //for (RecordIdentifier right_record_id = 0;
     // Do they do this in Metanome? Seems obvious, but I don't see it anywhere.
     for (RecordIdentifier right_record_id = (single_table_ ? left_record_id + 1 : 0);
          right_record_id < right_records_num; ++right_record_id) {
@@ -190,13 +191,6 @@ DecBoundVectorUnorderedSet SimilarityData::GetSimVecs(RecordIdentifier const lef
         sim_vecs.insert(std::move(pair_sims));
     }
     return sim_vecs;
-}
-
-model::SimilarityVector SimilarityData::GetSimilarityVector(size_t left_record_id,
-                                                            size_t right_record_id) const {
-    CompressedRecord const& left_record = GetLeftRecords().GetRecords()[left_record_id];
-    CompressedRecord const& right_record = GetRightRecords().GetRecords()[right_record_id];
-    return GetSimilarityVector(left_record, right_record);
 }
 
 model::SimilarityVector SimilarityData::GetSimilarityVector(

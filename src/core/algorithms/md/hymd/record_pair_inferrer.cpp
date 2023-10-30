@@ -7,9 +7,6 @@ bool RecordPairInferrer::ShouldKeepInferring(size_t records_checked, size_t mds_
     return records_checked < 5 ||
            (mds_refined != 0 && records_checked / mds_refined < efficiency_reciprocal_);
 }
-size_t RecordPairInferrer::CheckRecordPair(size_t left_record, size_t right_record) {
-    return ProcessSimVec(similarity_data_->GetSimilarityVector(left_record, right_record));
-}
 
 size_t RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
     std::vector<model::MdLatticeNodeInfo> violated_in_lattice = lattice_->FindViolated(sim);
