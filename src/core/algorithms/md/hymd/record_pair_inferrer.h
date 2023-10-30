@@ -12,6 +12,11 @@ namespace algos::hymd {
 
 class RecordPairInferrer {
 private:
+    struct Statistics {
+        size_t samples_done = 0;
+        size_t sim_vecs_processed = 0;
+    };
+
     SimilarityData* similarity_data_;
 
     model::FullLattice* lattice_;
@@ -29,8 +34,8 @@ private:
     bool const prune_nondisjoint_ = true;
     bool const avoid_same_sim_vec_processing_ = false;
 
-    size_t ProcessSimVec(DecisionBoundsVector const& sim);
-    bool ShouldKeepInferring(size_t records_checked, size_t mds_refined) const;
+    void ProcessSimVec(DecisionBoundsVector const& sim);
+    bool ShouldKeepInferring(Statistics const& statistics) const;
 
 public:
     RecordPairInferrer(SimilarityData* similarity_data, model::FullLattice* lattice,

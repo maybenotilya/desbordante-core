@@ -89,8 +89,15 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
                                  SimilarityVector& this_node_lhs,
                                  SimilarityVector const& similarity_vector,
                                  size_t this_node_index) {
+    size_t const col_matches = similarity_vector.size();
     {
         assert(rhs_.size() == similarity_vector.size());
+        for (size_t i = 0; i < col_matches; ++i) {
+            if (similarity_vector[i] < rhs_[i]) {
+                found.emplace_back(this_node_lhs, &rhs_);
+            }
+        }
+        /*
         auto it_rhs = rhs_.begin();
         auto it_sim = similarity_vector.begin();
         auto end_rhs = rhs_.end();
@@ -100,9 +107,11 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
                 break;
             }
         }
+        */
     }
     for (auto const& [index, threshold_mapping] : children_) {
         size_t const cur_node_index = this_node_index + index;
+        Similarity& cur_lhs_sim = this_node_lhs[cur_node_index];
         Similarity const max = similarity_vector[cur_node_index];
         assert(cur_node_index < similarity_vector.size());
         for (auto const& [threshold, node] : threshold_mapping) {
@@ -110,10 +119,10 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
             if (threshold > max) {
                 break;
             }
-            this_node_lhs[cur_node_index] = threshold;
+            cur_lhs_sim = threshold;
             node->FindViolated(found, this_node_lhs, similarity_vector, cur_node_index + 1);
-            this_node_lhs[cur_node_index] = 0.0;
         }
+        cur_lhs_sim = 0.0;
     }
 }
 

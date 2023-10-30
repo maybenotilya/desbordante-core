@@ -2,15 +2,17 @@
 
 namespace algos::hymd {
 
-// TODO: use different statistics to match Metanome
-bool RecordPairInferrer::ShouldKeepInferring(size_t records_checked, size_t mds_refined) const {
+bool RecordPairInferrer::ShouldKeepInferring(Statistics const& statistics) const {
+    // !(statistics.samples_done >= 2 || statistics.sim_vecs_processed > 100)
+    return statistics.samples_done < 2 && statistics.sim_vecs_processed <= 100;
+    /*
     return records_checked < 5 ||
            (mds_refined != 0 && records_checked / mds_refined < efficiency_reciprocal_);
+    */
 }
 
-size_t RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
+void RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
     std::vector<model::MdLatticeNodeInfo> violated_in_lattice = lattice_->FindViolated(sim);
-    size_t violated_mds = 0;
     model::SimilarityVector const& rhs_min_similarities = similarity_data_->GetRhsMinSimilarities();
     size_t const col_match_number = similarity_data_->GetColumnMatchNumber();
     for (model::MdLatticeNodeInfo const& md : violated_in_lattice) {
@@ -22,7 +24,6 @@ size_t RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
             model::Similarity const lhs_sim_on_rhs = lhs_sims[rhs_index];
             assert(!(prune_nondisjoint && lhs_sim_on_rhs != 0.0) || md_rhs_sim == 0.0);
             if (pair_rhs_sim >= md_rhs_sim) continue;
-            ++violated_mds;
             do {
                 model::Similarity& md_rhs_sim_ref = rhs_sims[rhs_index];
                 md_rhs_sim_ref = 0.0;
@@ -68,12 +69,10 @@ size_t RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
             }
         }
     }
-    return violated_mds;
 }
 
 bool RecordPairInferrer::InferFromRecordPairs() {
-    size_t records_checked = 0;
-    size_t mds_refined = 0;
+    Statistics statistics;
 
     Recommendations& recommendations = *recommendations_ptr_;
     while (!recommendations.empty()) {
@@ -88,9 +87,9 @@ bool RecordPairInferrer::InferFromRecordPairs() {
             auto [_, not_seen] = checked_sim_vecs_.insert(sim);
             if (!not_seen) continue;
         }
-        mds_refined += ProcessSimVec(sim);
-        ++records_checked;
-        if (!ShouldKeepInferring(records_checked, mds_refined)) {
+        ProcessSimVec(sim);
+        ++statistics.sim_vecs_processed;
+        if (!ShouldKeepInferring(statistics)) {
             efficiency_reciprocal_ *= 2;
             recommendations.clear();
             return false;
@@ -103,9 +102,9 @@ bool RecordPairInferrer::InferFromRecordPairs() {
             auto [_, not_seen] = checked_sim_vecs_.insert(sim);
             if (!not_seen) continue;
         }
-        mds_refined += ProcessSimVec(sim);
-        ++records_checked;
-        if (!ShouldKeepInferring(records_checked, mds_refined)) {
+        ProcessSimVec(sim);
+        ++statistics.sim_vecs_processed;
+        if (!ShouldKeepInferring(statistics)) {
             efficiency_reciprocal_ *= 2;
             return false;
         }
@@ -120,15 +119,16 @@ bool RecordPairInferrer::InferFromRecordPairs() {
                 auto [_, not_seen] = checked_sim_vecs_.insert(sim);
                 if (!not_seen) continue;
             }
-            mds_refined += ProcessSimVec(sim);
-            ++records_checked;
-            if (!ShouldKeepInferring(records_checked, mds_refined)) {
+            ProcessSimVec(sim);
+            ++statistics.sim_vecs_processed;
+            if (!ShouldKeepInferring(statistics)) {
                 efficiency_reciprocal_ *= 2;
                 sim_vecs_to_check_ = std::move(sim_vecs);
                 return false;
             }
         }
         ++cur_record_left_;
+        ++statistics.samples_done;
     }
     return true;
 }
