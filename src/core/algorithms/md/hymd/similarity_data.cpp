@@ -160,6 +160,7 @@ void SimilarityData::DecreaseRhsThresholds(model::SimilarityVector& rhs_threshol
 }
 
 DecBoundVectorUnorderedSet SimilarityData::GetSimVecs(RecordIdentifier const left_record_id) const {
+    // TODO: use the "slim" sim index to fill those instead of lookups in sim matrices
     size_t const col_match_number = GetColumnMatchNumber();
     CompressedRecord const& left_record = GetLeftRecords().GetRecords()[left_record_id];
     std::vector<std::pair<SimilarityMatrixRow const*, size_t>> row_ptrs;
@@ -175,17 +176,15 @@ DecBoundVectorUnorderedSet SimilarityData::GetSimVecs(RecordIdentifier const lef
     auto const& right_records = GetRightRecords().GetRecords();
     size_t const right_records_num = right_records.size();
     DecisionBoundsVector sims;
-    //for (RecordIdentifier right_record_id = 0;
-    // Do they do this in Metanome? Seems obvious, but I don't see it anywhere.
+    // for (RecordIdentifier right_record_id = 0;
+    // Optimization not done in Metanome.
     for (RecordIdentifier right_record_id = (single_table_ ? left_record_id + 1 : 0);
          right_record_id < right_records_num; ++right_record_id) {
         CompressedRecord const& right_record = right_records[right_record_id];
         DecisionBoundsVector pair_sims(col_match_number);
         for (auto [row_ptr, col_match_idx] : row_ptrs) {
             auto it = row_ptr->find(right_record[col_match_idx]);
-            if (it == row_ptr->end()) {
-                continue;
-            }
+            if (it == row_ptr->end()) continue;
             pair_sims[col_match_idx] = it->second;
         }
         sim_vecs.insert(std::move(pair_sims));

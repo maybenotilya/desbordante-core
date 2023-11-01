@@ -52,10 +52,6 @@ public:
         return md_lattice_.FindViolated(similarity_vector);
     }
 
-    void RemoveMd(LatticeMd const& md) {
-        md_lattice_.RemoveMd(md);
-    }
-
     void RemoveNode(SimilarityVector const& lhs) {
         md_lattice_.RemoveNode(lhs);
     }

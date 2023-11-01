@@ -29,10 +29,10 @@ private:
     size_t cur_record_left_ = 0;
     size_t cur_record_right_ = 0;
 
-    size_t efficiency_reciprocal_ = 100;
+    //size_t efficiency_reciprocal_ = 100;
 
     bool const prune_nondisjoint_ = true;
-    bool const avoid_same_sim_vec_processing_ = false;
+    bool const avoid_same_sim_vec_processing_ = true;
 
     void ProcessSimVec(DecisionBoundsVector const& sim);
     bool ShouldKeepInferring(Statistics const& statistics) const;

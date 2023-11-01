@@ -35,17 +35,8 @@ void MdLattice::AddIfMin(SimilarityVector const& lhs_sims, Similarity rhs_sim, s
     Add(lhs_sims, rhs_sim, rhs_index);
 }
 
-void MdLattice::AddIfMin(LatticeMd const& md) {
-    if (root_.HasGeneralization(md.lhs_sims, md.rhs_sim, md.rhs_index, 0)) return;
-    Add(md);
-}
-
 void MdLattice::RemoveNode(SimilarityVector const& lhs) {
     root_.RemoveNode(lhs, 0);
-}
-
-void MdLattice::RemoveMd(LatticeMd const& md) {
-    root_.RemoveMd(md, 0);
 }
 
 bool MdLattice::HasGeneralization(SimilarityVector const& lhs_sims, Similarity rhs_sim,

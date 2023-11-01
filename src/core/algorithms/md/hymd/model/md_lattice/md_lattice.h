@@ -29,10 +29,8 @@ public:
     void Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index);
     void Add(LatticeMd const& md);
     void AddIfMin(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index);
-    void AddIfMin(LatticeMd const& md);
     std::vector<MdLatticeNodeInfo> FindViolated(SimilarityVector const& similarity_vector);
 
-    void RemoveMd(LatticeMd const& md);
     void RemoveNode(SimilarityVector const& lhs);
 
     explicit MdLattice(size_t column_matches_size);

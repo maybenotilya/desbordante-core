@@ -49,26 +49,6 @@ bool MdLatticeNode::HasGeneralization(SimilarityVector const& lhs_sims, Similari
     return false;
 }
 
-void MdLatticeNode::RemoveMd(LatticeMd const& md, size_t const this_node_index) {
-    model::SimilarityVector const& lhs_vec = md.lhs_sims;
-    assert(this_node_index <= lhs_vec.size());
-    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
-    if (next_node_index == lhs_vec.size()) {
-        double& cur_sim = rhs_[md.rhs_index];
-        double const removed_md_sim = md.rhs_sim;
-        assert(cur_sim != 0.0 && cur_sim == removed_md_sim);
-        cur_sim = 0.0;
-        return;
-    }
-    assert(next_node_index < lhs_vec.size());
-    size_t const child_array_index = next_node_index - this_node_index;
-    model::Similarity const child_similarity = lhs_vec[next_node_index];
-    ThresholdMap& threshold_map = children_[child_array_index];
-    std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[child_similarity];
-    assert(node_ptr != nullptr);
-    node_ptr->RemoveMd(md, next_node_index + 1);
-}
-
 void MdLatticeNode::RemoveNode(SimilarityVector const& lhs_vec, size_t this_node_index) {
     assert(this_node_index <= lhs_vec.size());
     size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
@@ -112,11 +92,11 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
     for (auto const& [index, threshold_mapping] : children_) {
         size_t const cur_node_index = this_node_index + index;
         Similarity& cur_lhs_sim = this_node_lhs[cur_node_index];
-        Similarity const max = similarity_vector[cur_node_index];
+        Similarity const sim_vec_sim = similarity_vector[cur_node_index];
         assert(cur_node_index < similarity_vector.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            if (threshold > max) {
+            if (threshold > sim_vec_sim) {
                 break;
             }
             cur_lhs_sim = threshold;

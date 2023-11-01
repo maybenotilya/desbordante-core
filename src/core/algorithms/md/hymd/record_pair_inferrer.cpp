@@ -31,6 +31,8 @@ void RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
                 // also cuts off MDs with similarity that is too low, since
                 // only 0.0 can be a lower threshold than rhs_min_similarities[rhs_index],
                 // everything else is cut off during index building.
+                // TODO: mark as disproved so that lattice traversal doesn't have to look
+                //   through indexes for this column match. Set to -1.0?
                 if (pair_rhs_sim <= lhs_sim_on_rhs) break;
                 // not minimal
                 if (lattice_->HasGeneralization(lhs_sims, pair_rhs_sim, rhs_index)) break;
@@ -90,7 +92,7 @@ bool RecordPairInferrer::InferFromRecordPairs() {
         ProcessSimVec(sim);
         ++statistics.sim_vecs_processed;
         if (!ShouldKeepInferring(statistics)) {
-            efficiency_reciprocal_ *= 2;
+            //efficiency_reciprocal_ *= 2;
             recommendations.clear();
             return false;
         }
@@ -105,7 +107,7 @@ bool RecordPairInferrer::InferFromRecordPairs() {
         ProcessSimVec(sim);
         ++statistics.sim_vecs_processed;
         if (!ShouldKeepInferring(statistics)) {
-            efficiency_reciprocal_ *= 2;
+            //efficiency_reciprocal_ *= 2;
             return false;
         }
     }
@@ -122,7 +124,7 @@ bool RecordPairInferrer::InferFromRecordPairs() {
             ProcessSimVec(sim);
             ++statistics.sim_vecs_processed;
             if (!ShouldKeepInferring(statistics)) {
-                efficiency_reciprocal_ *= 2;
+                //efficiency_reciprocal_ *= 2;
                 sim_vecs_to_check_ = std::move(sim_vecs);
                 return false;
             }

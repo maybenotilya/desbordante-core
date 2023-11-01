@@ -16,9 +16,10 @@ namespace algos::hymd::model {
 class MdLatticeNode {
 private:
     using ThresholdMap = std::map<double, std::unique_ptr<MdLatticeNode>>;
+    using ChildArray = std::unordered_map<size_t, ThresholdMap>;
 
     SimilarityVector rhs_;
-    std::unordered_map<size_t, ThresholdMap> children_;
+    ChildArray children_;
 
 public:
     void GetLevel(std::vector<LatticeNodeSims>& collected, SimilarityVector& this_node_lhs,
@@ -34,7 +35,6 @@ public:
     void FindViolated(std::vector<MdLatticeNodeInfo>& found, SimilarityVector& this_node_lhs,
                       SimilarityVector const& similarity_vector, size_t this_node_index);
 
-    void RemoveMd(LatticeMd const& md, size_t this_node_index);
     void RemoveNode(SimilarityVector const& node, size_t this_node_index);
 
     explicit MdLatticeNode(size_t attributes_num) : rhs_(attributes_num) {}
