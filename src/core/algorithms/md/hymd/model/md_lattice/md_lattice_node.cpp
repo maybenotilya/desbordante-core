@@ -70,6 +70,57 @@ bool MdLatticeNode::HasGeneralization(SimilarityVector const& lhs_sims, Similari
     return false;
 }
 
+void MdLatticeNode::AddIfMinimal(SimilarityVector const& lhs_sims, Similarity rhs_sim,
+                                 size_t rhs_index, size_t const this_node_index) {
+    double& this_rhs_sim = rhs_[rhs_index];
+    if (this_rhs_sim >= rhs_sim) return;
+    size_t const rhs_size = rhs_.size();
+    size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_sims, this_node_index);
+    if (next_node_index == rhs_size) {
+        if (this_rhs_sim == 0.0) {
+            this_rhs_sim = rhs_sim;
+        }
+        return;
+    }
+    {
+        auto children_end = children_.end();
+        for (size_t child_node_index = util::GetFirstNonZeroIndex(lhs_sims, next_node_index + 1);
+             child_node_index != rhs_size;
+             child_node_index = util::GetFirstNonZeroIndex(lhs_sims, child_node_index + 1)) {
+            auto it = children_.find(child_node_index);
+            if (it == children_end) continue;
+            Similarity const child_lhs_sim = lhs_sims[child_node_index];
+            for (auto const& [threshold, node] : it->second) {
+                if (threshold > child_lhs_sim) break;
+                if (node->HasGeneralization(lhs_sims, rhs_sim, rhs_index, child_node_index + 1))
+                    return;
+            }
+        }
+    }
+    auto [it_arr, is_first_arr] = children_.try_emplace(next_node_index);
+    ThresholdMap& threshold_mapping = it_arr->second;
+    Similarity const next_lhs_sim = lhs_sims[next_node_index];
+    if (is_first_arr) [[unlikely]] {
+        (threshold_mapping[next_lhs_sim] = std::make_unique<MdLatticeNode>(rhs_size))
+                ->AddUnchecked(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
+        return;
+    }
+    for (auto const& [threshold, node] : threshold_mapping) {
+        if (threshold > next_lhs_sim) {
+            break;
+        }
+        if (threshold == next_lhs_sim) {
+            node->AddIfMinimal(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
+            return;
+        }
+        if (node->HasGeneralization(lhs_sims, rhs_sim, rhs_index, next_node_index + 1)) {
+            return;
+        }
+    }
+    (threshold_mapping[next_lhs_sim] = std::make_unique<MdLatticeNode>(rhs_size))
+                ->AddUnchecked(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
+}
+
 void MdLatticeNode::RemoveNode(SimilarityVector const& lhs_vec, size_t this_node_index) {
     assert(this_node_index <= lhs_vec.size());
     size_t const next_node_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);

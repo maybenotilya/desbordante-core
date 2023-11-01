@@ -34,6 +34,8 @@ public:
              size_t this_node_index);
     [[nodiscard]] bool HasGeneralization(SimilarityVector const& lhs_sims, Similarity rhs_sim,
                                          size_t rhs_index, size_t this_node_index) const;
+    void AddIfMinimal(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index,
+                      size_t this_node_index);
 
     void FindViolated(std::vector<MdLatticeNodeInfo>& found, SimilarityVector& this_node_lhs,
                       SimilarityVector const& similarity_vector, size_t this_node_index);
