@@ -30,7 +30,8 @@ void MdLattice::Add(LatticeMd const& md) {
     root_.Add(md.lhs_sims, md.rhs_sim, md.rhs_index, 0);
 }
 
-void MdLattice::AddIfMin(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index) {
+void MdLattice::AddIfMinimal(SimilarityVector const& lhs_sims, Similarity rhs_sim,
+                             size_t rhs_index) {
     if (HasGeneralization(lhs_sims, rhs_sim, rhs_index)) return;
     Add(lhs_sims, rhs_sim, rhs_index);
 }

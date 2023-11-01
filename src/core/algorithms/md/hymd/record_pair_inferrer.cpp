@@ -48,7 +48,7 @@ void RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
                 if (!new_lhs_value.has_value()) return;
                 model::Similarity const old_lhs_sim = lhs_sim;
                 lhs_sim = new_lhs_value.value();
-                lattice_->AddIfMinAndNotUnsupported(lhs_sims, md_rhs_sim, rhs_index);
+                lattice_->AddIfMinimalAndNotUnsupported(lhs_sims, md_rhs_sim, rhs_index);
                 lhs_sim = old_lhs_sim;
             };
             for (size_t i = 0; i < rhs_index; ++i) {
@@ -65,7 +65,7 @@ void RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
                 model::Similarity const old_lhs_sim = lhs_sim;
                 lhs_sim = new_lhs_value.value();
                 if (md_rhs_sim > lhs_sim) {
-                    lattice_->AddIfMinAndNotUnsupported(lhs_sims, md_rhs_sim, rhs_index);
+                    lattice_->AddIfMinimalAndNotUnsupported(lhs_sims, md_rhs_sim, rhs_index);
                 }
                 lhs_sim = old_lhs_sim;
             }

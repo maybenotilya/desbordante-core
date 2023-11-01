@@ -10,9 +10,9 @@ private:
     MdLattice md_lattice_;
     SupportLattice support_lattice_;
 
-    void AddIfMin(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index) {
+    void AddIfMinimal(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index) {
         assert(!support_lattice_.IsUnsupported(lhs_sims, rhs_sim, rhs_index));
-        md_lattice_.AddIfMin(lhs_sims, rhs_sim, rhs_index);
+        md_lattice_.AddIfMinimal(lhs_sims, rhs_sim, rhs_index);
     }
 
 public:
@@ -37,15 +37,15 @@ public:
         md_lattice_.Add(md.lhs_sims, md.rhs_sim, md.rhs_index);
     }
 
-    void AddIfMinAndNotUnsupported(SimilarityVector const& lhs_sims, Similarity rhs_sim,
-                                   size_t rhs_index) {
+    void AddIfMinimalAndNotUnsupported(SimilarityVector const& lhs_sims, Similarity rhs_sim,
+                                       size_t rhs_index) {
         if (support_lattice_.IsUnsupported(lhs_sims)) return;
-        AddIfMin(lhs_sims, rhs_sim, rhs_index);
+        AddIfMinimal(lhs_sims, rhs_sim, rhs_index);
     }
 
     void AddIfMinAndNotUnsupported(LatticeMd const& md) {
         if (support_lattice_.IsUnsupported(md.lhs_sims)) return;
-        AddIfMin(md.lhs_sims, md.rhs_sim, md.rhs_index);
+        AddIfMinimal(md.lhs_sims, md.rhs_sim, md.rhs_index);
     }
 
     std::vector<MdLatticeNodeInfo> FindViolated(SimilarityVector const& similarity_vector) {

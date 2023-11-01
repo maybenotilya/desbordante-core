@@ -10,7 +10,7 @@ namespace algos::hymd::model {
 void MdLatticeNode::AddUnchecked(SimilarityVector const& lhs_sims, Similarity rhs_sim,
                                  size_t rhs_index, size_t const this_node_index) {
     assert(children_.empty());
-    assert(std::all_of(rhs_.begin(), rhs_.end(), [](Similarity v) { return v == 0.0; }));
+    assert(std::all_of(rhs_.begin(), rhs_.end(), [](Similarity const v) { return v == 0.0; }));
     size_t const rhs_size = rhs_.size();
     MdLatticeNode* cur_node_ptr = this;
     for (size_t cur_node_index = util::GetFirstNonZeroIndex(lhs_sims, this_node_index);
@@ -20,7 +20,7 @@ void MdLatticeNode::AddUnchecked(SimilarityVector const& lhs_sims, Similarity rh
                                 std::make_unique<MdLatticeNode>(rhs_size))
                                .get();
     }
-    this->rhs_[rhs_index] = rhs_sim;
+    cur_node_ptr->rhs_[rhs_index] = rhs_sim;
 }
 
 void MdLatticeNode::Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index,

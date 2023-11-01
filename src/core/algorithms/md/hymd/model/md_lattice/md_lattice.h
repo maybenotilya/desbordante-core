@@ -28,7 +28,7 @@ public:
 
     void Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index);
     void Add(LatticeMd const& md);
-    void AddIfMin(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index);
+    void AddIfMinimal(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index);
     std::vector<MdLatticeNodeInfo> FindViolated(SimilarityVector const& similarity_vector);
 
     void RemoveNode(SimilarityVector const& lhs);

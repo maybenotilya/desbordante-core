@@ -3,10 +3,11 @@
 #include <list>
 
 #include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
+#include "algorithms/md/hymd/model/full_lattice.h"
 #include "algorithms/md/hymd/model/md_lattice/md_lattice.h"
 #include "algorithms/md/hymd/model/similarity.h"
 #include "algorithms/md/hymd/similarity_data.h"
-#include "md/hymd/model/full_lattice.h"
+#include "algorithms/md/hymd/types.h"
 
 namespace algos::hymd {
 
@@ -28,7 +29,7 @@ private:
 
     size_t cur_record_left_ = 0;
 
-    //size_t efficiency_reciprocal_ = 100;
+    // size_t efficiency_reciprocal_ = 100;
 
     bool const prune_nondisjoint_ = true;
     bool const avoid_same_sim_vec_processing_ = true;
