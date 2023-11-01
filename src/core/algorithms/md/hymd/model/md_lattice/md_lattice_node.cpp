@@ -33,17 +33,16 @@ void MdLatticeNode::Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, si
 bool MdLatticeNode::HasGeneralization(SimilarityVector const& lhs_sims, Similarity rhs_sim,
                                       size_t rhs_index, size_t this_node_index) const {
     if (rhs_[rhs_index] >= rhs_sim) return true;
-    for (auto const& [index, threshold_mapping] : children_) {
-        size_t const cur_node_index = this_node_index + index;
-        assert(cur_node_index < lhs_vec.size());
-        for (auto const& [threshold, node] : threshold_mapping) {
-            assert(threshold > 0.0);
-            if (threshold > lhs_sims[cur_node_index]) {
-                break;
-            }
-            if (node->HasGeneralization(lhs_sims, rhs_sim, rhs_index, cur_node_index + 1)) {
-                return true;
-            }
+    size_t const rhs_size = rhs_.size();
+    for (size_t cur_index = util::GetFirstNonZeroIndex(lhs_sims, this_node_index);
+         cur_index != rhs_size; cur_index = util::GetFirstNonZeroIndex(lhs_sims, cur_index + 1)) {
+        size_t const child_array_index = cur_index - this_node_index;
+        auto it = children_.find(child_array_index);
+        if (it == children_.end()) continue;
+        Similarity const child_similarity = lhs_sims[cur_index];
+        for (auto const& [threshold, node] : it->second) {
+            if (threshold > child_similarity) break;
+            if (node->HasGeneralization(lhs_sims, rhs_sim, rhs_index, cur_index + 1)) return true;
         }
     }
     return false;
