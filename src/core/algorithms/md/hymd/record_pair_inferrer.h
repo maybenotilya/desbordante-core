@@ -27,7 +27,6 @@ private:
     DecBoundVectorUnorderedSet checked_sim_vecs_;
 
     size_t cur_record_left_ = 0;
-    size_t cur_record_right_ = 0;
 
     //size_t efficiency_reciprocal_ = 100;
 

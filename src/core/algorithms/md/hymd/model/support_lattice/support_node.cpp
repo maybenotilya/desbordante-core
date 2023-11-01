@@ -26,7 +26,6 @@ bool SupportNode::IsUnsupported(model::SimilarityVector const& lhs_vec,
 }
 
 void SupportNode::MarkUnsupported(model::SimilarityVector const& lhs_vec, size_t this_node_index) {
-    if (is_unsupported_) return;
     assert(this_node_index <= lhs_vec.size());
     size_t const first_non_zero_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
     if (first_non_zero_index == lhs_vec.size()) {

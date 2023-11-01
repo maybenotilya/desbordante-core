@@ -7,14 +7,14 @@
 
 namespace std {
 template <>
-struct hash<std::vector<algos::hymd::RecordIdentifier>> {
-    std::size_t operator()(std::vector<algos::hymd::RecordIdentifier> const& p) const {
-        auto hasher = std::hash<size_t>{};
-        std::size_t hash = 0;
-        for (size_t el : p) {
-            hash ^= hasher(el);
+struct hash<std::vector<algos::hymd::ValueIdentifier>> {
+    std::size_t operator()(std::vector<algos::hymd::ValueIdentifier> const& p) const {
+        using algos::hymd::ValueIdentifier;
+        auto hasher = PyTupleHash<ValueIdentifier>(p.size());
+        for (ValueIdentifier el : p) {
+            hasher.AddValue(el);
         }
-        return hash;
+        return hasher.GetResult();
     }
 };
 }  // namespace std
