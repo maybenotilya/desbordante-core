@@ -21,6 +21,9 @@ private:
     SimilarityVector rhs_;
     ChildArray children_;
 
+    void AddUnchecked(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index,
+                      size_t this_node_index);
+
 public:
     void GetLevel(std::vector<LatticeNodeSims>& collected, SimilarityVector& this_node_lhs,
                   size_t this_node_index, size_t sims_left) const;

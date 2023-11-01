@@ -7,26 +7,50 @@
 
 namespace algos::hymd::model {
 
+void MdLatticeNode::AddUnchecked(SimilarityVector const& lhs_sims, Similarity rhs_sim,
+                                 size_t rhs_index, size_t const this_node_index) {
+    assert(children_.empty());
+    assert(std::all_of(rhs_.begin(), rhs_.end(), [](Similarity v) { return v == 0.0; }));
+    size_t const rhs_size = rhs_.size();
+    MdLatticeNode* cur_node_ptr = this;
+    for (size_t cur_node_index = util::GetFirstNonZeroIndex(lhs_sims, this_node_index);
+         cur_node_index != rhs_size;
+         cur_node_index = util::GetFirstNonZeroIndex(lhs_sims, cur_node_index + 1)) {
+        cur_node_ptr = (cur_node_ptr->children_[cur_node_index][lhs_sims[cur_node_index]] =
+                                std::make_unique<MdLatticeNode>(rhs_size))
+                               .get();
+    }
+    this->rhs_[rhs_index] = rhs_sim;
+}
+
 void MdLatticeNode::Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index,
                         size_t const this_node_index) {
-    assert(this_node_index <= lhs_sims.size());
-    size_t const first_non_zero_index = util::GetFirstNonZeroIndex(lhs_sims, this_node_index);
-    if (first_non_zero_index == lhs_sims.size()) {
-        double& cur_sim = rhs_[rhs_index];
-        assert(rhs_sim != 0.0);
-        if (cur_sim == 0.0 || rhs_sim < cur_sim) {
-            cur_sim = rhs_sim;
+    size_t const rhs_size = rhs_.size();
+    MdLatticeNode* cur_node_ptr = this;
+    for (size_t cur_node_index = util::GetFirstNonZeroIndex(lhs_sims, this_node_index);
+         cur_node_index != rhs_size;
+         cur_node_index = util::GetFirstNonZeroIndex(lhs_sims, cur_node_index + 1)) {
+        model::Similarity const child_similarity = lhs_sims[cur_node_index];
+        auto [it_arr, is_first_arr] = cur_node_ptr->children_.try_emplace(cur_node_index);
+        ThresholdMap& child_threshold_map = it_arr->second;
+        if (is_first_arr) [[unlikely]] {
+            (child_threshold_map[child_similarity] = std::make_unique<MdLatticeNode>(rhs_size))
+                ->AddUnchecked(lhs_sims, rhs_sim, rhs_index, cur_node_index + 1);
+            return;
         }
-        return;
+        auto [it_map, is_first_map] = child_threshold_map.try_emplace(child_similarity);
+        std::unique_ptr<MdLatticeNode>& node_ptr = it_map->second;
+        if (is_first_map) /*?? [[unlikely]] ??*/ {
+            assert(node_ptr == nullptr);
+            (node_ptr = std::make_unique<MdLatticeNode>(rhs_size))
+                    ->AddUnchecked(lhs_sims, rhs_sim, rhs_index, cur_node_index + 1);
+            return;
+        }
+        assert(node_ptr != nullptr);
+        cur_node_ptr = node_ptr.get();
     }
-    assert(first_non_zero_index < lhs_vec.size());
-    model::Similarity const child_similarity = lhs_sims[first_non_zero_index];
-    ThresholdMap& threshold_map = children_[first_non_zero_index];
-    std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[child_similarity];
-    if (node_ptr == nullptr) {
-        node_ptr = std::make_unique<MdLatticeNode>(rhs_.size());
-    }
-    node_ptr->Add(lhs_sims, rhs_sim, rhs_index, first_non_zero_index + 1);
+    double& cur_sim = cur_node_ptr->rhs_[rhs_index];
+    if (cur_sim == 0.0 || rhs_sim < cur_sim) cur_sim = rhs_sim;
 }
 
 bool MdLatticeNode::HasGeneralization(SimilarityVector const& lhs_sims, Similarity rhs_sim,
