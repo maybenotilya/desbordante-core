@@ -22,7 +22,7 @@ void RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
             model::Similarity const pair_rhs_sim = sim[rhs_index];
             model::Similarity const md_rhs_sim = rhs_sims[rhs_index];
             model::Similarity const lhs_sim_on_rhs = lhs_sims[rhs_index];
-            assert(!(prune_nondisjoint && lhs_sim_on_rhs != 0.0) || md_rhs_sim == 0.0);
+            assert(!(prune_nondisjoint_ && lhs_sim_on_rhs != 0.0) || md_rhs_sim == 0.0);
             if (pair_rhs_sim >= md_rhs_sim) continue;
             do {
                 model::Similarity& md_rhs_sim_ref = rhs_sims[rhs_index];

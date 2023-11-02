@@ -139,7 +139,7 @@ void MdLatticeNode::RemoveNode(SimilarityVector const& lhs_vec, size_t this_node
 void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
                                  SimilarityVector& this_node_lhs,
                                  SimilarityVector const& similarity_vector,
-                                 size_t this_node_index) {
+                                 [[maybe_unused]] size_t this_node_index) {
     {
         /*
         size_t const col_matches = similarity_vector.size()
@@ -205,15 +205,15 @@ void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
 }
 
 void MdLatticeNode::GetLevel(std::vector<LatticeNodeSims>& collected,
-                             SimilarityVector& this_node_lhs, size_t this_node_index,
-                             size_t sims_left) const {
+                             SimilarityVector& this_node_lhs,
+                             [[maybe_unused]] size_t this_node_index, size_t sims_left) const {
     if (sims_left == 0) {
         if (std::any_of(rhs_.begin(), rhs_.end(), [](Similarity val) { return val != 0.0; }))
             collected.emplace_back(this_node_lhs, rhs_);
         return;
     }
     for (auto const& [index, threshold_mapping] : children_) {
-        assert(cur_node_index < this_node_lhs.size());
+        assert(index < this_node_lhs.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
             this_node_lhs[index] = threshold;

@@ -11,7 +11,7 @@ private:
     SupportLattice support_lattice_;
 
     void AddIfMinimal(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index) {
-        assert(!support_lattice_.IsUnsupported(lhs_sims, rhs_sim, rhs_index));
+        assert(!support_lattice_.IsUnsupported(lhs_sims));
         md_lattice_.AddIfMinimal(lhs_sims, rhs_sim, rhs_index);
     }
 
