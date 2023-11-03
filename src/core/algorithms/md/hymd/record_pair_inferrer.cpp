@@ -75,6 +75,19 @@ void RecordPairInferrer::ProcessSimVec(DecisionBoundsVector const& sim) {
 
 bool RecordPairInferrer::InferFromRecordPairs() {
     Statistics statistics;
+    // TODO: what is std::_Hashtable<
+    // unsigned long,
+    // std::pair<unsigned long const, double>,
+    // std::allocator<std::pair<unsigned long const, double> >,
+    // std::__detail::_Select1st,
+    // std::equal_to<unsigned long>,
+    // std::hash<unsigned long>,
+    // std::__detail::_Mod_range_hashing,
+    // std::__detail::_Default_ranged_hash,
+    // std::__detail::_Prime_rehash_policy,
+    // std::__detail::_Hashtable_traits<false, false, true>>
+    //   ::find(unsigned long const&) const
+    // ?
 
     Recommendations& recommendations = *recommendations_ptr_;
     while (!recommendations.empty()) {

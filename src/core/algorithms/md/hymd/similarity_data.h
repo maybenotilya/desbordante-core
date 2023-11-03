@@ -52,10 +52,10 @@ private:
 public:
     struct LhsData {
         model::SimilarityVector max_rhs_dec_bounds;
-        size_t support;
+        bool is_unsupported;
 
-        LhsData(model::SimilarityVector max_rhs_dec_bounds, size_t support) noexcept
-            : max_rhs_dec_bounds(std::move(max_rhs_dec_bounds)), support(support) {}
+        LhsData(model::SimilarityVector max_rhs_dec_bounds, bool is_unsupported) noexcept
+            : max_rhs_dec_bounds(std::move(max_rhs_dec_bounds)), is_unsupported(is_unsupported) {}
     };
 
     SimilarityData(model::CompressedRecords* compressed_records,

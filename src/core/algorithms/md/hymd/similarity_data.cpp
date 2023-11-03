@@ -284,8 +284,9 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         assert(rhs_thresholds.size() == lowest_sims_.size());
         rhs_thresholds = lowest_sims_;
         support = GetLeftRecords().GetNumberOfRecords() * GetRightRecords().GetNumberOfRecords();
-        return {std::move(rhs_thresholds), support};
-    } else if (cardinality == 1) {
+        return {std::move(rhs_thresholds), support < min_support};
+    }
+    if (cardinality == 1) {
         size_t const non_zero_index = non_zero_indices[0];
         if (prune_nondisjoint_) rhs_thresholds[non_zero_index] = 0.0;
         std::vector<std::vector<size_t>> const& clusters =
@@ -295,14 +296,20 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             std::vector<RecordIdentifier> similar_records =
                     GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
             support += cluster.size() * similar_records.size();
+            if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
+                            [](model::Similarity val) { return val == 0.0; }) &&
+                support >= min_support) {
+                return {std::move(rhs_thresholds), false};
+            }
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records, gen_max_rhs,
                                   recommendations_ptr);
             if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
                             [](model::Similarity val) { return val == 0.0; }) &&
                 support >= min_support) {
-                return {std::move(rhs_thresholds), support};
+                return {std::move(rhs_thresholds), false};
             }
         }
+        return {std::move(rhs_thresholds), support < min_support};
     } else {
         if (prune_nondisjoint_)
             for (size_t idx : non_zero_indices) {
@@ -363,16 +370,22 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
                     iters);
             similar_records.erase(it, similar_records.end());
             support += cluster.size() * similar_records.size();
+            if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
+                            [](model::Similarity val) { return val == 0.0; }) &&
+                support >= min_support) {
+                return {std::move(rhs_thresholds), false};
+            }
             DecreaseRhsThresholds(rhs_thresholds, cluster, similar_records, gen_max_rhs,
                                   recommendations_ptr);
             if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
                             [](model::Similarity val) { return val == 0.0; }) &&
                 support >= min_support) {
-                return {std::move(rhs_thresholds), support};
+                return {std::move(rhs_thresholds), false};
             }
         }
+        return {std::move(rhs_thresholds), support < min_support};
     }
-    return {std::move(rhs_thresholds), support};
+    return {std::move(rhs_thresholds), support < min_support};
 }
 
 std::optional<model::Similarity> SimilarityData::GetPreviousSimilarity(

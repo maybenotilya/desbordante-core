@@ -17,7 +17,6 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
         if (cur.empty()) {
             ++cur_level_;
             min_picker_lattice.Advance();
-            if (!traverse_all) return false;
             continue;
         }
         std::vector<model::LatticeMd> mds_to_add;
@@ -27,10 +26,10 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             model::SimilarityVector const& lhs_sims = node.lhs_sims;
             model::SimilarityVector const& rhs_sims = node.rhs_sims;
             std::vector<double> gen_max_rhs = lattice.GetMaxValidGeneralizationRhs(lhs_sims);
-            auto [new_rhs_sims, support] =
+            auto [new_rhs_sims, is_unsupported] =
                     similarity_data.GetMaxRhsDecBounds(lhs_sims, recommendations_ptr_, min_support_,
                                                        rhs_sims, gen_max_rhs);
-            if (support < min_support_) {
+            if (is_unsupported) {
                 lattice.MarkUnsupported(lhs_sims);
                 continue;
             }
@@ -62,8 +61,11 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             lattice.Add(md);
         }
         for (auto& md : mds_to_add_if_min) {
-            lattice.AddIfMinAndNotUnsupported(md);;
+            lattice.AddIfMinAndNotUnsupported(md);
         }
+        if (!traverse_all) return false;
+        // TODO: stop here.
+        // TODO: if we specialized no LHSs, we can cut off the rest of the lattice here.
     }
     return true;
 }

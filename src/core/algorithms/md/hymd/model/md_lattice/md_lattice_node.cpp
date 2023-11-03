@@ -141,15 +141,6 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
                                  SimilarityVector const& similarity_vector,
                                  [[maybe_unused]] size_t this_node_index) {
     {
-        /*
-        size_t const col_matches = similarity_vector.size()
-        for (size_t i = 0; i < col_matches; ++i) {
-            if (similarity_vector[i] < rhs_[i]) {
-                found.emplace_back(this_node_lhs, &rhs_);
-                break;
-            }
-        }
-        */
         assert(rhs_.size() == similarity_vector.size());
         auto it_rhs = rhs_.begin();
         auto it_sim = similarity_vector.begin();
@@ -166,10 +157,7 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
         Similarity const sim_vec_sim = similarity_vector[index];
         assert(index < similarity_vector.size());
         for (auto const& [threshold, node] : threshold_mapping) {
-            assert(threshold > 0.0);
-            if (threshold > sim_vec_sim) {
-                break;
-            }
+            if (threshold > sim_vec_sim) break;
             cur_lhs_sim = threshold;
             node->FindViolated(found, this_node_lhs, similarity_vector, index + 1);
         }
@@ -180,26 +168,38 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
 void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
                                                  SimilarityVector& cur_rhs,
                                                  size_t this_node_index) const {
-    for (size_t i = 0; i < rhs_.size(); ++i) {
-        double const rhs_threshold = rhs_[i];
-        double& cur_rhs_threshold = cur_rhs[i];
-        if (rhs_threshold > cur_rhs_threshold) {
-            cur_rhs_threshold = rhs_threshold;
+    {
+        assert(rhs_.size() == cur_rhs.size());
+        auto it_rhs = rhs_.begin();
+        auto it_cur_rhs = cur_rhs.begin();
+        auto it_rhs_end = rhs_.end();
+        for (; it_rhs != it_rhs_end; ++it_cur_rhs, ++it_rhs) {
+            double const rhs_threshold = *it_rhs;
+            double& cur_rhs_threshold = *it_cur_rhs;
+            if (rhs_threshold > cur_rhs_threshold) cur_rhs_threshold = rhs_threshold;
         }
     }
+    if (std::all_of(cur_rhs.begin(), cur_rhs.end(), [](Similarity const v) { return v == 1.0; }))
+            [[unlikely]] {
+        return;
+    }
 
-    // TODO: wtf was I on when I wrote this?
-    auto const& child_array_end = children_.end();
-    for (size_t cur_node_index = this_node_index;
-         (cur_node_index = util::GetFirstNonZeroIndex(lhs, cur_node_index)) != lhs.size();
-         ++cur_node_index) {
+    auto child_array_end = children_.end();
+    for (size_t cur_node_index = util::GetFirstNonZeroIndex(lhs, this_node_index);
+         cur_node_index != lhs.size();
+         cur_node_index = util::GetFirstNonZeroIndex(lhs, cur_node_index + 1)) {
         auto it = children_.find(cur_node_index);
         if (it == child_array_end) continue;
+        Similarity const cur_lhs_sim = lhs[cur_node_index];
         for (auto const& [threshold, node] : it->second) {
-            if (threshold > lhs[cur_node_index]) {
+            if (threshold > cur_lhs_sim) {
                 break;
             }
             node->GetMaxValidGeneralizationRhs(lhs, cur_rhs, cur_node_index + 1);
+            if (std::all_of(cur_rhs.begin(), cur_rhs.end(),
+                            [](Similarity const v) { return v == 1.0; })) [[unlikely]] {
+                return;
+            }
         }
     }
 }

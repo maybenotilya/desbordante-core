@@ -26,8 +26,7 @@ void MdLattice::Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t
 }
 
 void MdLattice::Add(LatticeMd const& md) {
-    max_level_ = std::max(max_level_, GetCardinality(md.lhs_sims));
-    root_.Add(md.lhs_sims, md.rhs_sim, md.rhs_index, 0);
+    Add(md.lhs_sims, md.rhs_sim, md.rhs_index);
 }
 
 void MdLattice::AddIfMinimal(SimilarityVector const& lhs_sims, Similarity rhs_sim,
