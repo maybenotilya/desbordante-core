@@ -116,8 +116,9 @@ public:
     [[nodiscard]] LhsData GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
                                              Recommendations* recommendations_ptr,
                                              size_t min_support,
-                                             model::SimilarityVector rhs_thresholds,
-                                             model::SimilarityVector const& gen_max_rhs) const;
+                                             model::SimilarityVector const& original_rhs_thresholds,
+                                             model::SimilarityVector const& gen_max_rhs,
+                                             std::unordered_set<size_t> rhs_indices) const;
 
     [[nodiscard]] std::optional<model::Similarity> GetPreviousSimilarity(model::Similarity lhs_sim,
                                                                          size_t col_match) const;

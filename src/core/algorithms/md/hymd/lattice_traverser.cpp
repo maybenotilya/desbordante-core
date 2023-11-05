@@ -24,17 +24,23 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             model::SimilarityVector const& lhs_sims = node.lhs_sims;
             model::SimilarityVector& rhs_sims = *node.rhs_sims;
             model::SimilarityVector old_rhs_sims = rhs_sims;
-            rhs_sims.assign(col_matches_num, 0.0);
+            std::unordered_set<size_t> indices;
+            for (size_t index = 0; index < col_matches_num; ++index) {
+                if (old_rhs_sims[index] != 0.0) indices.insert(index);
+            }
+            for (size_t const index : indices) {
+                rhs_sims[index] = 0.0;
+            }
             model::SimilarityVector gen_max_rhs = lattice.GetMaxValidGeneralizationRhs(lhs_sims);
             auto [new_rhs_sims, is_unsupported] =
                     similarity_data.GetMaxRhsDecBounds(lhs_sims, recommendations_ptr_, min_support_,
-                                                       old_rhs_sims, gen_max_rhs);
+                                                       old_rhs_sims, gen_max_rhs, indices);
             if (is_unsupported) {
                 lattice.MarkUnsupported(lhs_sims);
                 continue;
             }
             assert(new_rhs_sims.size() == col_matches_num);
-            for (size_t i = 0; i < col_matches_num; ++i) {
+            for (size_t const i : indices) {
                 if (prune_nondisjoint_ && lhs_sims[i] != 0.0) continue;
                 model::Similarity const new_rhs_sim = new_rhs_sims[i];
                 if (new_rhs_sim > lhs_sims[i] && new_rhs_sim >= rhs_min_similarities[i] &&
