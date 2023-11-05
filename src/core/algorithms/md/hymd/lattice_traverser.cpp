@@ -11,9 +11,9 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
     model::FullLattice& lattice = *lattice_;
     model::MinPickerLattice& min_picker_lattice = *min_picker_lattice_;
     while (cur_level_ <= lattice.GetMaxLevel()) {
-        std::vector<model::LatticeNodeSims> level_mds = lattice.GetLevel(cur_level_);
+        std::vector<model::MdLatticeNodeInfo> level_mds = lattice.GetLevel(cur_level_);
         min_picker_lattice.PickMinimalMds(level_mds);
-        std::vector<model::LatticeNodeSims> cur = min_picker_lattice.GetAll();
+        std::vector<model::MdLatticeNodeInfo> cur = min_picker_lattice.GetAll();
         if (cur.empty()) {
             ++cur_level_;
             min_picker_lattice.Advance();
@@ -21,11 +21,11 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
         }
         std::vector<model::LatticeMd> mds_to_add;
         std::vector<model::LatticeMd> mds_to_add_if_min;
-        for (model::LatticeNodeSims const& node : cur) {
-            lattice.RemoveNode(node.lhs_sims);
+        for (model::MdLatticeNodeInfo& node : cur) {
             model::SimilarityVector const& lhs_sims = node.lhs_sims;
-            model::SimilarityVector const& rhs_sims = node.rhs_sims;
-            std::vector<double> gen_max_rhs = lattice.GetMaxValidGeneralizationRhs(lhs_sims);
+            model::SimilarityVector rhs_sims = *node.rhs_sims;
+            lattice.RemoveNode(lhs_sims);
+            model::SimilarityVector gen_max_rhs = lattice.GetMaxValidGeneralizationRhs(lhs_sims);
             auto [new_rhs_sims, is_unsupported] =
                     similarity_data.GetMaxRhsDecBounds(lhs_sims, recommendations_ptr_, min_support_,
                                                        rhs_sims, gen_max_rhs);

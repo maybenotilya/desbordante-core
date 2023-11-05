@@ -25,8 +25,8 @@ private:
                       size_t this_node_index);
 
 public:
-    void GetLevel(std::vector<LatticeNodeSims>& collected, SimilarityVector& this_node_lhs,
-                  size_t this_node_index, size_t sims_left) const;
+    void GetLevel(std::vector<MdLatticeNodeInfo>& collected, SimilarityVector& this_node_lhs,
+                  size_t this_node_index, size_t sims_left);
     void GetMaxValidGeneralizationRhs(SimilarityVector const& lhs, SimilarityVector& cur_rhs,
                                       size_t this_node_index) const;
 

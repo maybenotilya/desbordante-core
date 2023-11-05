@@ -23,7 +23,7 @@ public:
                                          size_t rhs_index) const;
 
     [[nodiscard]] size_t GetMaxLevel() const;
-    std::vector<LatticeNodeSims> GetLevel(size_t level) const;
+    std::vector<MdLatticeNodeInfo> GetLevel(size_t level);
     SimilarityVector GetMaxValidGeneralizationRhs(SimilarityVector const& lhs) const;
 
     void Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, size_t rhs_index);

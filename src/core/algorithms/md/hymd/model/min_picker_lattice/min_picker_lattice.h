@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <unordered_set>
 
-#include "algorithms/md/hymd/model/md_lattice/lattice_node_sims.h"
+#include "algorithms/md/hymd/model/md_lattice/md_lattice_node_info.h"
 #include "algorithms/md/hymd/model/min_picker_lattice/min_picker_node.h"
 #include "algorithms/md/hymd/model/similarity.h"
 #include "algorithms/md/hymd/types.h"
@@ -18,10 +18,10 @@ private:
     MinPickerNode root_;
 
 public:
-    void PickMinimalMds(std::vector<LatticeNodeSims> const& mds);
+    void PickMinimalMds(std::vector<MdLatticeNodeInfo>& mds);
 
     void Advance();
-    std::vector<LatticeNodeSims> GetAll();
+    std::vector<MdLatticeNodeInfo> GetAll();
 
     explicit MinPickerLattice(size_t attribute_num) : attribute_num_(attribute_num) {}
 };

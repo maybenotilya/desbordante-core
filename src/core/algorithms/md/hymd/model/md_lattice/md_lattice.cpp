@@ -57,8 +57,8 @@ SimilarityVector MdLattice::GetMaxValidGeneralizationRhs(SimilarityVector const&
     return rhs;
 }
 
-std::vector<LatticeNodeSims> MdLattice::GetLevel(size_t level) const {
-    std::vector<LatticeNodeSims> collected;
+std::vector<MdLatticeNodeInfo> MdLattice::GetLevel(size_t level) {
+    std::vector<MdLatticeNodeInfo> collected;
     SimilarityVector lhs(column_matches_size_, 0.0);
     root_.GetLevel(collected, lhs, 0, level);
     return collected;

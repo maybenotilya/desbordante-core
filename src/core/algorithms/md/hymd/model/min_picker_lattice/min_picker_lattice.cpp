@@ -10,15 +10,15 @@ void MinPickerLattice::Advance() {
     ++cardinality;
 }
 
-void MinPickerLattice::PickMinimalMds(std::vector<LatticeNodeSims> const& mds) {
-    for (LatticeNodeSims const& md : mds) {
+void MinPickerLattice::PickMinimalMds(std::vector<MdLatticeNodeInfo>& mds) {
+    for (MdLatticeNodeInfo& md : mds) {
         if (picked_lhs_.find(md.lhs_sims) != picked_lhs_.end()) continue;
         root_.TryAdd(md);
     }
 }
 
-std::vector<LatticeNodeSims> MinPickerLattice::GetAll() {
-    std::vector<LatticeNodeSims> collected;
+std::vector<MdLatticeNodeInfo> MinPickerLattice::GetAll() {
+    std::vector<MdLatticeNodeInfo> collected;
     SimilarityVector lhs(attribute_num_, 0.0);
     root_.GetAll(collected, lhs, 0, cardinality);
     for (auto const& md : collected) {

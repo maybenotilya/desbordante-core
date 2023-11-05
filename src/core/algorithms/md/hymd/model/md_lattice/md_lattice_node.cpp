@@ -204,12 +204,12 @@ void MdLatticeNode::GetMaxValidGeneralizationRhs(SimilarityVector const& lhs,
     }
 }
 
-void MdLatticeNode::GetLevel(std::vector<LatticeNodeSims>& collected,
+void MdLatticeNode::GetLevel(std::vector<MdLatticeNodeInfo>& collected,
                              SimilarityVector& this_node_lhs,
-                             [[maybe_unused]] size_t this_node_index, size_t sims_left) const {
+                             [[maybe_unused]] size_t this_node_index, size_t sims_left) {
     if (sims_left == 0) {
         if (std::any_of(rhs_.begin(), rhs_.end(), [](Similarity val) { return val != 0.0; }))
-            collected.emplace_back(this_node_lhs, rhs_);
+            collected.emplace_back(this_node_lhs, &rhs_);
         return;
     }
     for (auto const& [index, threshold_mapping] : children_) {

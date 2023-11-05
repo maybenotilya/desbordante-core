@@ -25,7 +25,7 @@ public:
         return md_lattice_.GetMaxLevel();
     }
 
-    std::vector<LatticeNodeSims> GetLevel(size_t level) const {
+    std::vector<MdLatticeNodeInfo> GetLevel(size_t level) {
         return md_lattice_.GetLevel(level);
     }
 

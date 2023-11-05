@@ -6,7 +6,7 @@
 
 namespace algos::hymd::model {
 
-void MinPickerNode::Add(LatticeNodeSims const& md, size_t this_node_index) {
+void MinPickerNode::Add(MdLatticeNodeInfo const& md, size_t this_node_index) {
     model::SimilarityVector const& lhs_vec = md.lhs_sims;
     assert(this_node_index <= lhs_vec.size());
     size_t const first_non_zero_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
@@ -25,7 +25,7 @@ void MinPickerNode::Add(LatticeNodeSims const& md, size_t this_node_index) {
     node_ptr->Add(md, first_non_zero_index + 1);
 }
 
-bool MinPickerNode::HasGeneralization(LatticeNodeSims const& md, size_t this_node_index) {
+bool MinPickerNode::HasGeneralization(MdLatticeNodeInfo const& md, size_t this_node_index) {
     if (IsMd()) return true;
     SimilarityVector const& lhs_vec = md.lhs_sims;
     for (auto const& [index, threshold_mapping] : children_) {
@@ -44,13 +44,13 @@ bool MinPickerNode::HasGeneralization(LatticeNodeSims const& md, size_t this_nod
     return false;
 }
 
-void MinPickerNode::TryAdd(LatticeNodeSims const& md) {
+void MinPickerNode::TryAdd(MdLatticeNodeInfo const& md) {
     if (HasGeneralization(md, 0)) return;
     RemoveSpecializations(md, 0);
     Add(md, 0);
 }
 
-void MinPickerNode::RemoveSpecializations(LatticeNodeSims const& md, size_t this_node_index) {
+void MinPickerNode::RemoveSpecializations(MdLatticeNodeInfo const& md, size_t this_node_index) {
     // All MDs in the tree are of the same cardinality.
     // if (IsMD()) { rhs_.clear(); return; }
     SimilarityVector const& lhs_vec = md.lhs_sims;
@@ -65,11 +65,12 @@ void MinPickerNode::RemoveSpecializations(LatticeNodeSims const& md, size_t this
             node->RemoveSpecializations(md, cur_node_index + 1);
         }
     }
-    rhs_.clear();
+    rhs_ = nullptr;
 }
 
-void MinPickerNode::GetAll(std::vector<LatticeNodeSims>& collected, SimilarityVector& this_node_lhs,
-                           size_t this_node_index, size_t sims_left) {
+void MinPickerNode::GetAll(std::vector<MdLatticeNodeInfo>& collected,
+                           SimilarityVector& this_node_lhs, size_t this_node_index,
+                           size_t sims_left) {
     if (sims_left == 0) {
         if (IsMd()) collected.emplace_back(this_node_lhs, rhs_);
         return;
