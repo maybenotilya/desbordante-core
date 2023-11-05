@@ -36,6 +36,7 @@ void MdLatticeNode::Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, si
         if (is_first_arr) [[unlikely]] {
             (child_threshold_map[child_similarity] = std::make_unique<MdLatticeNode>(rhs_size))
                 ->AddUnchecked(lhs_sims, rhs_sim, rhs_index, cur_node_index + 1);
+            // TODO: if rhs_sim is 1, we can remove all specializations, check performance
             return;
         }
         auto [it_map, is_first_map] = child_threshold_map.try_emplace(child_similarity);
@@ -44,6 +45,7 @@ void MdLatticeNode::Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, si
             assert(node_ptr == nullptr);
             (node_ptr = std::make_unique<MdLatticeNode>(rhs_size))
                     ->AddUnchecked(lhs_sims, rhs_sim, rhs_index, cur_node_index + 1);
+            // TODO: if rhs_sim is 1, we can remove all specializations, check performance
             return;
         }
         assert(node_ptr != nullptr);
@@ -51,6 +53,8 @@ void MdLatticeNode::Add(SimilarityVector const& lhs_sims, Similarity rhs_sim, si
     }
     double& cur_sim = cur_node_ptr->rhs_[rhs_index];
     if (cur_sim == 0.0 || rhs_sim < cur_sim) cur_sim = rhs_sim;
+    // TODO: if rhs_sim is 1, we can remove all specializations, check performance
+    //  (if we do, then we can avoid checking for all 1 in GetMaxValidGeneralizationRhs)
 }
 
 bool MdLatticeNode::HasGeneralization(SimilarityVector const& lhs_sims, Similarity rhs_sim,
@@ -80,6 +84,7 @@ void MdLatticeNode::AddIfMinimal(SimilarityVector const& lhs_sims, Similarity rh
         if (this_rhs_sim == 0.0) {
             this_rhs_sim = rhs_sim;
         }
+        // TODO: if rhs_sim is 1, we can remove all specializations, check performance
         return;
     }
     {

@@ -2,9 +2,6 @@
 
 #include <algorithm>
 
-#include "algorithms/md/hymd/model/dictionary_compressor/pli_intersector.h"
-#include "util/intersect_sorted_sequences.h"
-
 namespace {
 [[maybe_unused]] void IntersectInPlace(std::set<size_t>& set1, std::set<size_t> const& set2) {
     auto it1 = set1.begin();

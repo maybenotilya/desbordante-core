@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "algorithms/md/hymd/model/dictionary_compressor/pli_intersector.h"
 #include "util/intersect_sorted_sequences.h"
 
 namespace std {
