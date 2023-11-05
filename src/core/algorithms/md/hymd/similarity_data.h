@@ -37,10 +37,6 @@ private:
         return compressed_records_->GetRightRecords();
     }
 
-    void DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds, PliCluster const& cluster,
-                               std::vector<size_t> const& similar_records,
-                               model::SimilarityVector const& gen_max_rhs,
-                               Recommendations* recommendations_ptr) const;
     void LowerForColumnMatch(double& threshold, size_t col_match, PliCluster const& cluster,
                              std::vector<size_t> const& similar_records,
                              model::SimilarityVector const& gen_max_rhs,
@@ -94,11 +90,11 @@ public:
     }
 
     [[nodiscard]] size_t GetLeftSize() const {
-        return compressed_records_->GetLeftRecords().GetNumberOfRecords();
+        return GetLeftRecords().GetNumberOfRecords();
     }
 
     [[nodiscard]] size_t GetRightSize() const {
-        return compressed_records_->GetRightRecords().GetNumberOfRecords();
+        return GetRightRecords().GetNumberOfRecords();
     }
 
     [[nodiscard]] std::optional<model::Similarity> SpecializeOneLhs(

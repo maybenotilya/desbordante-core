@@ -160,18 +160,6 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
     }
 }
 
-void SimilarityData::DecreaseRhsThresholds(model::SimilarityVector& rhs_thresholds,
-                                           PliCluster const& cluster,
-                                           std::vector<size_t> const& similar_records,
-                                           model::SimilarityVector const& gen_max_rhs,
-                                           Recommendations* recommendations_ptr) const {
-    size_t const col_matches_size = column_match_col_indices_.size();
-    for (size_t col_match = 0; col_match < col_matches_size; ++col_match) {
-        LowerForColumnMatch(rhs_thresholds[col_match], col_match, cluster, similar_records,
-                            gen_max_rhs, recommendations_ptr);
-    }
-}
-
 DecBoundVectorUnorderedSet SimilarityData::GetSimVecs(RecordIdentifier const left_record_id) const {
     // TODO: use the "slim" sim index to fill those instead of lookups in sim matrices
     size_t const col_match_number = GetColumnMatchNumber();
@@ -277,9 +265,12 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         model::SimilarityVector const& gen_max_rhs, std::unordered_set<size_t> rhs_indices) const {
     size_t support = 0;
     size_t const col_matches = original_rhs_thresholds.size();
+    size_t const rhs_indices_size = rhs_indices.size();
     model::SimilarityVector rhs_thresholds(col_matches, 0.0);
     for (size_t const index : rhs_indices) {
         assert(original_rhs_thresholds[index] != 0.0);
+        if (prune_nondisjoint_ && lhs_sims[index] != 0.0) continue;
+        if (lhs_sims[index] == 1.0) continue;
         rhs_thresholds[index] = 1.0;
     }
     std::vector<size_t> non_zero_indices = GetNonZeroIndices(lhs_sims);
@@ -300,20 +291,15 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             std::vector<RecordIdentifier> similar_records =
                     GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
             support += cluster.size() * similar_records.size();
-            if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
-                            [](model::Similarity val) { return val == 0.0; }) &&
-                support >= min_support) {
-                return {std::move(rhs_thresholds), false};
-            }
+            size_t zeroes = 0;
             for (size_t const col_match_idx : rhs_indices) {
+                model::Similarity& cur_rhs_sim = rhs_thresholds[col_match_idx];
                 LowerForColumnMatch(rhs_thresholds[col_match_idx], col_match_idx, cluster,
                                     similar_records, gen_max_rhs, recommendations_ptr);
+                if (cur_rhs_sim == 0.0) ++zeroes;
             }
-            if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
-                            [](model::Similarity val) { return val == 0.0; }) &&
-                support >= min_support) {
+            if (zeroes == rhs_indices_size && support >= min_support)
                 return {std::move(rhs_thresholds), false};
-            }
         }
         return {std::move(rhs_thresholds), support < min_support};
     } else {
@@ -376,20 +362,15 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
                     iters);
             similar_records.erase(it, similar_records.end());
             support += cluster.size() * similar_records.size();
-            if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
-                            [](model::Similarity val) { return val == 0.0; }) &&
-                support >= min_support) {
-                return {std::move(rhs_thresholds), false};
-            }
+            size_t zeroes = 0;
             for (size_t const col_match_idx : rhs_indices) {
+                model::Similarity& cur_rhs_sim = rhs_thresholds[col_match_idx];
                 LowerForColumnMatch(rhs_thresholds[col_match_idx], col_match_idx, cluster,
                                     similar_records, gen_max_rhs, recommendations_ptr);
+                if (cur_rhs_sim == 0.0) ++zeroes;
             }
-            if (std::all_of(rhs_thresholds.begin(), rhs_thresholds.end(),
-                            [](model::Similarity val) { return val == 0.0; }) &&
-                support >= min_support) {
+            if (zeroes == rhs_indices_size && support >= min_support)
                 return {std::move(rhs_thresholds), false};
-            }
         }
         return {std::move(rhs_thresholds), support < min_support};
     }
