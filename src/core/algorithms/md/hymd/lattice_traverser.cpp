@@ -13,21 +13,18 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
     while (cur_level_ <= lattice.GetMaxLevel()) {
         std::vector<model::MdLatticeNodeInfo> level_mds = lattice.GetLevel(cur_level_);
         min_picker_lattice.PickMinimalMds(level_mds);
-        std::vector<model::MdLatticeNodeInfo> cur = min_picker_lattice.GetAll();
+        std::vector<model::ValidationInfo*> cur = min_picker_lattice.GetAll();
         if (cur.empty()) {
             ++cur_level_;
             min_picker_lattice.Advance();
             continue;
         }
         std::vector<model::LatticeMd> mds_to_add_if_min;
-        for (model::MdLatticeNodeInfo& node : cur) {
-            model::SimilarityVector const& lhs_sims = node.lhs_sims;
-            model::SimilarityVector& rhs_sims = *node.rhs_sims;
+        for (model::ValidationInfo* info : cur) {
+            model::SimilarityVector const& lhs_sims = info->info->lhs_sims;
+            model::SimilarityVector& rhs_sims = *info->info->rhs_sims;
+            std::unordered_set<size_t> const& indices = info->rhs_indices;
             model::SimilarityVector old_rhs_sims = rhs_sims;
-            std::unordered_set<size_t> indices;
-            for (size_t index = 0; index < col_matches_num; ++index) {
-                if (old_rhs_sims[index] != 0.0) indices.insert(index);
-            }
             for (size_t const index : indices) {
                 rhs_sims[index] = 0.0;
             }
@@ -53,18 +50,15 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
                         similarity_data.SpecializeLhs(lhs_sims, i);
                 if (!new_lhs_sims.has_value()) continue;
                 if (lattice.IsUnsupported(new_lhs_sims.value())) continue;
-                for (size_t j = 0; j < col_matches_num; ++j) {
+                for (size_t const j : indices) {
                     model::Similarity const new_lhs_sim = new_lhs_sims.value()[j];
                     model::Similarity const rhs_sim = old_rhs_sims[j];
                     if (prune_nondisjoint_ && new_lhs_sim != 0.0) continue;
                     if (rhs_sim > new_lhs_sim) {
-                        mds_to_add_if_min.emplace_back(new_lhs_sims.value(), rhs_sim, j);
+                        lattice.AddIfMinimalAndNotUnsupported(new_lhs_sims.value(), rhs_sim, j);
                     }
                 }
             }
-        }
-        for (auto& md : mds_to_add_if_min) {
-            lattice.AddIfMinAndNotUnsupported(md);
         }
         if (!traverse_all) return false;
         // TODO: if we specialized no LHSs, we can cut off the rest of the lattice here.
