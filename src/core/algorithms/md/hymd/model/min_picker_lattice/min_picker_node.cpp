@@ -13,7 +13,7 @@ void MinPickerNode::Add(MdLatticeNodeInfo& md, size_t this_node_index,
     assert(this_node_index <= lhs_vec.size());
     size_t const first_non_zero_index = util::GetFirstNonZeroIndex(lhs_vec, this_node_index);
     if (first_non_zero_index == lhs_vec.size()) {
-        assert(task_info_.info == nullptr);
+        assert(!task_info_);
         task_info_ = {&md, std::move(indices)};
         return;
     }
@@ -91,7 +91,6 @@ void MinPickerNode::GetAll(std::vector<ValidationInfo*>& collected, size_t sims_
         return;
     }
     for (auto const& [index, threshold_mapping] : children_) {
-        assert(cur_node_index < this_node_lhs.size());
         for (auto const& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
             node->GetAll(collected, sims_left - 1);

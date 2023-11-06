@@ -19,7 +19,6 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             min_picker_lattice.Advance();
             continue;
         }
-        std::vector<model::LatticeMd> mds_to_add_if_min;
         for (model::ValidationInfo* info : cur) {
             model::SimilarityVector const& lhs_sims = info->info->lhs_sims;
             model::SimilarityVector& rhs_sims = *info->info->rhs_sims;

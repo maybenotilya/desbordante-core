@@ -11,6 +11,7 @@ void MinPickerLattice::Advance() {
 }
 
 void MinPickerLattice::PickMinimalMds(std::vector<MdLatticeNodeInfo>& mds) {
+    root_ = MinPickerNode();
     for (MdLatticeNodeInfo& md : mds) {
         std::unordered_set<size_t> const& previously_picked_rhs = picked_[md.lhs_sims];
         std::unordered_set<size_t> indices;
@@ -38,7 +39,6 @@ std::vector<ValidationInfo*> MinPickerLattice::GetAll() {
             assert(inserted);
         }
     }
-    root_ = MinPickerNode();
     return collected;
 }
 
