@@ -41,6 +41,11 @@ private:
                              std::vector<size_t> const& similar_records,
                              model::SimilarityVector const& gen_max_rhs,
                              Recommendations* recommendations_ptr) const;
+    void LowerForColumnMatch(double& threshold, size_t col_match,
+                             std::vector<CompressedRecord const*> const& cluster,
+                             std::vector<size_t> const& similar_records,
+                             model::SimilarityVector const& gen_max_rhs,
+                             Recommendations* recommendations_ptr) const;
     [[nodiscard]] std::vector<RecordIdentifier> const* GetSimilarRecords(
             ValueIdentifier value_id, model::Similarity similarity,
             size_t column_match_index) const;

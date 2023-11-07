@@ -97,17 +97,31 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
                                          std::vector<size_t> const& similar_records,
                                          model::SimilarityVector const& gen_max_rhs,
                                          Recommendations* recommendations_ptr) const {
+    std::vector<CompressedRecord const*> cluster_records;
+    cluster_records.reserve(cluster.size());
+    auto const& left_records = GetLeftRecords().GetRecords();
+    for (RecordIdentifier left_record_id : cluster) {
+        cluster_records.push_back(&left_records[left_record_id]);
+    }
+    LowerForColumnMatch(threshold, col_match, cluster_records, similar_records, gen_max_rhs,
+                        recommendations_ptr);
+}
+
+void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
+                                         std::vector<CompressedRecord const*> const& cluster,
+                                         std::vector<size_t> const& similar_records,
+                                         model::SimilarityVector const& gen_max_rhs,
+                                         Recommendations* recommendations_ptr) const {
     if (threshold == 0.0) return;
     double const cur_gen_max_rhs = gen_max_rhs[col_match];
     double const cur_min_sim = rhs_min_similarities_[col_match];
 
     auto const& right_records = GetRightRecords().GetRecords();
-    auto const& left_records = GetLeftRecords().GetRecords();
 
     // TODO: try calculating sim vecs here.
     std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped;
-    for (RecordIdentifier record_id_left : cluster) {
-        CompressedRecord const& left_record = left_records[record_id_left];
+    for (CompressedRecord const* left_record_ptr : cluster) {
+        CompressedRecord const& left_record = *left_record_ptr;
         grouped[left_record[col_match]].push_back(&left_record);
     }
     for (auto const& [left_value_id, records_left] : grouped) {
@@ -329,7 +343,7 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
                 left_records_info.GetPli(col_col_match_mapping.begin()->first).GetClusters();
         size_t const first_pli_size = first_pli.size();
         // TODO: use ptrs to actual compressed records
-        std::unordered_map<std::vector<ValueIdentifier>, std::vector<RecordIdentifier>>
+        std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>>
                 grouped;
         for (size_t first_value_id = 0; first_value_id < first_pli_size; ++first_value_id) {
             PliCluster const& cluster = first_pli[first_value_id];
@@ -340,7 +354,7 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
                 for (auto const& [pli_idx, col_match_idxs] : col_col_match_mapping) {
                     value_ids[idx++] = record[pli_idx];
                 }
-                grouped[std::move(value_ids)].push_back(record_id);
+                grouped[std::move(value_ids)].push_back(&record);
             }
         }
         for (auto const& [val_ids, cluster] : grouped) {
