@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 #include "algorithms/md/hymd/model/md_lattice/md_lattice.h"
 #include "algorithms/md/hymd/model/support_lattice/support_lattice.h"
 
