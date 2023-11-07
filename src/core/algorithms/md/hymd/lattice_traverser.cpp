@@ -12,11 +12,10 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
     model::MinPickerLattice& min_picker_lattice = *min_picker_lattice_;
     while (cur_level_ <= lattice.GetMaxLevel()) {
         std::vector<model::MdLatticeNodeInfo> level_mds = lattice.GetLevel(cur_level_);
-        min_picker_lattice.PickMinimalMds(level_mds);
-        std::vector<model::ValidationInfo*> cur = min_picker_lattice.GetAll();
+        std::vector<model::ValidationInfo*> cur =
+                min_picker_lattice.GetUncheckedLevelMds(level_mds);
         if (cur.empty()) {
             ++cur_level_;
-            min_picker_lattice.Advance();
             continue;
         }
         for (model::ValidationInfo* info : cur) {

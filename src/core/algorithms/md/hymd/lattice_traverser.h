@@ -31,7 +31,7 @@ public:
           recommendations_ptr_(recommendations_ptr),
           min_support_(min_support),
           min_picker_lattice_(std::make_unique<model::MinPickerLattice>(
-                  similarity_data_->GetColumnMatchNumber())) {}
+                  lattice_, similarity_data_->GetColumnMatchNumber())) {}
 
     bool TraverseLattice(bool traverse_all);
 };

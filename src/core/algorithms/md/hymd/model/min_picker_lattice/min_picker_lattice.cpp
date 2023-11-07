@@ -42,4 +42,11 @@ std::vector<ValidationInfo*> MinPickerLattice::GetAll() {
     return collected;
 }
 
+std::vector<ValidationInfo*> MinPickerLattice::GetUncheckedLevelMds(std::vector<MdLatticeNodeInfo>& mds) {
+    PickMinimalMds(mds);
+    std::vector<ValidationInfo*> unchecked = GetAll();
+    if (unchecked.empty()) Advance();
+    return unchecked;
+}
+
 }

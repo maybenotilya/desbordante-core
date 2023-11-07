@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "algorithms/md/hymd/model/full_lattice.h"
 #include "algorithms/md/hymd/model/md_lattice/md_lattice_node_info.h"
 #include "algorithms/md/hymd/model/min_picker_lattice/min_picker_node.h"
 #include "algorithms/md/hymd/model/similarity.h"
@@ -14,18 +15,21 @@ namespace algos::hymd::model {
 
 class MinPickerLattice {
 private:
-    std::unordered_map<SimilarityVector, std::unordered_set<size_t>> picked_;
+    FullLattice* const lattice_;
     size_t const attribute_num_;
+    std::unordered_map<SimilarityVector, std::unordered_set<size_t>> picked_;
     size_t cardinality = 0;
     MinPickerNode root_;
 
-public:
-    void PickMinimalMds(std::vector<MdLatticeNodeInfo>& mds);
-
-    void Advance();
     std::vector<ValidationInfo*> GetAll();
+    void PickMinimalMds(std::vector<MdLatticeNodeInfo>& mds);
+    void Advance();
 
-    explicit MinPickerLattice(size_t attribute_num) : attribute_num_(attribute_num) {}
+public:
+    std::vector<ValidationInfo*> GetUncheckedLevelMds(std::vector<MdLatticeNodeInfo>& mds);
+
+    explicit MinPickerLattice(FullLattice* const lattice, size_t attribute_num)
+        : lattice_(lattice), attribute_num_(attribute_num) {}
 };
 
 }  // namespace algos::hymd::model

@@ -253,6 +253,8 @@ std::optional<model::SimilarityVector> SimilarityData::SpecializeLhs(
     auto end_bounds = decision_bounds.end();
     auto upper = std::upper_bound(decision_bounds.begin(), end_bounds, similarity);
     if (upper == end_bounds) {
+        // Does not handle the case where the highest possible decision bound is not 1.0
+        // correctly, but Metanome doesn't either
         return std::nullopt;
     }
     return *upper;
