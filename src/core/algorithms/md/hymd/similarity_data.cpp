@@ -164,8 +164,8 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
                     recommendations_ptr->emplace(left_record_ptr, &right_record);
                 }
                 if (!(threshold > cur_gen_max_rhs && threshold >= cur_min_sim)) {
-                    // shouldUpdateViolations (if violation collection is too small, keep going) not
-                    // done, idk what it does, but the algo should still work
+                    // TODO: shouldUpdateViolations: if number of violations in a column match is
+                    // less than 20, keep going
                     threshold = 0.0;
                     return;
                 }
@@ -359,7 +359,8 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         }
         for (auto const& [val_ids, cluster] : grouped) {
             using IterType = std::vector<RecordIdentifier>::const_iterator;
-            std::vector<std::pair<IterType, IterType>> iters;
+            using IterPair = std::pair<IterType, IterType>;
+            std::vector<IterPair> iters;
             iters.reserve(cardinality);
             for (size_t column_match_index : non_zero_indices) {
                 std::vector<RecordIdentifier> const* similar_records_ptr =
@@ -370,7 +371,13 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
                 iters.emplace_back(similar_records.begin(), similar_records.end());
             }
             if (iters.size() != cardinality) continue;
+            std::sort(iters.begin(), iters.end(), [](IterPair const& p1, IterPair const& p2) {
+                return p1.second - p1.first < p2.second - p2.first;
+            });
             std::vector<RecordIdentifier> similar_records;
+            IterPair const& first = *iters.begin();
+            similar_records.reserve(first.second - first.first);
+            // TODO: bin search instead? unordered_set instead?
             util::IntersectSortedSequences(
                     [&similar_records](RecordIdentifier rec) { similar_records.push_back(rec); },
                     iters);
