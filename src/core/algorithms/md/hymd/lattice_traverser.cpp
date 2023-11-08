@@ -19,10 +19,9 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             continue;
         }
         for (model::ValidationInfo* info : cur) {
-            // avoid copy?
-            model::SimilarityVector lhs_sims = info->info->lhs_sims;
+            model::SimilarityVector& lhs_sims = info->info->lhs_sims;
             model::SimilarityVector& rhs_sims = *info->info->rhs_sims;
-            std::unordered_set<size_t> const& indices = info->rhs_indices;
+            std::unordered_set<size_t>& indices = info->rhs_indices;
             model::SimilarityVector old_rhs_sims = rhs_sims;
             for (size_t const index : indices) {
                 rhs_sims[index] = 0.0;

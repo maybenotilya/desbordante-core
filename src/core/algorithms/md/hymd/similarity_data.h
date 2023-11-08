@@ -25,8 +25,6 @@ private:
     bool prune_nondisjoint_ = true;
     bool const single_table_;
 
-    [[nodiscard]] std::map<size_t, std::vector<size_t>> MakeColToColMatchMapping(
-            std::vector<size_t> const& col_match_indices) const;
     [[nodiscard]] size_t GetLeftPliIndex(size_t column_match_index) const;
 
     model::DictionaryCompressor const& GetLeftRecords() const {
@@ -119,7 +117,7 @@ public:
                                              size_t min_support,
                                              model::SimilarityVector const& original_rhs_thresholds,
                                              model::SimilarityVector const& gen_max_rhs,
-                                             std::unordered_set<size_t> rhs_indices) const;
+                                             std::unordered_set<size_t>& rhs_indices) const;
 
     [[nodiscard]] std::optional<model::Similarity> GetPreviousSimilarity(model::Similarity lhs_sim,
                                                                          size_t col_match) const;

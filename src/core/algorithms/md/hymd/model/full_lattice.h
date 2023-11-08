@@ -28,6 +28,7 @@ public:
     }
 
     std::vector<MdLatticeNodeInfo> GetLevel(size_t level) {
+        // TODO: filter unsupported
         return md_lattice_.GetLevel(level);
     }
 

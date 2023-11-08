@@ -5,7 +5,7 @@
 namespace algos::hymd::model {
 
 struct MdLatticeNodeInfo {
-    SimilarityVector const lhs_sims;
+    SimilarityVector lhs_sims;
     SimilarityVector* const rhs_sims;
 
     MdLatticeNodeInfo(SimilarityVector lhs_sims, SimilarityVector* rhs_sims)

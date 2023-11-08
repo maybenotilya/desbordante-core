@@ -79,15 +79,6 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
             std::move(sim_indexes), one_table_given);
 }
 
-std::map<size_t, std::vector<size_t>> SimilarityData::MakeColToColMatchMapping(
-        std::vector<size_t> const& col_match_indices) const {
-    std::map<size_t, std::vector<size_t>> mapping;
-    for (size_t col_match_index : col_match_indices) {
-        mapping[GetLeftPliIndex(col_match_index)].push_back(col_match_index);
-    }
-    return mapping;
-}
-
 size_t SimilarityData::GetLeftPliIndex(size_t column_match_index) const {
     return column_match_col_indices_[column_match_index].first;
 }
@@ -151,24 +142,26 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
             }
             double record_similarity = it_right->second;
 
-            if (record_similarity < rhs_min_similarities_[col_match]) {
+            if (record_similarity == 0.0) {
                 threshold = 0.0;
                 for (CompressedRecord const* left_record_ptr : records_left) {
                     recommendations_ptr->emplace(left_record_ptr, &right_record);
                 }
                 return;
             }
+            assert(record_similarity >= cur_min_sim);
             if (threshold > record_similarity) {
                 threshold = record_similarity;
                 for (CompressedRecord const* left_record_ptr : records_left) {
                     recommendations_ptr->emplace(left_record_ptr, &right_record);
                 }
-                if (!(threshold > cur_gen_max_rhs && threshold >= cur_min_sim)) {
+                if (threshold <= cur_gen_max_rhs) {
                     // TODO: shouldUpdateViolations: if number of violations in a column match is
                     // less than 20, keep going
                     threshold = 0.0;
                     return;
                 }
+                assert(threshold >= cur_min_sim);
             }
         }
     }
@@ -277,7 +270,7 @@ std::optional<model::SimilarityVector> SimilarityData::SpecializeLhs(
 SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         model::SimilarityVector const& lhs_sims, Recommendations* recommendations_ptr,
         size_t min_support, model::SimilarityVector const& original_rhs_thresholds,
-        model::SimilarityVector const& gen_max_rhs, std::unordered_set<size_t> rhs_indices) const {
+        model::SimilarityVector const& gen_max_rhs, std::unordered_set<size_t>& rhs_indices) const {
     size_t support = 0;
     size_t const col_matches = original_rhs_thresholds.size();
     size_t const rhs_indices_size = rhs_indices.size();
@@ -299,7 +292,11 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
     }
     if (cardinality == 1) {
         size_t const non_zero_index = non_zero_indices[0];
-        if (prune_nondisjoint_) rhs_thresholds[non_zero_index] = 0.0;
+        assert(!prune_nondisjoint_ || rhs_thresholds[non_zero_index] == 0.0);
+        if (!prune_nondisjoint_) {
+            rhs_thresholds[non_zero_index] = 0.0;
+            rhs_indices.erase(non_zero_index);
+        }
         std::vector<std::vector<size_t>> const& clusters =
                 GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
         for (size_t value_id = 0; value_id < clusters.size(); ++value_id) {
@@ -321,18 +318,21 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         }
         return {std::move(rhs_thresholds), support < min_support};
     } else {
-        if (prune_nondisjoint_)
-            for (size_t idx : non_zero_indices) {
-                rhs_thresholds[idx] = 0.0;
-            }
-        std::map<size_t, std::vector<size_t>> col_col_match_mapping =
-                MakeColToColMatchMapping(non_zero_indices);
-        std::unordered_map<size_t, size_t> col_match_to_val_ids_idx;
+        assert(!prune_nondisjoint_ || std::all_of(non_zero_indices.begin(), non_zero_indices.end(),
+                                                  [&rhs_thresholds](size_t const index) {
+                                                      return rhs_thresholds[index] == 0.0;
+                                                  }));
+        std::map<size_t, std::vector<size_t>> col_col_match_mapping;
+        for (size_t col_match_index : non_zero_indices) {
+            col_col_match_mapping[GetLeftPliIndex(col_match_index)].push_back(col_match_index);
+        }
+        std::vector<std::pair<size_t, size_t>> col_match_val_idx_vec;
+        col_match_val_idx_vec.reserve(cardinality);
         {
             size_t idx = 0;
             for (auto const& [pli_idx, col_match_idxs] : col_col_match_mapping) {
                 for (size_t const col_match_idx : col_match_idxs) {
-                    col_match_to_val_ids_idx[col_match_idx] = idx;
+                    col_match_val_idx_vec.emplace_back(col_match_idx, idx);
                 }
                 ++idx;
             }
@@ -342,7 +342,6 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         std::vector<PliCluster> const& first_pli =
                 left_records_info.GetPli(col_col_match_mapping.begin()->first).GetClusters();
         size_t const first_pli_size = first_pli.size();
-        // TODO: use ptrs to actual compressed records
         std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>>
                 grouped;
         for (size_t first_value_id = 0; first_value_id < first_pli_size; ++first_value_id) {
@@ -362,10 +361,9 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             using IterPair = std::pair<IterType, IterType>;
             std::vector<IterPair> iters;
             iters.reserve(cardinality);
-            for (size_t column_match_index : non_zero_indices) {
-                std::vector<RecordIdentifier> const* similar_records_ptr =
-                    GetSimilarRecords(val_ids[col_match_to_val_ids_idx[column_match_index]],
-                                          lhs_sims[column_match_index], column_match_index);
+            for (auto [column_match_index, val_ids_idx] : col_match_val_idx_vec) {
+                std::vector<RecordIdentifier> const* similar_records_ptr = GetSimilarRecords(
+                        val_ids[val_ids_idx], lhs_sims[column_match_index], column_match_index);
                 if (similar_records_ptr == nullptr) break;
                 std::vector<RecordIdentifier> const& similar_records = *similar_records_ptr;
                 iters.emplace_back(similar_records.begin(), similar_records.end());
