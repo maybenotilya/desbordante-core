@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "algorithms/md/hymd/model/similarity.h"
-#include "util/custom_hashes.h"
+#include "util/py_tuple_hash.h"
 
 namespace algos::hymd {
 using ValueIdentifier = size_t;
@@ -47,7 +47,7 @@ namespace std {
 template <>
 struct hash<std::pair<size_t, size_t>> {
     std::size_t operator()(std::pair<size_t, size_t> const& p) const noexcept {
-        PyTupleHash<size_t> hasher{2};
+        util::PyTupleHash<size_t> hasher{2};
         hasher.AddValue(p.first);
         hasher.AddValue(p.second);
         return hasher.GetResult();
@@ -64,7 +64,7 @@ struct hash<algos::hymd::Recommendation> {
         using algos::hymd::CompressedRecord, algos::hymd::ValueIdentifier;
         CompressedRecord const& left_record = *p.left_record;
         CompressedRecord const& right_record = *p.right_record;
-        PyTupleHash<ValueIdentifier> hasher{left_record.size() * 2};
+        util::PyTupleHash<ValueIdentifier> hasher{left_record.size() * 2};
         for (ValueIdentifier v : left_record) {
             hasher.AddValue(v);
         }
@@ -78,7 +78,7 @@ struct hash<algos::hymd::Recommendation> {
 template <>
 struct hash<algos::hymd::DecisionBoundsVector> {
     std::size_t operator()(algos::hymd::DecisionBoundsVector const& p) const noexcept {
-        PyTupleHash<double> hasher{p.size()};
+        util::PyTupleHash<double> hasher{p.size()};
         for (double el : p) {
             hasher.AddValue(el);
         }

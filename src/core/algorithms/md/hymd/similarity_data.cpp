@@ -3,13 +3,14 @@
 #include <algorithm>
 
 #include "util/intersect_sorted_sequences.h"
+#include "util/py_tuple_hash.h"
 
 namespace std {
 template <>
 struct hash<std::vector<algos::hymd::ValueIdentifier>> {
     std::size_t operator()(std::vector<algos::hymd::ValueIdentifier> const& p) const {
         using algos::hymd::ValueIdentifier;
-        auto hasher = PyTupleHash<ValueIdentifier>(p.size());
+        auto hasher = util::PyTupleHash<ValueIdentifier>(p.size());
         for (ValueIdentifier el : p) {
             hasher.AddValue(el);
         }
