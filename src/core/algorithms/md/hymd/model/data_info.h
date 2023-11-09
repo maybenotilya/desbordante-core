@@ -5,6 +5,7 @@
 
 #include "algorithms/md/hymd/model/dictionary_compressor/keyed_position_list_index.h"
 #include "algorithms/md/hymd/types.h"
+#include "model/index.h"
 #include "model/types/type.h"
 
 namespace algos::hymd::model {
@@ -21,7 +22,7 @@ public:
     DataInfo(std::unique_ptr<std::byte[]> data, size_t elements, size_t type_size,
              std::unordered_set<ValueIdentifier> nulls, std::unordered_set<ValueIdentifier> empty);
 
-    std::byte const* GetAt(size_t index) const {
+    std::byte const* GetAt(::model::Index index) const {
         return data_.get() + type_size_ * index;
     }
 

@@ -7,6 +7,7 @@
 #include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
 #include "algorithms/md/hymd/model/similarity_measure/similarity_measure.h"
 #include "algorithms/md/hymd/types.h"
+#include "model/index.h"
 
 namespace algos::hymd {
 
@@ -88,7 +89,7 @@ public:
         return column_match_col_indices_.size();
     }
 
-    [[nodiscard]] std::pair<size_t, size_t> GetColMatchIndices(size_t index) const {
+    [[nodiscard]] std::pair<size_t, size_t> GetColMatchIndices(::model::Index index) const {
         return column_match_col_indices_[index];
     }
 
