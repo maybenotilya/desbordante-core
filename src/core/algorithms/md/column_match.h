@@ -3,17 +3,19 @@
 #include <cstddef>
 #include <string>
 
-namespace model {
+#include "model/index.h"
+
+namespace model::md {
 
 struct ColumnMatch {
-    size_t left_col_index;
-    size_t right_col_index;
+    Index left_col_index;
+    Index right_col_index;
     std::string similarity_function_name;
 
-    ColumnMatch(size_t left_col_index, size_t right_col_index, std::string similarity_function_name)
+    ColumnMatch(Index left_col_index, Index right_col_index, std::string similarity_function_name)
         : left_col_index(left_col_index),
           right_col_index(right_col_index),
           similarity_function_name(std::move(similarity_function_name)) {}
 };
 
-}  // namespace model
+}  // namespace model::md

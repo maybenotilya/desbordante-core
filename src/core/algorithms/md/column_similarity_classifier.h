@@ -2,24 +2,27 @@
 
 #include <cstddef>
 
-namespace model {
+#include "algorithms/md/decision_boundary.h"
+#include "model/index.h"
+
+namespace model::md {
 
 class ColumnSimilarityClassifier {
 private:
-    size_t column_match_index_;
-    double decision_boundary_;
+    Index column_match_index_;
+    DecisionBoundary decision_boundary_;
 
 public:
-    ColumnSimilarityClassifier(size_t column_match_index, double decision_boundary)
+    ColumnSimilarityClassifier(Index column_match_index, DecisionBoundary decision_boundary)
         : column_match_index_(column_match_index), decision_boundary_(decision_boundary) {}
 
-    [[nodiscard]] size_t GetColumnMatchIndex() const noexcept {
+    [[nodiscard]] Index GetColumnMatchIndex() const noexcept {
         return column_match_index_;
     }
 
-    [[nodiscard]] double GetDecisionBoundary() const noexcept {
+    [[nodiscard]] DecisionBoundary GetDecisionBoundary() const noexcept {
         return decision_boundary_;
     }
 };
 
-}  // namespace model
+}  // namespace model::md

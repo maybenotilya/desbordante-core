@@ -16,7 +16,7 @@ class PyTupleHash {
 public:
     PyTupleHash(size_t len) : len_(len) {}
 
-    [[nodiscard]] size_t GetResult() const {
+    [[nodiscard]] size_t GetResult() const noexcept {
         return res_;
     }
 

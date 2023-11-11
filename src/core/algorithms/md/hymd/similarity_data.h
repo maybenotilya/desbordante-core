@@ -3,69 +3,76 @@
 #include <optional>
 #include <vector>
 
-#include "algorithms/md/hymd/model/compressed_records.h"
-#include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
-#include "algorithms/md/hymd/model/similarity_measure/similarity_measure.h"
-#include "algorithms/md/hymd/types.h"
+#include "algorithms/md/decision_boundary.h"
+#include "algorithms/md/hymd/decision_boundary_vector.h"
+#include "algorithms/md/hymd/indexes/compressed_records.h"
+#include "algorithms/md/hymd/indexes/pli_cluster.h"
+#include "algorithms/md/hymd/indexes/similarity_index.h"
+#include "algorithms/md/hymd/indexes/similarity_matrix.h"
+#include "algorithms/md/hymd/preprocessing/similarity.h"
+#include "algorithms/md/hymd/preprocessing/similarity_measure/similarity_measure.h"
+#include "algorithms/md/hymd/recommendation.h"
+#include "algorithms/md/hymd/similarity_vector.h"
 #include "model/index.h"
 
 namespace algos::hymd {
 
 class SimilarityData {
 private:
-    model::CompressedRecords* compressed_records_;
-    model::SimilarityVector rhs_min_similarities_;
+    indexes::CompressedRecords* compressed_records_;
+    std::vector<model::md::DecisionBoundary> rhs_min_similarities_;
 
-    std::vector<std::pair<size_t, size_t>> column_match_col_indices_;
+    std::vector<std::pair<model::Index, model::Index>> column_match_col_indices_;
 
-    std::vector<std::vector<model::Similarity>> natural_decision_bounds_;
-    std::vector<model::Similarity> lowest_sims_;
-    std::vector<SimilarityMatrix> sim_matrices_;
-    std::vector<SimilarityIndex> sim_indexes_;
+    std::vector<std::vector<model::md::DecisionBoundary>> natural_decision_bounds_;
+    std::vector<preprocessing::Similarity> lowest_sims_;
+    std::vector<indexes::SimilarityMatrix> sim_matrices_;
+    std::vector<indexes::SimilarityIndex> sim_indexes_;
 
     bool prune_nondisjoint_ = true;
     bool const single_table_;
 
-    [[nodiscard]] size_t GetLeftPliIndex(size_t column_match_index) const;
+    [[nodiscard]] model::Index GetLeftPliIndex(model::Index column_match_index) const;
 
-    model::DictionaryCompressor const& GetLeftRecords() const {
+    indexes::DictionaryCompressor const& GetLeftRecords() const {
         return compressed_records_->GetLeftRecords();
     }
 
-    model::DictionaryCompressor const& GetRightRecords() const {
+    indexes::DictionaryCompressor const& GetRightRecords() const {
         return compressed_records_->GetRightRecords();
     }
 
-    void LowerForColumnMatch(double& threshold, size_t col_match, PliCluster const& cluster,
-                             std::vector<size_t> const& similar_records,
-                             model::SimilarityVector const& gen_max_rhs,
+    void LowerForColumnMatch(model::md::DecisionBoundary& threshold, model::Index col_match,
+                             indexes::PliCluster const& cluster,
+                             std::vector<RecordIdentifier> const& similar_records,
+                             std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
                              Recommendations* recommendations_ptr) const;
-    void LowerForColumnMatch(double& threshold, size_t col_match,
+    void LowerForColumnMatch(model::md::DecisionBoundary& threshold, model::Index col_match,
                              std::vector<CompressedRecord const*> const& cluster,
-                             std::vector<size_t> const& similar_records,
-                             model::SimilarityVector const& gen_max_rhs,
+                             std::vector<RecordIdentifier> const& similar_records,
+                             std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
                              Recommendations* recommendations_ptr) const;
     [[nodiscard]] std::vector<RecordIdentifier> const* GetSimilarRecords(
-            ValueIdentifier value_id, model::Similarity similarity,
-            size_t column_match_index) const;
+            ValueIdentifier value_id, model::md::DecisionBoundary similarity,
+            model::Index column_match_index) const;
 
 public:
     struct LhsData {
-        model::SimilarityVector max_rhs_dec_bounds;
+        std::vector<model::md::DecisionBoundary> max_rhs_dec_bounds;
         bool is_unsupported;
 
-        LhsData(model::SimilarityVector max_rhs_dec_bounds, bool is_unsupported) noexcept
+        LhsData(std::vector<model::md::DecisionBoundary> max_rhs_dec_bounds,
+                bool is_unsupported) noexcept
             : max_rhs_dec_bounds(std::move(max_rhs_dec_bounds)), is_unsupported(is_unsupported) {}
     };
 
-    SimilarityData(model::CompressedRecords* compressed_records,
-                   model::SimilarityVector rhs_min_similarities,
-                   std::vector<std::pair<size_t, size_t>> column_match_col_indices,
-                   std::vector<DecisionBoundsVector> natural_decision_bounds,
-                   std::vector<model::Similarity> lowest_sims,
-                   std::vector<SimilarityMatrix> sim_matrices,
-                   std::vector<SimilarityIndex> sim_indexes,
-                   bool single_table)
+    SimilarityData(indexes::CompressedRecords* compressed_records,
+                   std::vector<model::md::DecisionBoundary> rhs_min_similarities,
+                   std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
+                   std::vector<std::vector<model::md::DecisionBoundary>> natural_decision_bounds,
+                   std::vector<preprocessing::Similarity> lowest_sims,
+                   std::vector<indexes::SimilarityMatrix> sim_matrices,
+                   std::vector<indexes::SimilarityIndex> sim_indexes, bool single_table)
         : compressed_records_(compressed_records),
           rhs_min_similarities_(std::move(rhs_min_similarities)),
           column_match_col_indices_(std::move(column_match_col_indices)),
@@ -76,12 +83,14 @@ public:
           single_table_(single_table) {}
 
     static std::unique_ptr<SimilarityData> CreateFrom(
-            model::CompressedRecords* compressed_records, model::SimilarityVector min_similarities,
-            std::vector<std::pair<size_t, size_t>> column_match_col_indices,
-            std::vector<model::SimilarityMeasure const*> const& sim_measures,
+            indexes::CompressedRecords* compressed_records,
+            std::vector<model::md::DecisionBoundary> min_similarities,
+            std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
+            std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> const&
+                    sim_measures,
             bool is_null_equal_null);
 
-    [[nodiscard]] model::SimilarityVector const& GetRhsMinSimilarities() const {
+    [[nodiscard]] std::vector<model::md::DecisionBoundary> const& GetRhsMinSimilarities() const {
         return rhs_min_similarities_;
     }
 
@@ -89,7 +98,8 @@ public:
         return column_match_col_indices_.size();
     }
 
-    [[nodiscard]] std::pair<size_t, size_t> GetColMatchIndices(::model::Index index) const {
+    [[nodiscard]] std::pair<model::Index, model::Index> GetColMatchIndices(
+            model::Index index) const {
         return column_match_col_indices_[index];
     }
 
@@ -101,27 +111,22 @@ public:
         return GetRightRecords().GetNumberOfRecords();
     }
 
-    [[nodiscard]] std::optional<model::Similarity> SpecializeOneLhs(
-            size_t col_match_index, model::Similarity similarity) const;
-    [[nodiscard]] std::optional<model::SimilarityVector> SpecializeLhs(
-            model::SimilarityVector const& lhs, size_t col_match_index) const;
-    [[nodiscard]] std::optional<model::SimilarityVector> SpecializeLhs(
-            model::SimilarityVector const& lhs, size_t col_match_index,
-            model::Similarity similarity) const;
+    [[nodiscard]] std::optional<model::md::DecisionBoundary> SpecializeOneLhs(
+            model::Index col_match_index, model::md::DecisionBoundary similarity) const;
 
-    [[nodiscard]] DecBoundVectorUnorderedSet GetSimVecs(RecordIdentifier left_record) const;
-    [[nodiscard]] model::SimilarityVector GetSimilarityVector(
-            CompressedRecord const& left_record, CompressedRecord const& right_record) const;
+    [[nodiscard]] std::unordered_set<SimilarityVector> GetSimVecs(
+            RecordIdentifier left_record_id) const;
+    [[nodiscard]] SimilarityVector GetSimilarityVector(CompressedRecord const& left_record,
+                                                       CompressedRecord const& right_record) const;
 
-    [[nodiscard]] LhsData GetMaxRhsDecBounds(model::SimilarityVector const& lhs_sims,
-                                             Recommendations* recommendations_ptr,
-                                             size_t min_support,
-                                             model::SimilarityVector const& original_rhs_thresholds,
-                                             model::SimilarityVector const& gen_max_rhs,
-                                             std::unordered_set<size_t>& rhs_indices) const;
+    [[nodiscard]] LhsData GetMaxRhsDecBounds(
+            DecisionBoundaryVector const& lhs_sims, Recommendations* recommendations_ptr,
+            size_t min_support, DecisionBoundaryVector const& original_rhs_thresholds,
+            std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
+            std::unordered_set<model::Index>& rhs_indices) const;
 
-    [[nodiscard]] std::optional<model::Similarity> GetPreviousSimilarity(model::Similarity lhs_sim,
-                                                                         size_t col_match) const;
+    [[nodiscard]] std::optional<model::md::DecisionBoundary> GetPreviousDecisionBound(
+            model::md::DecisionBoundary lhs_sim, model::Index col_match) const;
 };
 
 }  // namespace algos::hymd

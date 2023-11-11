@@ -3,8 +3,10 @@
 #include <optional>
 
 #include "algorithms/md/column_similarity_classifier.h"
+#include "algorithms/md/decision_boundary.h"
+#include "model/index.h"
 
-namespace model {
+namespace model::md {
 
 // HyMD search space consists of all matching dependencies with natural decision
 // boundaries. However, they are generally not sufficient to describe all MDs
@@ -19,17 +21,17 @@ private:
     // Missing value means the decision boundary does not affect the validity
     // of the whole MD, values of this column match can be as dissimilar as
     // possible with the whole MD staying valid.
-    std::optional<double> max_disproved_bound_;
+    std::optional<DecisionBoundary> max_disproved_bound_;
 
 public:
-    LhsColumnSimilarityClassifier(std::optional<double> max_disproved_bound,
-                                  size_t column_match_index, double decision_boundary)
+    LhsColumnSimilarityClassifier(std::optional<DecisionBoundary> max_disproved_bound,
+                                  Index column_match_index, DecisionBoundary decision_boundary)
         : ColumnSimilarityClassifier(column_match_index, decision_boundary),
           max_disproved_bound_(max_disproved_bound) {}
 
-    [[nodiscard]] std::optional<double> GetMaxDisprovedBound() const noexcept {
+    [[nodiscard]] std::optional<DecisionBoundary> GetMaxDisprovedBound() const noexcept {
         return max_disproved_bound_;
     }
 };
 
-}  // namespace model
+}  // namespace model::md

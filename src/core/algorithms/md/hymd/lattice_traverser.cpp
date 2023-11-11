@@ -2,31 +2,35 @@
 
 #include <cassert>
 
+#include "model/index.h"
+
 namespace algos::hymd {
 
 bool LatticeTraverser::TraverseLattice(bool traverse_all) {
     SimilarityData& similarity_data = *similarity_data_;
     size_t const col_matches_num = similarity_data.GetColumnMatchNumber();
-    model::SimilarityVector const& rhs_min_similarities = similarity_data.GetRhsMinSimilarities();
-    model::FullLattice& lattice = *lattice_;
-    model::MinPickerLattice& min_picker_lattice = *min_picker_lattice_;
+    std::vector<model::md::DecisionBoundary> const& rhs_min_similarities =
+            similarity_data.GetRhsMinSimilarities();
+    lattice::FullLattice& lattice = *lattice_;
+    lattice::cardinality::MinPickerLattice& min_picker_lattice = *min_picker_lattice_;
     while (cur_level_ <= lattice.GetMaxLevel()) {
-        std::vector<model::MdLatticeNodeInfo> level_mds = lattice.GetLevel(cur_level_);
-        std::vector<model::ValidationInfo*> cur =
+        std::vector<lattice::MdLatticeNodeInfo> level_mds = lattice.GetLevel(cur_level_);
+        std::vector<lattice::ValidationInfo*> cur =
                 min_picker_lattice.GetUncheckedLevelMds(level_mds);
         if (cur.empty()) {
             ++cur_level_;
             continue;
         }
-        for (model::ValidationInfo* info : cur) {
-            model::SimilarityVector& lhs_sims = info->info->lhs_sims;
-            model::SimilarityVector& rhs_sims = *info->info->rhs_sims;
-            std::unordered_set<size_t>& indices = info->rhs_indices;
-            model::SimilarityVector old_rhs_sims = rhs_sims;
-            for (size_t const index : indices) {
+        for (lattice::ValidationInfo* info : cur) {
+            DecisionBoundaryVector& lhs_sims = info->info->lhs_sims;
+            DecisionBoundaryVector& rhs_sims = *info->info->rhs_sims;
+            std::unordered_set<model::Index>& indices = info->rhs_indices;
+            DecisionBoundaryVector old_rhs_sims = rhs_sims;
+            for (model::Index const index : indices) {
                 rhs_sims[index] = 0.0;
             }
-            model::SimilarityVector gen_max_rhs = lattice.GetMaxValidGeneralizationRhs(lhs_sims);
+            std::vector<model::md::DecisionBoundary> gen_max_rhs =
+                    lattice.GetMaxValidGeneralizationRhs(lhs_sims);
             auto [new_rhs_sims, is_unsupported] =
                     similarity_data.GetMaxRhsDecBounds(lhs_sims, recommendations_ptr_, min_support_,
                                                        old_rhs_sims, gen_max_rhs, indices);
@@ -36,16 +40,16 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             }
             assert(new_rhs_sims.size() == col_matches_num);
             if (prune_nondisjoint_) {
-                for (size_t const i : indices) {
+                for (model::Index const i : indices) {
                     assert(lhs_sims[i] == 0.0);
-                    model::Similarity const new_rhs_sim = new_rhs_sims[i];
+                    model::md::DecisionBoundary const new_rhs_sim = new_rhs_sims[i];
                     if (new_rhs_sim == 0.0) continue;
                     assert(new_rhs_sim > gen_max_rhs[i]);
                     rhs_sims[i] = new_rhs_sim;
                 }
             } else {
-                for (size_t const i : indices) {
-                    model::Similarity const new_rhs_sim = new_rhs_sims[i];
+                for (model::Index const i : indices) {
+                    model::md::DecisionBoundary const new_rhs_sim = new_rhs_sims[i];
                     if (new_rhs_sim == 0.0) continue;
                     assert(new_rhs_sim > gen_max_rhs[i]);
                     if (new_rhs_sim <= lhs_sims[i]) continue;
@@ -53,12 +57,12 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
                 }
             }
             if (prune_nondisjoint_) {
-                for (size_t i = 0; i < col_matches_num; ++i) {
-                    model::Similarity& lhs_sim = lhs_sims[i];
-                    std::optional<model::Similarity> new_sim =
+                for (model::Index i = 0; i < col_matches_num; ++i) {
+                    model::md::DecisionBoundary& lhs_sim = lhs_sims[i];
+                    std::optional<model::md::DecisionBoundary> new_sim =
                             similarity_data.SpecializeOneLhs(i, lhs_sim);
                     if (!new_sim.has_value()) continue;
-                    model::Similarity const old_lhs_sim = lhs_sim;
+                    model::md::DecisionBoundary const old_lhs_sim = lhs_sim;
                     lhs_sim = *new_sim;
                     if (lattice.IsUnsupported(lhs_sims)) {
                         lhs_sim = old_lhs_sim;
@@ -67,30 +71,30 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
                     auto cur_lhs_spec_it = indices.find(i);
                     auto end_it = indices.end();
                     if (cur_lhs_spec_it == end_it) {
-                        for (size_t const j : indices) {
-                            model::Similarity const rhs_sim = old_rhs_sims[j];
+                        for (model::Index const j : indices) {
+                            model::md::DecisionBoundary const rhs_sim = old_rhs_sims[j];
                             lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, j);
                         }
                     } else {
                         auto it = indices.begin();
                         for (; it != cur_lhs_spec_it; ++it) {
-                            model::Similarity const rhs_sim = old_rhs_sims[*it];
+                            model::md::DecisionBoundary const rhs_sim = old_rhs_sims[*it];
                             lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, *it);
                         }
                         for (++it; it != end_it; ++it) {
-                            model::Similarity const rhs_sim = old_rhs_sims[*it];
+                            model::md::DecisionBoundary const rhs_sim = old_rhs_sims[*it];
                             lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, *it);
                         }
                     }
                     lhs_sim = old_lhs_sim;
                 }
             } else {
-                for (size_t i = 0; i < col_matches_num; ++i) {
-                    model::Similarity& lhs_sim = lhs_sims[i];
-                    std::optional<model::Similarity> new_sim =
+                for (model::Index i = 0; i < col_matches_num; ++i) {
+                    model::md::DecisionBoundary& lhs_sim = lhs_sims[i];
+                    std::optional<model::md::DecisionBoundary> new_sim =
                             similarity_data.SpecializeOneLhs(i, lhs_sim);
                     if (!new_sim.has_value()) continue;
-                    model::Similarity const old_lhs_sim = lhs_sim;
+                    model::md::DecisionBoundary const old_lhs_sim = lhs_sim;
                     lhs_sim = *new_sim;
                     if (lattice.IsUnsupported(lhs_sims)) {
                         lhs_sim = old_lhs_sim;
@@ -99,24 +103,24 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
                     auto cur_lhs_spec_it = indices.find(i);
                     auto end_it = indices.end();
                     if (cur_lhs_spec_it == end_it) {
-                        for (size_t const j : indices) {
-                            model::Similarity const rhs_sim = old_rhs_sims[j];
+                        for (model::Index const j : indices) {
+                            model::md::DecisionBoundary const rhs_sim = old_rhs_sims[j];
                             lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, j);
                         }
                     } else {
                         auto it = indices.begin();
                         for (; it != cur_lhs_spec_it; ++it) {
-                            model::Similarity const rhs_sim = old_rhs_sims[*it];
+                            model::md::DecisionBoundary const rhs_sim = old_rhs_sims[*it];
                             lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, *it);
                         }
-                        model::Similarity const rhs_sim = old_rhs_sims[*it];
-                        model::Similarity const new_lhs_sim = lhs_sims[*it];
+                        model::md::DecisionBoundary const rhs_sim = old_rhs_sims[*it];
+                        model::md::DecisionBoundary const new_lhs_sim = lhs_sims[*it];
                         if (rhs_sim > new_lhs_sim) {
                             lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, *it);
                         }
                         ++it;
                         for (; it != end_it; ++it) {
-                            model::Similarity const rhs_sim = old_rhs_sims[*it];
+                            model::md::DecisionBoundary const rhs_sim = old_rhs_sims[*it];
                             lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, *it);
                         }
                     }

@@ -4,9 +4,9 @@
 
 namespace model {
 
-MD::MD(RelationalSchema const* left_schema, const RelationalSchema *right_schema,
-       std::vector<ColumnMatch> column_matches, std::vector<LhsColumnSimilarityClassifier> lhs,
-       model::ColumnSimilarityClassifier rhs)
+MD::MD(RelationalSchema const* left_schema, const RelationalSchema* right_schema,
+       std::vector<md::ColumnMatch> column_matches,
+       std::vector<md::LhsColumnSimilarityClassifier> lhs, md::ColumnSimilarityClassifier rhs)
     : left_schema_(left_schema),
       right_schema_(right_schema),
       column_matches_(std::move(column_matches)),
@@ -17,7 +17,7 @@ std::string MD::ToString() const noexcept {
     std::stringstream ss;
     ss << "[";
     for (auto const& classifier : lhs_) {
-        //if (classifier.GetDecisionBoundary() == 0.0) continue;
+        // if (classifier.GetDecisionBoundary() == 0.0) continue;
         auto const& column_match = column_matches_[classifier.GetColumnMatchIndex()];
         ss << " ";
         ss << column_match.similarity_function_name << "(" << left_schema_->GetName() << ":"

@@ -1,13 +1,14 @@
 #pragma once
 
 #include <list>
+#include <unordered_set>
 
-#include "algorithms/md/hymd/model/dictionary_compressor/dictionary_compressor.h"
-#include "algorithms/md/hymd/model/full_lattice.h"
-#include "algorithms/md/hymd/model/md_lattice/md_lattice.h"
-#include "algorithms/md/hymd/model/similarity.h"
+#include "algorithms/md/hymd/decision_boundary_vector.h"
+#include "algorithms/md/hymd/lattice/full_lattice.h"
+#include "algorithms/md/hymd/recommendation.h"
 #include "algorithms/md/hymd/similarity_data.h"
-#include "algorithms/md/hymd/types.h"
+#include "algorithms/md/hymd/similarity_vector.h"
+#include "model/index.h"
 
 namespace algos::hymd {
 
@@ -20,25 +21,25 @@ private:
 
     SimilarityData* similarity_data_;
 
-    model::FullLattice* lattice_;
+    lattice::FullLattice* lattice_;
     Recommendations* recommendations_ptr_;
 
     // Metanome uses a linked list for some reason.
-    DecBoundVectorUnorderedSet sim_vecs_to_check_;
-    DecBoundVectorUnorderedSet checked_sim_vecs_;
+    std::unordered_set<SimilarityVector> sim_vecs_to_check_;
+    std::unordered_set<SimilarityVector> checked_sim_vecs_;
 
-    size_t cur_record_left_ = 0;
+    model::Index cur_record_left_ = 0;
 
     // size_t efficiency_reciprocal_ = 100;
 
     bool const prune_nondisjoint_ = true;
     bool const avoid_same_sim_vec_processing_ = true;
 
-    void ProcessSimVec(DecisionBoundsVector const& sim);
+    void ProcessSimVec(SimilarityVector const& sim);
     bool ShouldKeepInferring(Statistics const& statistics) const;
 
 public:
-    RecordPairInferrer(SimilarityData* similarity_data, model::FullLattice* lattice,
+    RecordPairInferrer(SimilarityData* similarity_data, lattice::FullLattice* lattice,
                        Recommendations* recommendations_ptr)
         : similarity_data_(similarity_data),
           lattice_(lattice),

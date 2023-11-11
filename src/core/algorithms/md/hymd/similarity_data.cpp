@@ -20,9 +20,9 @@ struct hash<std::vector<algos::hymd::ValueIdentifier>> {
 }  // namespace std
 
 namespace {
-std::vector<size_t> GetNonZeroIndices(algos::hymd::model::SimilarityVector const& lhs) {
-    std::vector<size_t> indices;
-    for (size_t i = 0; i < lhs.size(); ++i) {
+std::vector<model::Index> GetNonZeroIndices(algos::hymd::DecisionBoundaryVector const& lhs) {
+    std::vector<model::Index> indices;
+    for (model::Index i = 0; i < lhs.size(); ++i) {
         if (lhs[i] != 0) indices.push_back(i);
     }
     return indices;
@@ -32,39 +32,41 @@ std::vector<size_t> GetNonZeroIndices(algos::hymd::model::SimilarityVector const
 namespace algos::hymd {
 
 std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
-        model::CompressedRecords* const compressed_records,
-        model::SimilarityVector min_similarities,
-        std::vector<std::pair<size_t, size_t>> column_match_col_indices,
-        std::vector<model::SimilarityMeasure const*> const& sim_measures, bool is_null_equal_null) {
+        indexes::CompressedRecords* compressed_records,
+        std::vector<model::md::DecisionBoundary> min_similarities,
+        std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
+        std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> const&
+                sim_measures,
+        bool is_null_equal_null) {
     assert(column_match_col_indices.size() == sim_measures.size());
 
     bool const one_table_given = compressed_records->OneTableGiven();
     size_t const col_match_number = column_match_col_indices.size();
-    std::vector<DecisionBoundsVector> natural_decision_bounds{};
+    std::vector<std::vector<model::md::DecisionBoundary>> natural_decision_bounds{};
     natural_decision_bounds.reserve(col_match_number);
-    std::vector<model::Similarity> lowest_sims;
-    std::vector<SimilarityMatrix> sim_matrices{};
+    std::vector<preprocessing::Similarity> lowest_sims;
+    std::vector<indexes::SimilarityMatrix> sim_matrices{};
     sim_matrices.reserve(col_match_number);
-    std::vector<SimilarityIndex> sim_indexes{};
+    std::vector<indexes::SimilarityIndex> sim_indexes{};
     sim_indexes.reserve(col_match_number);
     // TODO: Parallelize, cache data info, make infrastructure for metrics like
     //  abs(left_value - right_value) / (max - min) <- max and min for every left value or for all
     //  values in a column match? Option? Memory limits?
-    for (size_t column_match_index = 0; column_match_index < col_match_number;
+    for (model::Index column_match_index = 0; column_match_index < col_match_number;
          ++column_match_index) {
         auto [left_col_index, right_col_index] = column_match_col_indices[column_match_index];
-        model::SimilarityMeasure const& measure = *sim_measures[column_match_index];
+        preprocessing::similarity_measure::SimilarityMeasure const& measure =
+                *sim_measures[column_match_index];
         auto const& left_pli = compressed_records->GetLeftRecords().GetPli(left_col_index);
         // shared_ptr for caching
-        std::shared_ptr<model::DataInfo const> data_info_left =
-                model::DataInfo::MakeFrom(left_pli, measure.GetArgType());
-        std::shared_ptr<model::DataInfo const> data_info_right;
+        std::shared_ptr<preprocessing::DataInfo const> data_info_left =
+                preprocessing::DataInfo::MakeFrom(left_pli, measure.GetArgType());
+        std::shared_ptr<preprocessing::DataInfo const> data_info_right;
         auto const& right_pli = compressed_records->GetRightRecords().GetPli(right_col_index);
         if (one_table_given && left_col_index == right_col_index) {
             data_info_right = data_info_left;
-        }
-        else {
-            data_info_right = model::DataInfo::MakeFrom(right_pli, measure.GetArgType());
+        } else {
+            data_info_right = preprocessing::DataInfo::MakeFrom(right_pli, measure.GetArgType());
         }
         auto [dec_bounds, lowest_similarity, sim_matrix, sim_index] = measure.MakeIndexes(
                 std::move(data_info_left), std::move(data_info_right), &right_pli.GetClusters(),
@@ -80,15 +82,16 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
             std::move(sim_indexes), one_table_given);
 }
 
-size_t SimilarityData::GetLeftPliIndex(size_t column_match_index) const {
+model::Index SimilarityData::GetLeftPliIndex(model::Index const column_match_index) const {
     return column_match_col_indices_[column_match_index].first;
 }
 
-void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
-                                         PliCluster const& cluster,
-                                         std::vector<size_t> const& similar_records,
-                                         model::SimilarityVector const& gen_max_rhs,
-                                         Recommendations* recommendations_ptr) const {
+void SimilarityData::LowerForColumnMatch(
+        model::md::DecisionBoundary& threshold, model::Index const col_match,
+        indexes::PliCluster const& cluster, std::vector<RecordIdentifier> const& similar_records,
+        std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
+        Recommendations* recommendations_ptr) const {
+    if (threshold == 0.0) return;
     std::vector<CompressedRecord const*> cluster_records;
     cluster_records.reserve(cluster.size());
     auto const& left_records = GetLeftRecords().GetRecords();
@@ -99,14 +102,15 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
                         recommendations_ptr);
 }
 
-void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
-                                         std::vector<CompressedRecord const*> const& cluster,
-                                         std::vector<size_t> const& similar_records,
-                                         model::SimilarityVector const& gen_max_rhs,
-                                         Recommendations* recommendations_ptr) const {
+void SimilarityData::LowerForColumnMatch(
+        model::md::DecisionBoundary& threshold, model::Index const col_match,
+        std::vector<CompressedRecord const*> const& cluster,
+        std::vector<RecordIdentifier> const& similar_records,
+        std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
+        Recommendations* recommendations_ptr) const {
     if (threshold == 0.0) return;
-    double const cur_gen_max_rhs = gen_max_rhs[col_match];
-    double const cur_min_sim = rhs_min_similarities_[col_match];
+    model::md::DecisionBoundary const cur_gen_max_rhs = gen_max_rhs[col_match];
+    model::md::DecisionBoundary const cur_min_sim = rhs_min_similarities_[col_match];
 
     auto const& right_records = GetRightRecords().GetRecords();
 
@@ -120,7 +124,7 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
         for (RecordIdentifier record_id_right : similar_records) {
             CompressedRecord const& right_record = right_records[record_id_right];
             ValueIdentifier const right_value_id = right_record[col_match];
-            SimilarityMatrix const& sim_matrix = sim_matrices_[col_match];
+            indexes::SimilarityMatrix const& sim_matrix = sim_matrices_[col_match];
             auto it_left = sim_matrix.find(left_value_id);
             // note: We are calculating a part of the sim vec here. Will there
             // be a speedup if we store the result somewhere?
@@ -141,7 +145,7 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
                 }
                 return;
             }
-            double record_similarity = it_right->second;
+            preprocessing::Similarity const record_similarity = it_right->second;
 
             if (record_similarity == 0.0) {
                 threshold = 0.0;
@@ -168,29 +172,29 @@ void SimilarityData::LowerForColumnMatch(double& threshold, size_t col_match,
     }
 }
 
-DecBoundVectorUnorderedSet SimilarityData::GetSimVecs(RecordIdentifier const left_record_id) const {
+std::unordered_set<SimilarityVector> SimilarityData::GetSimVecs(
+        RecordIdentifier const left_record_id) const {
     // TODO: use the "slim" sim index to fill those instead of lookups in sim matrices
     size_t const col_match_number = GetColumnMatchNumber();
     CompressedRecord const& left_record = GetLeftRecords().GetRecords()[left_record_id];
-    std::vector<std::pair<SimilarityMatrixRow const*, size_t>> row_ptrs;
+    std::vector<std::pair<indexes::SimilarityMatrixRow const*, model::Index>> row_ptrs;
     row_ptrs.reserve(col_match_number);
-    for (size_t col_match_idx = 0; col_match_idx < col_match_number; ++col_match_idx) {
-        SimilarityMatrix const& col_match_matrix = sim_matrices_[col_match_idx];
+    for (model::Index col_match_idx = 0; col_match_idx < col_match_number; ++col_match_idx) {
+        indexes::SimilarityMatrix const& col_match_matrix = sim_matrices_[col_match_idx];
         auto it = col_match_matrix.find(left_record[col_match_idx]);
         if (it == col_match_matrix.end()) continue;
         row_ptrs.emplace_back(&it->second, col_match_idx);
     }
-    if (row_ptrs.empty()) return {DecisionBoundsVector(0.0, col_match_number)};
-    DecBoundVectorUnorderedSet sim_vecs;
+    if (row_ptrs.empty()) return {SimilarityVector(0.0, col_match_number)};
+    std::unordered_set<SimilarityVector> sim_vecs;
     auto const& right_records = GetRightRecords().GetRecords();
     size_t const right_records_num = right_records.size();
-    DecisionBoundsVector sims;
     // for (RecordIdentifier right_record_id = 0;
     // Optimization not done in Metanome.
     for (RecordIdentifier right_record_id = (single_table_ ? left_record_id + 1 : 0);
          right_record_id < right_records_num; ++right_record_id) {
         CompressedRecord const& right_record = right_records[right_record_id];
-        DecisionBoundsVector pair_sims(col_match_number);
+        SimilarityVector pair_sims(col_match_number);
         for (auto [row_ptr, col_match_idx] : row_ptrs) {
             auto it = row_ptr->find(right_record[col_match_idx]);
             if (it == row_ptr->end()) continue;
@@ -201,18 +205,19 @@ DecBoundVectorUnorderedSet SimilarityData::GetSimVecs(RecordIdentifier const lef
     return sim_vecs;
 }
 
-model::SimilarityVector SimilarityData::GetSimilarityVector(
-        CompressedRecord const& left_record, CompressedRecord const& right_record) const {
-    model::SimilarityVector sims(column_match_col_indices_.size());
-    for (size_t i = 0; i < column_match_col_indices_.size(); ++i) {
+SimilarityVector SimilarityData::GetSimilarityVector(CompressedRecord const& left_record,
+                                                     CompressedRecord const& right_record) const {
+    size_t const col_match_number = GetColumnMatchNumber();
+    SimilarityVector sims(col_match_number);
+    for (model::Index i = 0; i < col_match_number; ++i) {
         // TODO: not at, "get or default"
-        SimilarityMatrix const& sim_matrix = sim_matrices_[i];
+        indexes::SimilarityMatrix const& sim_matrix = sim_matrices_[i];
         auto row_it = sim_matrix.find(left_record[i]);
         if (row_it == sim_matrix.end()) {
             sims[i] = 0.0;
             continue;
         }
-        auto const& row = row_it->second;
+        indexes::SimilarityMatrixRow const& row = row_it->second;
         auto sim_it = row.find(right_record[i]);
         if (sim_it == row.end()) {
             sims[i] = 0.0;
@@ -224,8 +229,9 @@ model::SimilarityVector SimilarityData::GetSimilarityVector(
 }
 
 std::vector<RecordIdentifier> const* SimilarityData::GetSimilarRecords(
-        ValueIdentifier value_id, model::Similarity similarity, size_t column_match_index) const {
-    SimilarityIndex const& sim_index = sim_indexes_[column_match_index];
+        ValueIdentifier value_id, model::md::DecisionBoundary similarity,
+        model::Index column_match_index) const {
+    indexes::SimilarityIndex const& sim_index = sim_indexes_[column_match_index];
     auto val_index_it = sim_index.find(value_id);
     if (val_index_it == sim_index.end()) return nullptr;
     auto const& val_index = val_index_it->second;
@@ -234,29 +240,9 @@ std::vector<RecordIdentifier> const* SimilarityData::GetSimilarRecords(
     return &it->second;
 }
 
-std::optional<model::SimilarityVector> SimilarityData::SpecializeLhs(
-        model::SimilarityVector const& lhs, size_t col_match_index) const {
-    return SpecializeLhs(lhs, col_match_index, lhs[col_match_index]);
-}
-
-std::optional<model::SimilarityVector> SimilarityData::SpecializeLhs(
-        model::SimilarityVector const& lhs, size_t col_match_index,
-        model::Similarity similarity) const {
-    assert(col_match_index < natural_decision_bounds_.size());
-    std::vector<model::Similarity> const& decision_bounds =
-            natural_decision_bounds_[col_match_index];
-    auto upper = std::upper_bound(decision_bounds.begin(), decision_bounds.end(), similarity);
-    if (upper == decision_bounds.end()) {
-        return std::nullopt;
-    }
-    model::SimilarityVector new_lhs = lhs;
-    new_lhs[col_match_index] = *upper;
-    return new_lhs;
-}
-
-[[nodiscard]] std::optional<model::Similarity> SimilarityData::SpecializeOneLhs(
-        size_t col_match_index, model::Similarity similarity) const {
-    std::vector<model::Similarity> const& decision_bounds =
+[[nodiscard]] std::optional<model::md::DecisionBoundary> SimilarityData::SpecializeOneLhs(
+        model::Index col_match_index, model::md::DecisionBoundary similarity) const {
+    std::vector<model::md::DecisionBoundary> const& decision_bounds =
             natural_decision_bounds_[col_match_index];
     auto end_bounds = decision_bounds.end();
     auto upper = std::upper_bound(decision_bounds.begin(), end_bounds, similarity);
@@ -269,21 +255,22 @@ std::optional<model::SimilarityVector> SimilarityData::SpecializeLhs(
 }
 
 SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
-        model::SimilarityVector const& lhs_sims, Recommendations* recommendations_ptr,
-        size_t min_support, model::SimilarityVector const& original_rhs_thresholds,
-        model::SimilarityVector const& gen_max_rhs, std::unordered_set<size_t>& rhs_indices) const {
+        DecisionBoundaryVector const& lhs_sims, Recommendations* recommendations_ptr,
+        size_t min_support, DecisionBoundaryVector const& original_rhs_thresholds,
+        std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
+        std::unordered_set<model::Index>& rhs_indices) const {
     size_t support = 0;
     size_t const col_matches = original_rhs_thresholds.size();
     size_t const rhs_indices_size = rhs_indices.size();
-    model::SimilarityVector rhs_thresholds(col_matches, 0.0);
-    for (size_t const index : rhs_indices) {
+    DecisionBoundaryVector rhs_thresholds(col_matches, 0.0);
+    for (model::Index const index : rhs_indices) {
         assert(original_rhs_thresholds[index] != 0.0);
         if (prune_nondisjoint_ && lhs_sims[index] != 0.0) continue;
         if (lhs_sims[index] == 1.0) continue;
         if (gen_max_rhs[index] == 1.0) continue;
         rhs_thresholds[index] = 1.0;
     }
-    std::vector<size_t> non_zero_indices = GetNonZeroIndices(lhs_sims);
+    std::vector<model::Index> non_zero_indices = GetNonZeroIndices(lhs_sims);
     size_t const cardinality = non_zero_indices.size();
     if (cardinality == 0) {
         assert(column_match_col_indices_.size() == lhs_sims.size());
@@ -292,15 +279,15 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         return {lowest_sims_, support < min_support};
     }
     if (cardinality == 1) {
-        size_t const non_zero_index = non_zero_indices[0];
+        model::Index const non_zero_index = non_zero_indices[0];
         assert(!prune_nondisjoint_ || rhs_thresholds[non_zero_index] == 0.0);
         if (!prune_nondisjoint_) {
             rhs_thresholds[non_zero_index] = 0.0;
             rhs_indices.erase(non_zero_index);
         }
-        std::vector<std::vector<size_t>> const& clusters =
+        std::vector<indexes::PliCluster> const& clusters =
                 GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
-        for (size_t value_id = 0; value_id < clusters.size(); ++value_id) {
+        for (ValueIdentifier value_id = 0; value_id < clusters.size(); ++value_id) {
             std::vector<RecordIdentifier> const& cluster = clusters[value_id];
             std::vector<RecordIdentifier> const* similar_records_ptr =
                     GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
@@ -308,8 +295,8 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             std::vector<RecordIdentifier> const& similar_records = *similar_records_ptr;
             support += cluster.size() * similar_records.size();
             size_t zeroes = 0;
-            for (size_t const col_match_idx : rhs_indices) {
-                model::Similarity& cur_rhs_sim = rhs_thresholds[col_match_idx];
+            for (model::Index const col_match_idx : rhs_indices) {
+                model::md::DecisionBoundary& cur_rhs_sim = rhs_thresholds[col_match_idx];
                 LowerForColumnMatch(cur_rhs_sim, col_match_idx, cluster, similar_records,
                                     gen_max_rhs, recommendations_ptr);
                 if (cur_rhs_sim == 0.0) ++zeroes;
@@ -320,19 +307,19 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         return {std::move(rhs_thresholds), support < min_support};
     } else {
         assert(!prune_nondisjoint_ || std::all_of(non_zero_indices.begin(), non_zero_indices.end(),
-                                                  [&rhs_thresholds](size_t const index) {
+                                                  [&rhs_thresholds](model::Index const index) {
                                                       return rhs_thresholds[index] == 0.0;
                                                   }));
-        std::map<size_t, std::vector<size_t>> col_col_match_mapping;
-        for (size_t col_match_index : non_zero_indices) {
+        std::map<model::Index, std::vector<model::Index>> col_col_match_mapping;
+        for (model::Index col_match_index : non_zero_indices) {
             col_col_match_mapping[GetLeftPliIndex(col_match_index)].push_back(col_match_index);
         }
-        std::vector<std::pair<size_t, size_t>> col_match_val_idx_vec;
+        std::vector<std::pair<model::Index, model::Index>> col_match_val_idx_vec;
         col_match_val_idx_vec.reserve(cardinality);
         {
-            size_t idx = 0;
+            model::Index idx = 0;
             for (auto const& [pli_idx, col_match_idxs] : col_col_match_mapping) {
-                for (size_t const col_match_idx : col_match_idxs) {
+                for (model::Index const col_match_idx : col_match_idxs) {
                     col_match_val_idx_vec.emplace_back(col_match_idx, idx);
                 }
                 ++idx;
@@ -340,15 +327,16 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         }
         auto const& left_records_info = GetLeftRecords();
         auto const& left_records = left_records_info.GetRecords();
-        std::vector<PliCluster> const& first_pli =
+        std::vector<indexes::PliCluster> const& first_pli =
                 left_records_info.GetPli(col_col_match_mapping.begin()->first).GetClusters();
         size_t const first_pli_size = first_pli.size();
         std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>>
                 grouped;
-        for (size_t first_value_id = 0; first_value_id < first_pli_size; ++first_value_id) {
-            PliCluster const& cluster = first_pli[first_value_id];
+        for (ValueIdentifier first_value_id = 0; first_value_id < first_pli_size;
+             ++first_value_id) {
+            indexes::PliCluster const& cluster = first_pli[first_value_id];
             for (RecordIdentifier record_id : cluster) {
-                size_t idx = 0;
+                model::Index idx = 0;
                 std::vector<ValueIdentifier> value_ids(col_col_match_mapping.size());
                 std::vector<ValueIdentifier> const& record = left_records[record_id];
                 for (auto const& [pli_idx, col_match_idxs] : col_col_match_mapping) {
@@ -383,8 +371,8 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             if (similar_records.empty()) continue;
             support += cluster.size() * similar_records.size();
             size_t zeroes = 0;
-            for (size_t const col_match_idx : rhs_indices) {
-                model::Similarity& cur_rhs_sim = rhs_thresholds[col_match_idx];
+            for (model::Index const col_match_idx : rhs_indices) {
+                model::md::DecisionBoundary& cur_rhs_sim = rhs_thresholds[col_match_idx];
                 LowerForColumnMatch(cur_rhs_sim, col_match_idx, cluster, similar_records,
                                     gen_max_rhs, recommendations_ptr);
                 if (cur_rhs_sim == 0.0) ++zeroes;
@@ -397,9 +385,9 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
     return {std::move(rhs_thresholds), support < min_support};
 }
 
-std::optional<model::Similarity> SimilarityData::GetPreviousSimilarity(
-        model::Similarity const lhs_sim, size_t const col_match) const {
-    DecisionBoundsVector const& bounds = natural_decision_bounds_[col_match];
+std::optional<model::md::DecisionBoundary> SimilarityData::GetPreviousDecisionBound(
+        model::md::DecisionBoundary const lhs_sim, model::Index const col_match) const {
+    std::vector<model::md::DecisionBoundary> const& bounds = natural_decision_bounds_[col_match];
     auto it = std::lower_bound(bounds.begin(), bounds.end(), lhs_sim);
     if (it == bounds.begin()) return std::nullopt;
     return *--it;

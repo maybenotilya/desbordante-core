@@ -2,8 +2,12 @@
 
 #include <algorithm>
 
+#include "model/index.h"
+#include "model/table/column.h"
+
 namespace {
-[[maybe_unused]] void IntersectInPlace(std::set<size_t>& set1, std::set<size_t> const& set2) {
+[[maybe_unused]] void IntersectInPlace(std::set<model::Index>& set1,
+                                       std::set<model::Index> const& set2) {
     auto it1 = set1.begin();
     auto it2 = set2.begin();
     while (it1 != set1.end() && it2 != set2.end()) {
@@ -26,9 +30,9 @@ HyMD::HyMD() : MdAlgorithm({}) {}
 
 void HyMD::ResetStateMd() {
     // make column_match_col_indices_ here using column_matches_option_
-    std::vector<std::pair<size_t, size_t>> column_match_col_indices;
+    std::vector<std::pair<model::Index, model::Index>> column_match_col_indices;
     // make similarity measures here(?)
-    std::vector<model::SimilarityMeasure const*> sim_measures;
+    std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> sim_measures;
     for (auto const& [left_col_name, right_col_name, measure_ptr] : column_matches_option_) {
         column_match_col_indices.emplace_back(left_schema_->GetColumn(left_col_name)->GetIndex(),
                                               right_schema_->GetColumn(right_col_name)->GetIndex());
@@ -37,7 +41,7 @@ void HyMD::ResetStateMd() {
     similarity_data_ = SimilarityData::CreateFrom(
             compressed_records_.get(), std::move(rhs_min_similarities_),
             std::move(column_match_col_indices), sim_measures, is_null_equal_null_);
-    lattice_ = std::make_unique<model::FullLattice>(similarity_data_->GetColumnMatchNumber());
+    lattice_ = std::make_unique<lattice::FullLattice>(similarity_data_->GetColumnMatchNumber());
     recommendations_.clear();
     lattice_traverser_ = std::make_unique<LatticeTraverser>(similarity_data_.get(), lattice_.get(),
                                                             &recommendations_, min_support_);
@@ -47,18 +51,20 @@ void HyMD::ResetStateMd() {
 
 void HyMD::LoadDataInternal() {
     left_schema_ = std::make_shared<RelationalSchema>(left_table_->GetRelationName());
-    for (size_t i = 0; i < left_table_->GetNumberOfColumns(); ++i) {
+    size_t const left_table_cols = left_table_->GetNumberOfColumns();
+    for (model::Index i = 0; i < left_table_cols; ++i) {
         left_schema_->AppendColumn(left_table_->GetColumnName(i));
     }
     if (right_table_ == nullptr) {
         right_schema_ = left_schema_;
-        compressed_records_ = model::CompressedRecords::CreateFrom(*left_table_);
+        compressed_records_ = indexes::CompressedRecords::CreateFrom(*left_table_);
     } else {
         right_schema_ = std::make_unique<RelationalSchema>(right_table_->GetRelationName());
-        for (size_t i = 0; i < right_table_->GetNumberOfColumns(); ++i) {
+        size_t const right_table_cols = right_table_->GetNumberOfColumns();
+        for (model::Index i = 0; i < right_table_cols; ++i) {
             right_schema_->AppendColumn(right_table_->GetColumnName(i));
         }
-        compressed_records_ = model::CompressedRecords::CreateFrom(*left_table_, *right_table_);
+        compressed_records_ = indexes::CompressedRecords::CreateFrom(*left_table_, *right_table_);
     }
 }
 
@@ -86,13 +92,13 @@ void HyMD::RegisterResults() {
     // [0.1 0.3] [0.1 0.6] [0.1 1.0] [0.4 0.3] [0.4 0.6] ...
     size_t const column_match_number = similarity_data_->GetColumnMatchNumber();
     for (size_t level = 0; level <= lattice_->GetMaxLevel(); ++level) {
-        std::vector<model::MdLatticeNodeInfo> mds = lattice_->GetLevel(level);
+        std::vector<lattice::MdLatticeNodeInfo> mds = lattice_->GetLevel(level);
         for (auto const& md : mds) {
-            for (size_t i = 0; i < md.rhs_sims->size(); ++i) {
-                double const rhs_sim = md.rhs_sims->operator[](i);
+            for (model::Index rhs_index = 0; rhs_index < column_match_number; ++rhs_index) {
+                model::md::DecisionBoundary const rhs_sim = md.rhs_sims->operator[](rhs_index);
                 if (rhs_sim == 0.0) continue;
-                std::vector<::model::ColumnMatch> column_matches;
-                for (size_t column_match_index = 0; column_match_index < column_match_number;
+                std::vector<model::md::ColumnMatch> column_matches;
+                for (model::Index column_match_index = 0; column_match_index < column_match_number;
                      ++column_match_index) {
                     auto [left_col_index, right_col_index] =
                             similarity_data_->GetColMatchIndices(column_match_index);
@@ -100,12 +106,13 @@ void HyMD::RegisterResults() {
                             left_col_index, right_col_index,
                             std::get<2>(column_matches_option_[column_match_index])->GetName());
                 }
-                std::vector<::model::LhsColumnSimilarityClassifier> lhs;
-                for (size_t j = 0; j < md.lhs_sims.size(); ++j) {
-                    model::Similarity const lhs_sim = md.lhs_sims[j];
-                    lhs.emplace_back(similarity_data_->GetPreviousSimilarity(lhs_sim, j), j, lhs_sim);
+                std::vector<model::md::LhsColumnSimilarityClassifier> lhs;
+                for (model::Index lhs_index = 0; lhs_index < md.lhs_sims.size(); ++lhs_index) {
+                    model::md::DecisionBoundary const lhs_sim = md.lhs_sims[lhs_index];
+                    lhs.emplace_back(similarity_data_->GetPreviousDecisionBound(lhs_sim, lhs_index),
+                                     lhs_index, lhs_sim);
                 }
-                ::model::ColumnSimilarityClassifier rhs{i, rhs_sim};
+                model::md::ColumnSimilarityClassifier rhs{rhs_index, rhs_sim};
                 RegisterMd({left_schema_.get(), right_schema_.get(), column_matches, std::move(lhs),
                             rhs});
             }
