@@ -35,7 +35,15 @@ public:
     }
 
     std::vector<MdLatticeNodeInfo> GetLevel(size_t level) {
-        // TODO: filter unsupported
+        /* Filtering slows down on adult.csv a lot, test on other datasets.
+        std::vector<MdLatticeNodeInfo> mds;
+        std::vector<MdLatticeNodeInfo> lattice_mds = md_lattice_.GetLevel(level);
+        mds.reserve(lattice_mds.size());
+        for (MdLatticeNodeInfo& md : lattice_mds) {
+            mds.push_back(std::move(md));
+        }
+        return mds;
+        */
         return md_lattice_.GetLevel(level);
     }
 

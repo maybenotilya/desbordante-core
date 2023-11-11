@@ -67,6 +67,7 @@ void MinPickerNode::RemoveSpecializations(MdLatticeNodeInfo const& md, model::In
     DecisionBoundaryVector const& lhs_vec = md.lhs_sims;
     model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_vec, this_node_index);
     if (next_node_index == lhs_vec.size()) {
+        assert(children_.empty());
         if (task_info_) {
             std::unordered_set<model::Index>& rhs_indices = task_info_->rhs_indices;
             std::for_each(indices.begin(), indices.end(),
