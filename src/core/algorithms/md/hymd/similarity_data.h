@@ -44,15 +44,15 @@ private:
 
     void LowerForColumnMatch(model::md::DecisionBoundary& threshold, model::Index col_match,
                              indexes::PliCluster const& cluster,
-                             std::vector<RecordIdentifier> const& similar_records,
+                             std::unordered_set<RecordIdentifier> const& similar_records,
                              std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
                              Recommendations* recommendations_ptr) const;
     void LowerForColumnMatch(model::md::DecisionBoundary& threshold, model::Index col_match,
                              std::vector<CompressedRecord const*> const& cluster,
-                             std::vector<RecordIdentifier> const& similar_records,
+                             std::unordered_set<RecordIdentifier> const& similar_records,
                              std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
                              Recommendations* recommendations_ptr) const;
-    [[nodiscard]] std::vector<RecordIdentifier> const* GetSimilarRecords(
+    [[nodiscard]] std::unordered_set<RecordIdentifier> const* GetSimilarRecords(
             ValueIdentifier value_id, model::md::DecisionBoundary similarity,
             model::Index column_match_index) const;
 

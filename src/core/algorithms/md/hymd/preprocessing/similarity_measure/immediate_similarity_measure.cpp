@@ -84,7 +84,7 @@ ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_inf
             previous_similarity = similarity;
         }
         std::sort(records.begin(), records.end());
-        sim_info[previous_similarity] = std::move(records);
+        sim_info[previous_similarity] = {records.begin(), records.end()};
         similarity_index[value_id_left] = std::move(sim_info);
     }
     std::sort(decision_bounds.begin(), decision_bounds.end());

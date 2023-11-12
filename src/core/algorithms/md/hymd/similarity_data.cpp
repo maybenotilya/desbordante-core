@@ -88,7 +88,7 @@ model::Index SimilarityData::GetLeftPliIndex(model::Index const column_match_ind
 
 void SimilarityData::LowerForColumnMatch(
         model::md::DecisionBoundary& threshold, model::Index const col_match,
-        indexes::PliCluster const& cluster, std::vector<RecordIdentifier> const& similar_records,
+        indexes::PliCluster const& cluster, std::unordered_set<RecordIdentifier> const& similar_records,
         std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
         Recommendations* recommendations_ptr) const {
     if (threshold == 0.0) return;
@@ -105,7 +105,7 @@ void SimilarityData::LowerForColumnMatch(
 void SimilarityData::LowerForColumnMatch(
         model::md::DecisionBoundary& threshold, model::Index const col_match,
         std::vector<CompressedRecord const*> const& cluster,
-        std::vector<RecordIdentifier> const& similar_records,
+        std::unordered_set<RecordIdentifier> const& similar_records,
         std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
         Recommendations* recommendations_ptr) const {
     if (threshold == 0.0) return;
@@ -228,7 +228,7 @@ SimilarityVector SimilarityData::GetSimilarityVector(CompressedRecord const& lef
     return sims;
 }
 
-std::vector<RecordIdentifier> const* SimilarityData::GetSimilarRecords(
+std::unordered_set<RecordIdentifier> const* SimilarityData::GetSimilarRecords(
         ValueIdentifier value_id, model::md::DecisionBoundary similarity,
         model::Index column_match_index) const {
     indexes::SimilarityIndex const& sim_index = sim_indexes_[column_match_index];
@@ -289,10 +289,10 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
                 GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
         for (ValueIdentifier value_id = 0; value_id < clusters.size(); ++value_id) {
             std::vector<RecordIdentifier> const& cluster = clusters[value_id];
-            std::vector<RecordIdentifier> const* similar_records_ptr =
+            std::unordered_set<RecordIdentifier> const* similar_records_ptr =
                     GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
             if (similar_records_ptr == nullptr) continue;
-            std::vector<RecordIdentifier> const& similar_records = *similar_records_ptr;
+            std::unordered_set<RecordIdentifier> const& similar_records = *similar_records_ptr;
             support += cluster.size() * similar_records.size();
             size_t zeroes = 0;
             for (model::Index const col_match_idx : rhs_indices) {
@@ -348,26 +348,33 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
         for (auto const& [val_ids, cluster] : grouped) {
             using IterType = std::vector<RecordIdentifier>::const_iterator;
             using IterPair = std::pair<IterType, IterType>;
-            std::vector<IterPair> iters;
-            iters.reserve(cardinality);
+            using RecSet = std::unordered_set<RecordIdentifier>;
+            std::vector<RecSet const*> rec_sets;
+            rec_sets.reserve(cardinality);
             for (auto [column_match_index, val_ids_idx] : col_match_val_idx_vec) {
-                std::vector<RecordIdentifier> const* similar_records_ptr = GetSimilarRecords(
+                std::unordered_set<RecordIdentifier> const* similar_records_ptr = GetSimilarRecords(
                         val_ids[val_ids_idx], lhs_sims[column_match_index], column_match_index);
                 if (similar_records_ptr == nullptr) break;
-                std::vector<RecordIdentifier> const& similar_records = *similar_records_ptr;
-                iters.emplace_back(similar_records.begin(), similar_records.end());
+                rec_sets.push_back(similar_records_ptr);
             }
-            if (iters.size() != cardinality) continue;
-            std::sort(iters.begin(), iters.end(), [](IterPair const& p1, IterPair const& p2) {
-                return p1.second - p1.first < p2.second - p2.first;
+            if (rec_sets.size() != cardinality) continue;
+            std::sort(rec_sets.begin(), rec_sets.end(), [](RecSet const* p1, RecSet const* p2) {
+                return p1->size() < p2->size();
             });
-            std::vector<RecordIdentifier> similar_records;
-            IterPair const& first = *iters.begin();
-            similar_records.reserve(first.second - first.first);
-            // TODO: bin search instead? unordered_set instead?
-            util::IntersectSortedSequences(
-                    [&similar_records](RecordIdentifier rec) { similar_records.push_back(rec); },
-                    iters);
+            RecSet similar_records;
+            RecSet const& first = **rec_sets.begin();
+            auto const try_add_rec = [&similar_records, check_set_begin = ++rec_sets.begin(),
+                                      check_set_end = rec_sets.end()](RecordIdentifier rec) {
+                for (auto it = check_set_begin; it != check_set_end; ++it) {
+                    if ((**it).find(rec) == (**it).end()) {
+                        return;
+                    }
+                }
+                similar_records.insert(rec);
+            };
+            for (RecordIdentifier rec : first) {
+                try_add_rec(rec);
+            }
             if (similar_records.empty()) continue;
             support += cluster.size() * similar_records.size();
             size_t zeroes = 0;
