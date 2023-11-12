@@ -63,10 +63,6 @@ public:
         return md_lattice_.FindViolated(similarity_vector);
     }
 
-    void RemoveNode(DecisionBoundaryVector const& lhs) {
-        md_lattice_.RemoveNode(lhs);
-    }
-
     void MarkUnsupported(DecisionBoundaryVector const& lhs_vec) {
         support_lattice_.MarkUnsupported(lhs_vec);
     }
@@ -77,6 +73,8 @@ public:
 
     explicit FullLattice(size_t column_matches_size)
         : md_lattice_(column_matches_size), support_lattice_() {}
+    FullLattice(MdLattice md_lattice, SupportLattice support_lattice)
+        : md_lattice_(std::move(md_lattice)), support_lattice_(std::move(support_lattice)) {}
 };
 
 }  // namespace algos::hymd::lattice

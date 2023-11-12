@@ -29,14 +29,9 @@ public:
     std::vector<MdLatticeNodeInfo> GetLevel(size_t level);
     std::vector<model::md::DecisionBoundary> GetMaxValidGeneralizationRhs(
             DecisionBoundaryVector const& lhs) const;
-
-    void Add(DecisionBoundaryVector const& lhs_sims, model::md::DecisionBoundary rhs_sim,
-             model::Index rhs_index);
     void AddIfMinimal(DecisionBoundaryVector const& lhs_sims, model::md::DecisionBoundary rhs_sim,
                       model::Index rhs_index);
     std::vector<MdLatticeNodeInfo> FindViolated(SimilarityVector const& similarity_vector);
-
-    void RemoveNode(DecisionBoundaryVector const& lhs);
 
     explicit MdLattice(size_t column_matches_size);
 };

@@ -27,8 +27,6 @@ public:
                                       std::vector<model::md::DecisionBoundary>& cur_rhs,
                                       model::Index this_node_index) const;
 
-    void Add(DecisionBoundaryVector const& lhs_sims, model::md::DecisionBoundary rhs_sim,
-             model::Index rhs_index, model::Index this_node_index);
     [[nodiscard]] bool HasGeneralization(DecisionBoundaryVector const& lhs_sims,
                                          model::md::DecisionBoundary rhs_sim,
                                          model::Index rhs_index,
@@ -38,8 +36,6 @@ public:
 
     void FindViolated(std::vector<MdLatticeNodeInfo>& found, DecisionBoundaryVector& this_node_lhs,
                       SimilarityVector const& similarity_vector, model::Index this_node_index);
-
-    void RemoveNode(DecisionBoundaryVector const& node, model::Index this_node_index);
 
     explicit MdLatticeNode(size_t attributes_num) : rhs_(attributes_num) {}
     explicit MdLatticeNode(DecisionBoundaryVector rhs) : rhs_(std::move(rhs)) {}

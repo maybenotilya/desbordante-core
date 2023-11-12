@@ -9,6 +9,22 @@
 
 namespace algos::hymd::lattice::cardinality {
 
+void MinPickerNode::AddUnchecked(MdLatticeNodeInfo& md, model::Index this_node_index,
+                        std::unordered_set<model::Index>& indices) {
+    assert(children_.empty());
+    DecisionBoundaryVector const& lhs_vec = md.lhs_sims;
+    size_t const size = lhs_vec.size();
+    MinPickerNode* cur_node_ptr = this;
+    for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs_vec, this_node_index);
+         cur_node_index != size;
+         cur_node_index = utility::GetFirstNonZeroIndex(lhs_vec, cur_node_index + 1)) {
+        cur_node_ptr = &cur_node_ptr->children_.try_emplace(cur_node_index)
+                                .first->second.try_emplace(lhs_vec[cur_node_index])
+                                .first->second;
+    }
+    cur_node_ptr->task_info_ = {&md, std::move(indices)};
+}
+
 void MinPickerNode::Add(MdLatticeNodeInfo& md, model::Index this_node_index,
                         std::unordered_set<model::Index>& indices) {
     DecisionBoundaryVector const& lhs_vec = md.lhs_sims;
@@ -22,12 +38,20 @@ void MinPickerNode::Add(MdLatticeNodeInfo& md, model::Index this_node_index,
     }
     assert(first_non_zero_index < lhs_vec.size());
     model::md::DecisionBoundary const child_similarity = lhs_vec[first_non_zero_index];
-    ThresholdMap<MinPickerNode>& threshold_map = children_[first_non_zero_index];
-    std::unique_ptr<MinPickerNode>& node_ptr = threshold_map[child_similarity];
-    if (node_ptr == nullptr) {
-        node_ptr = std::make_unique<MinPickerNode>();
+    auto [it_arr, is_first_arr] = children_.try_emplace(first_non_zero_index);
+    ThresholdMap<MinPickerNode>& threshold_map = it_arr->second;
+    if (is_first_arr) {
+        threshold_map.try_emplace(child_similarity)
+                .first->second.AddUnchecked(md, first_non_zero_index + 1, indices);
+        return;
     }
-    node_ptr->Add(md, first_non_zero_index + 1, indices);
+    auto [it_map, is_first_map] = threshold_map.try_emplace(child_similarity);
+    MinPickerNode& next_node = it_map->second;
+    if (is_first_map) {
+        next_node.AddUnchecked(md, first_non_zero_index + 1, indices);
+        return;
+    }
+    next_node.Add(md, first_non_zero_index + 1, indices);
 }
 
 void MinPickerNode::ExcludeGeneralizationRhs(MdLatticeNodeInfo const& md,
@@ -53,10 +77,10 @@ void MinPickerNode::ExcludeGeneralizationRhs(MdLatticeNodeInfo const& md,
     assert(next_node_index < lhs_vec.size());
     ThresholdMap<MinPickerNode>& threshold_mapping = it->second;
     model::md::DecisionBoundary const next_lhs_sim = lhs_vec[next_node_index];
-    for (auto const& [threshold, node] : threshold_mapping) {
+    for (auto& [threshold, node] : threshold_mapping) {
         assert(threshold > 0.0);
         if (threshold > next_lhs_sim) break;
-        node->ExcludeGeneralizationRhs(md, next_node_index + 1, considered_indices);
+        node.ExcludeGeneralizationRhs(md, next_node_index + 1, considered_indices);
         if (considered_indices.empty()) return;
     }
 }
@@ -82,8 +106,8 @@ void MinPickerNode::RemoveSpecializations(MdLatticeNodeInfo const& md, model::In
     ThresholdMap<MinPickerNode>& threshold_mapping = it->second;
     for (auto it_map = threshold_mapping.lower_bound(next_node_sim);
          it_map != threshold_mapping.end(); ++it_map) {
-        auto const& node = it_map->second;
-        node->RemoveSpecializations(md, next_node_index + 1, indices);
+        auto& node = it_map->second;
+        node.RemoveSpecializations(md, next_node_index + 1, indices);
     }
 }
 
@@ -95,10 +119,10 @@ void MinPickerNode::GetAll(std::vector<ValidationInfo*>& collected, size_t sims_
         }
         return;
     }
-    for (auto const& [index, threshold_mapping] : children_) {
-        for (auto const& [threshold, node] : threshold_mapping) {
+    for (auto& [index, threshold_mapping] : children_) {
+        for (auto& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            node->GetAll(collected, sims_left - 1);
+            node.GetAll(collected, sims_left - 1);
         }
     }
 }

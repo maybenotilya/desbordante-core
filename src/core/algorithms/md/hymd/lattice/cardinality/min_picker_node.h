@@ -20,6 +20,9 @@ private:
     std::optional<ValidationInfo> task_info_;
     LatticeChildArray<MinPickerNode> children_;
 
+    void AddUnchecked(MdLatticeNodeInfo& md, model::Index this_node_index,
+                      std::unordered_set<model::Index>& indices);
+
 public:
     void ExcludeGeneralizationRhs(MdLatticeNodeInfo const& md, model::Index this_node_index,
                                   std::unordered_set<model::Index>& considered_indices);

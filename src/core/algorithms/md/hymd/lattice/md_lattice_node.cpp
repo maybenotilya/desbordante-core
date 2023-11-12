@@ -18,45 +18,11 @@ void MdLatticeNode::AddUnchecked(DecisionBoundaryVector const& lhs_sims,
     for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs_sims, this_node_index);
          cur_node_index != rhs_size;
          cur_node_index = utility::GetFirstNonZeroIndex(lhs_sims, cur_node_index + 1)) {
-        cur_node_ptr = (cur_node_ptr->children_[cur_node_index][lhs_sims[cur_node_index]] =
-                                std::make_unique<MdLatticeNode>(rhs_size))
-                               .get();
+        cur_node_ptr = &cur_node_ptr->children_[cur_node_index]
+                                .emplace(lhs_sims[cur_node_index], rhs_size)
+                                .first->second;
     }
     cur_node_ptr->rhs_[rhs_index] = rhs_sim;
-}
-
-void MdLatticeNode::Add(DecisionBoundaryVector const& lhs_sims, model::md::DecisionBoundary rhs_sim,
-                        model::Index const rhs_index, model::Index const this_node_index) {
-    size_t const rhs_size = rhs_.size();
-    MdLatticeNode* cur_node_ptr = this;
-    for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs_sims, this_node_index);
-         cur_node_index != rhs_size;
-         cur_node_index = utility::GetFirstNonZeroIndex(lhs_sims, cur_node_index + 1)) {
-        model::md::DecisionBoundary const child_similarity = lhs_sims[cur_node_index];
-        auto [it_arr, is_first_arr] = cur_node_ptr->children_.try_emplace(cur_node_index);
-        ThresholdMap<MdLatticeNode>& child_threshold_map = it_arr->second;
-        if (is_first_arr) [[unlikely]] {
-            (child_threshold_map[child_similarity] = std::make_unique<MdLatticeNode>(rhs_size))
-                    ->AddUnchecked(lhs_sims, rhs_sim, rhs_index, cur_node_index + 1);
-            // TODO: if rhs_sim is 1, we can remove all specializations, check performance
-            return;
-        }
-        auto [it_map, is_first_map] = child_threshold_map.try_emplace(child_similarity);
-        std::unique_ptr<MdLatticeNode>& node_ptr = it_map->second;
-        if (is_first_map) /*?? [[unlikely]] ??*/ {
-            assert(node_ptr == nullptr);
-            (node_ptr = std::make_unique<MdLatticeNode>(rhs_size))
-                    ->AddUnchecked(lhs_sims, rhs_sim, rhs_index, cur_node_index + 1);
-            // TODO: if rhs_sim is 1, we can remove all specializations, check performance
-            return;
-        }
-        assert(node_ptr != nullptr);
-        cur_node_ptr = node_ptr.get();
-    }
-    model::md::DecisionBoundary& cur_sim = cur_node_ptr->rhs_[rhs_index];
-    if (cur_sim == 0.0 || rhs_sim < cur_sim) cur_sim = rhs_sim;
-    // TODO: if rhs_sim is 1, we can remove all specializations, check performance
-    //  (if we do, then we can avoid checking for all 1 in GetMaxValidGeneralizationRhs)
 }
 
 bool MdLatticeNode::HasGeneralization(DecisionBoundaryVector const& lhs_sims,
@@ -73,7 +39,7 @@ bool MdLatticeNode::HasGeneralization(DecisionBoundaryVector const& lhs_sims,
         model::md::DecisionBoundary const child_similarity = lhs_sims[cur_index];
         for (auto const& [threshold, node] : it->second) {
             if (threshold > child_similarity) break;
-            if (node->HasGeneralization(lhs_sims, rhs_sim, rhs_index, cur_index + 1)) return true;
+            if (node.HasGeneralization(lhs_sims, rhs_sim, rhs_index, cur_index + 1)) return true;
         }
     }
     return false;
@@ -91,6 +57,7 @@ void MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
             this_rhs_sim = rhs_sim;
         }
         // TODO: if rhs_sim is 1, we can remove all specializations, check performance
+        //  (if we do, then we can avoid checking for all 1 in GetMaxValidGeneralizationRhs)
         return;
     }
     {
@@ -104,7 +71,7 @@ void MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
             model::md::DecisionBoundary const child_lhs_sim = lhs_sims[child_node_index];
             for (auto const& [threshold, node] : it->second) {
                 if (threshold > child_lhs_sim) break;
-                if (node->HasGeneralization(lhs_sims, rhs_sim, rhs_index, child_node_index + 1))
+                if (node.HasGeneralization(lhs_sims, rhs_sim, rhs_index, child_node_index + 1))
                     return;
             }
         }
@@ -113,40 +80,27 @@ void MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
     ThresholdMap<MdLatticeNode>& threshold_mapping = it_arr->second;
     model::md::DecisionBoundary const next_lhs_sim = lhs_sims[next_node_index];
     if (is_first_arr) [[unlikely]] {
-        (threshold_mapping[next_lhs_sim] = std::make_unique<MdLatticeNode>(rhs_size))
-                ->AddUnchecked(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
+        threshold_mapping.emplace(next_lhs_sim, rhs_size)
+                .first->second.AddUnchecked(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
         return;
     }
-    for (auto const& [threshold, node] : threshold_mapping) {
+    auto it = threshold_mapping.begin();
+    auto end = threshold_mapping.end();
+    for (; it != end; ++it) {
+        auto& [threshold, node] = *it;
         if (threshold > next_lhs_sim) {
             break;
         }
         if (threshold == next_lhs_sim) {
-            node->AddIfMinimal(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
+            node.AddIfMinimal(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
             return;
         }
-        if (node->HasGeneralization(lhs_sims, rhs_sim, rhs_index, next_node_index + 1)) {
+        if (node.HasGeneralization(lhs_sims, rhs_sim, rhs_index, next_node_index + 1)) {
             return;
         }
     }
-    (threshold_mapping[next_lhs_sim] = std::make_unique<MdLatticeNode>(rhs_size))
-            ->AddUnchecked(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
-}
-
-void MdLatticeNode::RemoveNode(DecisionBoundaryVector const& lhs_vec,
-                               model::Index const this_node_index) {
-    assert(this_node_index <= lhs_vec.size());
-    model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_vec, this_node_index);
-    if (next_node_index == lhs_vec.size()) {
-        rhs_.assign(rhs_.size(), 0.0);
-        return;
-    }
-    assert(next_node_index < lhs_vec.size());
-    model::md::DecisionBoundary const child_similarity = lhs_vec[next_node_index];
-    ThresholdMap<MdLatticeNode>& threshold_map = children_[next_node_index];
-    std::unique_ptr<MdLatticeNode>& node_ptr = threshold_map[child_similarity];
-    assert(node_ptr != nullptr);
-    node_ptr->RemoveNode(lhs_vec, next_node_index + 1);
+    threshold_mapping.emplace_hint(it, next_lhs_sim, rhs_size)
+            ->second.AddUnchecked(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
 }
 
 void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
@@ -165,14 +119,14 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
             }
         }
     }
-    for (auto const& [index, threshold_mapping] : children_) {
+    for (auto& [index, threshold_mapping] : children_) {
         model::md::DecisionBoundary& cur_lhs_sim = this_node_lhs[index];
         model::md::DecisionBoundary const sim_vec_sim = similarity_vector[index];
         assert(index < similarity_vector.size());
-        for (auto const& [threshold, node] : threshold_mapping) {
+        for (auto& [threshold, node] : threshold_mapping) {
             if (threshold > sim_vec_sim) break;
             cur_lhs_sim = threshold;
-            node->FindViolated(found, this_node_lhs, similarity_vector, index + 1);
+            node.FindViolated(found, this_node_lhs, similarity_vector, index + 1);
         }
         cur_lhs_sim = 0.0;
     }
@@ -208,7 +162,7 @@ void MdLatticeNode::GetMaxValidGeneralizationRhs(DecisionBoundaryVector const& l
             if (threshold > cur_lhs_sim) {
                 break;
             }
-            node->GetMaxValidGeneralizationRhs(lhs, cur_rhs, cur_node_index + 1);
+            node.GetMaxValidGeneralizationRhs(lhs, cur_rhs, cur_node_index + 1);
             if (std::all_of(cur_rhs.begin(), cur_rhs.end(),
                             [](model::md::DecisionBoundary const v) { return v == 1.0; }))
                     [[unlikely]] {
@@ -227,12 +181,12 @@ void MdLatticeNode::GetLevel(std::vector<MdLatticeNodeInfo>& collected,
             collected.emplace_back(this_node_lhs, &rhs_);
         return;
     }
-    for (auto const& [index, threshold_mapping] : children_) {
+    for (auto& [index, threshold_mapping] : children_) {
         assert(index < this_node_lhs.size());
-        for (auto const& [threshold, node] : threshold_mapping) {
+        for (auto& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
             this_node_lhs[index] = threshold;
-            node->GetLevel(collected, this_node_lhs, index + 1, sims_left - 1);
+            node.GetLevel(collected, this_node_lhs, index + 1, sims_left - 1);
         }
         this_node_lhs[index] = 0.0;
     }

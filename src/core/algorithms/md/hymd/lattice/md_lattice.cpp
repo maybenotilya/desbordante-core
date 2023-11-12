@@ -20,20 +20,10 @@ size_t MdLattice::GetMaxLevel() const {
     return max_level_;
 }
 
-void MdLattice::Add(DecisionBoundaryVector const& lhs_sims,
-                    model::md::DecisionBoundary const rhs_sim, model::Index rhs_index) {
-    max_level_ = std::max(max_level_, GetCardinality(lhs_sims));
-    root_.Add(lhs_sims, rhs_sim, rhs_index, 0);
-}
-
 void MdLattice::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
                              model::md::DecisionBoundary const rhs_sim, model::Index rhs_index) {
     max_level_ = std::max(max_level_, GetCardinality(lhs_sims));
     root_.AddIfMinimal(lhs_sims, rhs_sim, rhs_index, 0);
-}
-
-void MdLattice::RemoveNode(DecisionBoundaryVector const& lhs) {
-    root_.RemoveNode(lhs, 0);
 }
 
 bool MdLattice::HasGeneralization(DecisionBoundaryVector const& lhs_sims,
