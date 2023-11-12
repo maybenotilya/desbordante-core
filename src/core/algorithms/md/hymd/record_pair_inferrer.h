@@ -8,7 +8,6 @@
 #include "algorithms/md/hymd/recommendation.h"
 #include "algorithms/md/hymd/similarity_data.h"
 #include "algorithms/md/hymd/similarity_vector.h"
-#include "model/index.h"
 
 namespace algos::hymd {
 
@@ -28,7 +27,7 @@ private:
     std::unordered_set<SimilarityVector> sim_vecs_to_check_;
     std::unordered_set<SimilarityVector> checked_sim_vecs_;
 
-    model::Index cur_record_left_ = 0;
+    RecordIdentifier cur_record_left_ = 0;
 
     // size_t efficiency_reciprocal_ = 100;
 
