@@ -78,6 +78,7 @@ ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_inf
             Similarity const similarity = sim_rec_id_vec[j].first;
             if (similarity == previous_similarity) continue;
             auto const it_end = it_begin + static_cast<long>(j);
+            // TODO: use std::inplace_merge
             std::sort(it_begin, it_end);
             sim_info[previous_similarity] = {it_begin, it_end};
             previous_similarity = similarity;
