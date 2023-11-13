@@ -17,12 +17,6 @@ private:
     MdLattice md_lattice_;
     SupportLattice support_lattice_;
 
-    void AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
-                      model::md::DecisionBoundary const rhs_sim, model::Index const rhs_index) {
-        assert(!support_lattice_.IsUnsupported(lhs_sims));
-        md_lattice_.AddIfMinimal(lhs_sims, rhs_sim, rhs_index);
-    }
-
 public:
     [[nodiscard]] bool HasGeneralization(DecisionBoundaryVector const& lhs_sims,
                                          model::md::DecisionBoundary const rhs_sim,
@@ -50,6 +44,12 @@ public:
     std::vector<model::md::DecisionBoundary> GetMaxValidGeneralizationRhs(
             DecisionBoundaryVector const& lhs) const {
         return md_lattice_.GetMaxValidGeneralizationRhs(lhs);
+    }
+
+    void AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
+                      model::md::DecisionBoundary const rhs_sim, model::Index const rhs_index) {
+        assert(!support_lattice_.IsUnsupported(lhs_sims));
+        md_lattice_.AddIfMinimal(lhs_sims, rhs_sim, rhs_index);
     }
 
     void AddIfMinimalAndNotUnsupported(DecisionBoundaryVector const& lhs_sims,

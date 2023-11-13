@@ -19,9 +19,9 @@ void RecordPairInferrer::ProcessSimVec(SimilarityVector const& sim) {
     std::vector<model::md::DecisionBoundary> const& rhs_min_similarities =
             similarity_data_->GetRhsMinSimilarities();
     size_t const col_match_number = similarity_data_->GetColumnMatchNumber();
-    for (lattice::MdLatticeNodeInfo const& md : violated_in_lattice) {
+    for (lattice::MdLatticeNodeInfo& md : violated_in_lattice) {
         DecisionBoundaryVector& rhs_sims = *md.rhs_sims;
-        DecisionBoundaryVector lhs_sims = md.lhs_sims;
+        DecisionBoundaryVector& lhs_sims = md.lhs_sims;
         for (model::Index rhs_index = 0; rhs_index < col_match_number; ++rhs_index) {
             preprocessing::Similarity const pair_rhs_sim = sim[rhs_index];
             model::md::DecisionBoundary const md_rhs_sim = rhs_sims[rhs_index];
@@ -35,13 +35,11 @@ void RecordPairInferrer::ProcessSimVec(SimilarityVector const& sim) {
                 // also cuts off MDs with similarity that is too low, since
                 // only 0.0 can be a lower threshold than rhs_min_similarities[rhs_index],
                 // everything else is cut off during index building.
-                // TODO: mark as disproved so that lattice traversal doesn't have to look
-                //   through indexes for this column match. Set to -1.0?
                 if (pair_rhs_sim <= lhs_sim_on_rhs) break;
-                // not minimal
-                if (lattice_->HasGeneralization(lhs_sims, pair_rhs_sim, rhs_index)) break;
                 // supposed to be interesting at this point
                 assert(pair_rhs_sim >= rhs_min_similarities[rhs_index]);
+                // not minimal
+                if (lattice_->HasGeneralization(lhs_sims, pair_rhs_sim, rhs_index)) break;
                 md_rhs_sim_ref = pair_rhs_sim;
             } while (false);
             auto const add_lhs_specialized_md = [this, &lhs_sims, md_rhs_sim, rhs_index,
@@ -51,7 +49,7 @@ void RecordPairInferrer::ProcessSimVec(SimilarityVector const& sim) {
                         similarity_data_->SpecializeOneLhs(i, sim[i]);
                 if (!new_lhs_value.has_value()) return;
                 model::md::DecisionBoundary const old_lhs_sim = lhs_sim;
-                lhs_sim = new_lhs_value.value();
+                lhs_sim = *new_lhs_value;
                 lattice_->AddIfMinimalAndNotUnsupported(lhs_sims, md_rhs_sim, rhs_index);
                 lhs_sim = old_lhs_sim;
             };
@@ -67,7 +65,7 @@ void RecordPairInferrer::ProcessSimVec(SimilarityVector const& sim) {
                         similarity_data_->SpecializeOneLhs(rhs_index, sim[rhs_index]);
                 if (!new_lhs_value.has_value()) continue;
                 model::md::DecisionBoundary const old_lhs_sim = lhs_sim;
-                lhs_sim = new_lhs_value.value();
+                lhs_sim = *new_lhs_value;
                 if (md_rhs_sim > lhs_sim) {
                     lattice_->AddIfMinimalAndNotUnsupported(lhs_sims, md_rhs_sim, rhs_index);
                 }

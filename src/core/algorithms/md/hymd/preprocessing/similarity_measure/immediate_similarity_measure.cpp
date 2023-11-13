@@ -56,8 +56,12 @@ ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_inf
                                                      std::to_string(similarity) + ")");
                 }
             }
+            if (similarity < min_sim) {
+                // Metanome keeps the actual value for some reason.
+                lowest = 0.0 /*similarity???*/;
+                continue;
+            }
             if (lowest > similarity) lowest = similarity;
-            if (similarity < min_sim) continue;
             decision_bounds.push_back(similarity);
             similarity_matrix[value_id_left][value_id_right] = similarity;
             for (RecordIdentifier record_id : clusters_right->operator[](value_id_right)) {
