@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "algorithms/md/hymd/indexes/column_similarity_info.h"
 #include "util/intersect_sorted_sequences.h"
 #include "util/py_tuple_hash.h"
 
@@ -68,13 +69,13 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         } else {
             data_info_right = preprocessing::DataInfo::MakeFrom(right_pli, measure.GetArgType());
         }
-        auto [dec_bounds, lowest_similarity, sim_matrix, sim_index] = measure.MakeIndexes(
+        indexes::ColumnSimilarityInfo sim_info = measure.MakeIndexes(
                 std::move(data_info_left), std::move(data_info_right), &right_pli.GetClusters(),
                 min_similarities[column_match_index], is_null_equal_null);
-        natural_decision_bounds.push_back(std::move(dec_bounds));
-        lowest_sims.push_back(lowest_similarity);
-        sim_matrices.push_back(std::move(sim_matrix));
-        sim_indexes.push_back(std::move(sim_index));
+        natural_decision_bounds.push_back(std::move(sim_info.natural_decision_boundaries));
+        lowest_sims.push_back(sim_info.lowest_similarity);
+        sim_matrices.push_back(std::move(sim_info.similarity_matrix));
+        sim_indexes.push_back(std::move(sim_info.similarity_index));
     }
     return std::make_unique<SimilarityData>(
             compressed_records, std::move(min_similarities), std::move(column_match_col_indices),

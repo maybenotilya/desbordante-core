@@ -27,13 +27,11 @@ Similarity GetSimilarity(DataInfo const& data_info_left, DataInfo const& data_in
             compute_similarity(value_left, value_right).get());
 }
 
-std::tuple<std::vector<model::md::DecisionBoundary>, Similarity, indexes::SimilarityMatrix,
-           indexes::SimilarityIndex>
-ImmediateSimilarityMeasure::MakeIndexes(std::shared_ptr<DataInfo const> data_info_left,
-                                        std::shared_ptr<DataInfo const> data_info_right,
-                                        std::vector<indexes::PliCluster> const* clusters_right,
-                                        model::md::DecisionBoundary min_sim,
-                                        bool is_null_equal_null) const {
+indexes::ColumnSimilarityInfo ImmediateSimilarityMeasure::MakeIndexes(
+        std::shared_ptr<DataInfo const> data_info_left,
+        std::shared_ptr<DataInfo const> data_info_right,
+        std::vector<indexes::PliCluster> const* clusters_right, model::md::DecisionBoundary min_sim,
+        bool is_null_equal_null) const {
     std::vector<model::md::DecisionBoundary> decision_bounds;
     indexes::SimilarityMatrix similarity_matrix;
     indexes::SimilarityIndex similarity_index;

@@ -6,6 +6,7 @@
 
 #include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/hymd/decision_boundary_vector.h"
+#include "algorithms/md/hymd/indexes/column_similarity_info.h"
 #include "algorithms/md/hymd/indexes/pli_cluster.h"
 #include "algorithms/md/hymd/indexes/similarity_index.h"
 #include "algorithms/md/hymd/indexes/similarity_matrix.h"
@@ -48,12 +49,11 @@ public:
         return name_;
     }
 
-    [[nodiscard]] virtual std::tuple<std::vector<model::md::DecisionBoundary>, Similarity,
-                                     indexes::SimilarityMatrix, indexes::SimilarityIndex>
-    MakeIndexes(std::shared_ptr<DataInfo const> data_info_left,
-                std::shared_ptr<DataInfo const> data_info_right,
-                std::vector<indexes::PliCluster> const* clusters_right,
-                model::md::DecisionBoundary min_sim, bool is_null_equal_null) const = 0;
+    [[nodiscard]] virtual indexes::ColumnSimilarityInfo MakeIndexes(
+            std::shared_ptr<DataInfo const> data_info_left,
+            std::shared_ptr<DataInfo const> data_info_right,
+            std::vector<indexes::PliCluster> const* clusters_right,
+            model::md::DecisionBoundary min_sim, bool is_null_equal_null) const = 0;
 };
 
 }  // namespace algos::hymd::preprocessing::similarity_measure
