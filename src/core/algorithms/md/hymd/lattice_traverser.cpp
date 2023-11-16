@@ -77,17 +77,17 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
                     if (cur_lhs_spec_it == end_it) {
                         for (model::Index const j : indices) {
                             model::md::DecisionBoundary const rhs_sim = old_rhs_sims[j];
-                            lattice.AddIfMinimal(lhs_sims, rhs_sim, j);
+                            lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, j);
                         }
                     } else {
                         auto it = indices.begin();
                         for (; it != cur_lhs_spec_it; ++it) {
                             model::md::DecisionBoundary const rhs_sim = old_rhs_sims[*it];
-                            lattice.AddIfMinimal(lhs_sims, rhs_sim, *it);
+                            lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, *it);
                         }
                         for (++it; it != end_it; ++it) {
                             model::md::DecisionBoundary const rhs_sim = old_rhs_sims[*it];
-                            lattice.AddIfMinimal(lhs_sims, rhs_sim, *it);
+                            lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, *it);
                         }
                     }
                     lhs_sim = old_lhs_sim;
@@ -109,23 +109,23 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
                     if (cur_lhs_spec_it == end_it) {
                         for (model::Index const j : indices) {
                             model::md::DecisionBoundary const rhs_sim = old_rhs_sims[j];
-                            lattice.AddIfMinimal(lhs_sims, rhs_sim, j);
+                            lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, j);
                         }
                     } else {
                         auto it = indices.begin();
                         for (; it != cur_lhs_spec_it; ++it) {
                             model::md::DecisionBoundary const rhs_sim = old_rhs_sims[*it];
-                            lattice.AddIfMinimal(lhs_sims, rhs_sim, *it);
+                            lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, *it);
                         }
                         model::md::DecisionBoundary const rhs_sim = old_rhs_sims[*it];
                         model::md::DecisionBoundary const new_lhs_sim = lhs_sims[*it];
                         if (rhs_sim > new_lhs_sim) {
-                            lattice.AddIfMinimal(lhs_sims, rhs_sim, *it);
+                            lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, *it);
                         }
                         ++it;
                         for (; it != end_it; ++it) {
                             model::md::DecisionBoundary const rhs_sim = old_rhs_sims[*it];
-                            lattice.AddIfMinimal(lhs_sims, rhs_sim, *it);
+                            lattice.AddIfMinimalAndNotUnsupported(lhs_sims, rhs_sim, *it);
                         }
                     }
                     lhs_sim = old_lhs_sim;

@@ -347,8 +347,6 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             }
         }
         for (auto const& [val_ids, cluster] : grouped) {
-            using IterType = std::vector<RecordIdentifier>::const_iterator;
-            using IterPair = std::pair<IterType, IterType>;
             using RecSet = std::unordered_set<RecordIdentifier>;
             std::vector<RecSet const*> rec_sets;
             rec_sets.reserve(cardinality);
