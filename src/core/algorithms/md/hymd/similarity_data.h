@@ -9,6 +9,8 @@
 #include "algorithms/md/hymd/indexes/pli_cluster.h"
 #include "algorithms/md/hymd/indexes/similarity_index.h"
 #include "algorithms/md/hymd/indexes/similarity_matrix.h"
+#include "algorithms/md/hymd/lattice/full_lattice.h"
+#include "algorithms/md/hymd/lattice/validation_info.h"
 #include "algorithms/md/hymd/preprocessing/similarity.h"
 #include "algorithms/md/hymd/preprocessing/similarity_measure/similarity_measure.h"
 #include "algorithms/md/hymd/recommendation.h"
@@ -19,6 +21,25 @@ namespace algos::hymd {
 
 class SimilarityData {
 private:
+    struct WorkingInfo {
+        std::vector<Recommendation>& violations;
+        model::md::DecisionBoundary const old_bound;
+        model::Index const index;
+        model::md::DecisionBoundary& threshold;
+
+        bool EnoughViolations() const {
+            return violations.size() >= 20;
+        }
+
+        bool ShouldStop() const {
+            return threshold == 0.0 && EnoughViolations();
+        }
+
+        WorkingInfo(model::md::DecisionBoundary old_bound, model::Index index,
+                    std::vector<Recommendation>& violations, model::md::DecisionBoundary& threshold)
+            : violations(violations), old_bound(old_bound), index(index), threshold(threshold) {}
+    };
+
     indexes::CompressedRecords* compressed_records_;
     std::vector<model::md::DecisionBoundary> rhs_min_similarities_;
 
@@ -42,28 +63,22 @@ private:
         return compressed_records_->GetRightRecords();
     }
 
-    void LowerForColumnMatch(model::md::DecisionBoundary& threshold, model::Index col_match,
-                             indexes::PliCluster const& cluster,
+    [[nodiscard]] bool LowerForColumnMatch(WorkingInfo& working_info, indexes::PliCluster const& cluster,
                              std::unordered_set<RecordIdentifier> const& similar_records,
-                             std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
-                             Recommendations* recommendations_ptr) const;
-    void LowerForColumnMatch(model::md::DecisionBoundary& threshold, model::Index col_match,
+                             std::vector<model::md::DecisionBoundary> const& gen_max_rhs) const;
+    [[nodiscard]] bool LowerForColumnMatch(WorkingInfo& working_info,
                              std::vector<CompressedRecord const*> const& cluster,
                              std::unordered_set<RecordIdentifier> const& similar_records,
-                             std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
-                             Recommendations* recommendations_ptr) const;
+                             std::vector<model::md::DecisionBoundary> const& gen_max_rhs) const;
     [[nodiscard]] std::unordered_set<RecordIdentifier> const* GetSimilarRecords(
             ValueIdentifier value_id, model::md::DecisionBoundary similarity,
             model::Index column_match_index) const;
 
 public:
-    struct LhsData {
-        std::vector<model::md::DecisionBoundary> max_rhs_dec_bounds;
+    struct ValidationResult {
+        std::vector<std::vector<Recommendation>> violations;
+        std::vector<std::pair<model::Index, model::md::DecisionBoundary>> to_specialize;
         bool is_unsupported;
-
-        LhsData(std::vector<model::md::DecisionBoundary> max_rhs_dec_bounds,
-                bool is_unsupported) noexcept
-            : max_rhs_dec_bounds(std::move(max_rhs_dec_bounds)), is_unsupported(is_unsupported) {}
     };
 
     SimilarityData(indexes::CompressedRecords* compressed_records,
@@ -119,11 +134,9 @@ public:
     [[nodiscard]] SimilarityVector GetSimilarityVector(CompressedRecord const& left_record,
                                                        CompressedRecord const& right_record) const;
 
-    [[nodiscard]] LhsData GetMaxRhsDecBounds(
-            DecisionBoundaryVector const& lhs_sims, Recommendations* recommendations_ptr,
-            size_t min_support, DecisionBoundaryVector const& original_rhs_thresholds,
-            std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
-            std::unordered_set<model::Index>& rhs_indices) const;
+    [[nodiscard]] ValidationResult Validate(lattice::FullLattice& lattice,
+                                            lattice::ValidationInfo* validation_info,
+                                            size_t min_support) const;
 
     [[nodiscard]] std::optional<model::md::DecisionBoundary> GetPreviousDecisionBound(
             model::md::DecisionBoundary lhs_sim, model::Index col_match) const;

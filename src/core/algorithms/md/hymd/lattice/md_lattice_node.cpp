@@ -53,9 +53,15 @@ void MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
     size_t const rhs_size = rhs_.size();
     model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_sims, this_node_index);
     if (next_node_index == rhs_size) {
-        if (this_rhs_sim == 0.0) {
-            this_rhs_sim = rhs_sim;
-        }
+        // Correct. This method is only used when inferring, so we must get a maximum, which is
+        // enforced with `if (this_rhs_sim >= rhs_sim) return;` above, no need for an additional
+        // check. I believe Metanome's implementation implemented this method incorrectly (they used
+        // Math.min instead of Math.max). However, before validating an MD, they set the rhs bound
+        // to 1.0, so their error has no effect on the final result. If this is boundary is set
+        // correctly (like here), we don't have to set the rhs bound to 1.0 before validating and
+        // can start with the value originally in the lattice, as the only way that value could be
+        // not equal to 1.0 at the start of the validation is if it was lowered by some record pair.
+        this_rhs_sim = rhs_sim;
         // TODO: if rhs_sim is 1, we can remove all specializations, check performance
         //  (if we do, then we can avoid checking for all 1 in GetMaxValidGeneralizationRhs)
         return;

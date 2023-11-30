@@ -87,31 +87,28 @@ model::Index SimilarityData::GetLeftPliIndex(model::Index const column_match_ind
     return column_match_col_indices_[column_match_index].first;
 }
 
-void SimilarityData::LowerForColumnMatch(
-        model::md::DecisionBoundary& threshold, model::Index const col_match,
-        indexes::PliCluster const& cluster, std::unordered_set<RecordIdentifier> const& similar_records,
-        std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
-        Recommendations* recommendations_ptr) const {
-    if (threshold == 0.0) return;
+bool SimilarityData::LowerForColumnMatch(
+        WorkingInfo& working_info, indexes::PliCluster const& cluster,
+        std::unordered_set<RecordIdentifier> const& similar_records,
+        std::vector<model::md::DecisionBoundary> const& gen_max_rhs) const {
+    assert(!similar_records.empty());
     std::vector<CompressedRecord const*> cluster_records;
     cluster_records.reserve(cluster.size());
     auto const& left_records = GetLeftRecords().GetRecords();
     for (RecordIdentifier left_record_id : cluster) {
         cluster_records.push_back(&left_records[left_record_id]);
     }
-    LowerForColumnMatch(threshold, col_match, cluster_records, similar_records, gen_max_rhs,
-                        recommendations_ptr);
+    return LowerForColumnMatch(working_info, cluster_records, similar_records, gen_max_rhs);
 }
 
-void SimilarityData::LowerForColumnMatch(
-        model::md::DecisionBoundary& threshold, model::Index const col_match,
-        std::vector<CompressedRecord const*> const& cluster,
+bool SimilarityData::LowerForColumnMatch(
+        WorkingInfo& working_info, std::vector<CompressedRecord const*> const& cluster,
         std::unordered_set<RecordIdentifier> const& similar_records,
-        std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
-        Recommendations* recommendations_ptr) const {
-    if (threshold == 0.0) return;
-    model::md::DecisionBoundary const cur_gen_max_rhs = gen_max_rhs[col_match];
-    model::md::DecisionBoundary const cur_min_sim = rhs_min_similarities_[col_match];
+        std::vector<model::md::DecisionBoundary> const& gen_max_rhs) const {
+    assert(!similar_records.empty());
+    assert(!cluster.empty());
+    model::md::DecisionBoundary const cur_gen_max_rhs = gen_max_rhs[working_info.index];
+    model::md::DecisionBoundary const cur_min_sim = rhs_min_similarities_[working_info.index];
 
     auto const& right_records = GetRightRecords().GetRecords();
 
@@ -119,58 +116,63 @@ void SimilarityData::LowerForColumnMatch(
     std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped;
     for (CompressedRecord const* left_record_ptr : cluster) {
         CompressedRecord const& left_record = *left_record_ptr;
-        grouped[left_record[col_match]].push_back(&left_record);
+        grouped[left_record[working_info.index]].push_back(&left_record);
     }
     for (auto const& [left_value_id, records_left] : grouped) {
         for (RecordIdentifier record_id_right : similar_records) {
             CompressedRecord const& right_record = right_records[record_id_right];
-            ValueIdentifier const right_value_id = right_record[col_match];
-            indexes::SimilarityMatrix const& sim_matrix = sim_matrices_[col_match];
+            ValueIdentifier const right_value_id = right_record[working_info.index];
+            indexes::SimilarityMatrix const& sim_matrix = sim_matrices_[working_info.index];
             auto it_left = sim_matrix.find(left_value_id);
             // note: We are calculating a part of the sim vec here. Will there
             // be a speedup if we store the result somewhere?
             // TODO: try storing the results somewhere, deferring other sim lookups.
             if (it_left == sim_matrix.end()) {
-                threshold = 0.0;
+                working_info.threshold = 0.0;
                 for (CompressedRecord const* left_record_ptr : records_left) {
-                    recommendations_ptr->emplace(left_record_ptr, &right_record);
+                    working_info.violations.emplace_back(left_record_ptr, &right_record);
                 }
-                return;
+                if (working_info.EnoughViolations()) {
+                    return true;
+                } else {
+                    continue;
+                }
             }
             auto const& row = it_left->second;
             auto it_right = row.find(right_value_id);
             if (it_right == row.end()) {
-                threshold = 0.0;
+                working_info.threshold = 0.0;
                 for (CompressedRecord const* left_record_ptr : records_left) {
-                    recommendations_ptr->emplace(left_record_ptr, &right_record);
+                    working_info.violations.emplace_back(left_record_ptr, &right_record);
                 }
-                return;
+                if (working_info.EnoughViolations()) {
+                    return true;
+                } else {
+                    continue;
+                }
             }
             preprocessing::Similarity const record_similarity = it_right->second;
+            if (record_similarity < working_info.old_bound) {
+                for (CompressedRecord const* left_record_ptr : records_left) {
+                    working_info.violations.emplace_back(left_record_ptr, &right_record);
+                }
+            }
 
-            if (record_similarity == 0.0) {
-                threshold = 0.0;
-                for (CompressedRecord const* left_record_ptr : records_left) {
-                    recommendations_ptr->emplace(left_record_ptr, &right_record);
+            if (record_similarity < working_info.threshold) {
+                working_info.threshold = record_similarity;
+                if (working_info.threshold <= cur_gen_max_rhs) {
+                    working_info.threshold = 0.0;
+                    if (working_info.EnoughViolations()) {
+                        return true;
+                    } else {
+                        continue;
+                    }
                 }
-                return;
             }
-            assert(record_similarity >= cur_min_sim);
-            if (threshold > record_similarity) {
-                threshold = record_similarity;
-                for (CompressedRecord const* left_record_ptr : records_left) {
-                    recommendations_ptr->emplace(left_record_ptr, &right_record);
-                }
-                if (threshold <= cur_gen_max_rhs) {
-                    // TODO: shouldUpdateViolations: if number of violations in a column match is
-                    // less than 20, keep going
-                    threshold = 0.0;
-                    return;
-                }
-                assert(threshold >= cur_min_sim);
-            }
+            assert(working_info.threshold >= cur_min_sim);
         }
     }
+    return false;
 }
 
 std::unordered_set<SimilarityVector> SimilarityData::GetSimVecs(
@@ -255,62 +257,146 @@ std::unordered_set<RecordIdentifier> const* SimilarityData::GetSimilarRecords(
     return *upper;
 }
 
-SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
-        DecisionBoundaryVector const& lhs_sims, Recommendations* recommendations_ptr,
-        size_t min_support, DecisionBoundaryVector const& original_rhs_thresholds,
-        std::vector<model::md::DecisionBoundary> const& gen_max_rhs,
-        std::unordered_set<model::Index>& rhs_indices) const {
+SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& lattice,
+                                                          lattice::ValidationInfo* info,
+                                                          size_t min_support) const {
+    DecisionBoundaryVector& lhs_sims = info->info->lhs_sims;
+    DecisionBoundaryVector& rhs_sims = *info->info->rhs_sims;
+    std::unordered_set<model::Index>& rhs_indices = info->rhs_indices;
+    std::vector<std::pair<model::Index, model::md::DecisionBoundary>> to_specialize;
+    to_specialize.reserve(rhs_indices.size());
+    std::vector<model::md::DecisionBoundary> gen_max_rhs =
+            lattice.GetMaxValidGeneralizationRhs(lhs_sims);
     size_t support = 0;
-    size_t const col_matches = original_rhs_thresholds.size();
-    size_t const rhs_indices_size = rhs_indices.size();
-    DecisionBoundaryVector rhs_thresholds(col_matches, 0.0);
-    for (model::Index const index : rhs_indices) {
-        assert(original_rhs_thresholds[index] != 0.0);
-        if (prune_nondisjoint_ && lhs_sims[index] != 0.0) continue;
-        if (lhs_sims[index] == 1.0) continue;
-        if (gen_max_rhs[index] == 1.0) continue;
-        rhs_thresholds[index] = 1.0;
-    }
     std::vector<model::Index> non_zero_indices = GetNonZeroIndices(lhs_sims);
     size_t const cardinality = non_zero_indices.size();
     if (cardinality == 0) {
-        assert(column_match_col_indices_.size() == lhs_sims.size());
-        assert(rhs_thresholds.size() == lowest_sims_.size());
         support = GetLeftSize() * GetRightSize();
-        return {lowest_sims_, support < min_support};
+        for (model::Index const i : rhs_indices) {
+            model::md::DecisionBoundary& rhs_bound = rhs_sims[i];
+            to_specialize.emplace_back(i, rhs_bound);
+            rhs_bound = lowest_sims_[i];
+        }
+        return {{}, to_specialize, support < min_support};
     }
     if (cardinality == 1) {
+        std::vector<std::vector<Recommendation>> violations;
+        violations.reserve(rhs_indices.size());
         model::Index const non_zero_index = non_zero_indices[0];
-        assert(!prune_nondisjoint_ || rhs_thresholds[non_zero_index] == 0.0);
-        if (!prune_nondisjoint_) {
-            rhs_thresholds[non_zero_index] = 0.0;
-            rhs_indices.erase(non_zero_index);
-        }
-        std::vector<indexes::PliCluster> const& clusters =
-                GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
-        for (ValueIdentifier value_id = 0; value_id < clusters.size(); ++value_id) {
-            std::vector<RecordIdentifier> const& cluster = clusters[value_id];
-            std::unordered_set<RecordIdentifier> const* similar_records_ptr =
-                    GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
-            if (similar_records_ptr == nullptr) continue;
-            std::unordered_set<RecordIdentifier> const& similar_records = *similar_records_ptr;
-            support += cluster.size() * similar_records.size();
-            size_t zeroes = 0;
-            for (model::Index const col_match_idx : rhs_indices) {
-                model::md::DecisionBoundary& cur_rhs_sim = rhs_thresholds[col_match_idx];
-                LowerForColumnMatch(cur_rhs_sim, col_match_idx, cluster, similar_records,
-                                    gen_max_rhs, recommendations_ptr);
-                if (cur_rhs_sim == 0.0) ++zeroes;
+        std::vector<WorkingInfo> working;
+        if (prune_nondisjoint_) {
+            for (model::Index index : rhs_indices) {
+                model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
+                if (gen_max_rhs[index] == 1.0) {
+                    rhs_ref = 0.0;
+                    continue;
+                }
+                assert(rhs_ref != 0.0);
+                violations.emplace_back();
+                working.emplace_back(rhs_ref, index, violations.back(), rhs_ref);
+                // If inference from record pairs is incorrect, this is required.
+                // rhs_ref = 1.0;
             }
-            if (zeroes == rhs_indices_size && support >= min_support)
-                return {std::move(rhs_thresholds), false};
+            size_t const working_size = working.size();
+            std::vector<indexes::PliCluster> const& clusters =
+                    GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
+            size_t const clusters_size = clusters.size();
+            for (ValueIdentifier value_id = 0; value_id < clusters_size; ++value_id) {
+                std::vector<RecordIdentifier> const& cluster = clusters[value_id];
+                std::unordered_set<RecordIdentifier> const* similar_records_ptr =
+                        GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
+                if (similar_records_ptr == nullptr) continue;
+                std::unordered_set<RecordIdentifier> const& similar_records = *similar_records_ptr;
+                support += cluster.size() * similar_records.size();
+                size_t stops = 0;
+                for (WorkingInfo& working_info : working) {
+                    bool const should_stop = LowerForColumnMatch(working_info, cluster,
+                                                                 similar_records, gen_max_rhs);
+                    if (should_stop) ++stops;
+                }
+                if (stops == working_size && support >= min_support) {
+                    for (auto& [_, old_bound, index, __] : working) {
+                        assert(old_bound != 0.0);
+                        to_specialize.emplace_back(index, old_bound);
+                    }
+                    return {std::move(violations), std::move(to_specialize), false};
+                }
+            }
+            for (auto& [_, old_bound, index, __] : working) {
+                if (rhs_sims[index] == old_bound) continue;
+                to_specialize.emplace_back(index, old_bound);
+            }
+            return {std::move(violations), std::move(to_specialize), false};
+        } else {
+            std::optional<std::pair<model::Index, model::md::DecisionBoundary>> same_rhs_as_lhs;
+            for (model::Index index : rhs_indices) {
+                model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
+                if (gen_max_rhs[index] == 1.0) {
+                    rhs_ref = 0.0;
+                    continue;
+                }
+                assert(rhs_ref != 0.0);
+                if (index == non_zero_index) {
+                    same_rhs_as_lhs = {index, rhs_ref};
+                    rhs_ref = 0.0;
+                } else {
+                    violations.emplace_back();
+                    working.emplace_back(rhs_ref, index, violations.back(), rhs_ref);
+                    // If inference from record pairs is incorrect, this is required.
+                    // rhs_ref = 1.0;
+                }
+            }
+            size_t const working_size = working.size();
+            std::vector<indexes::PliCluster> const& clusters =
+                    GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
+            size_t const clusters_size = clusters.size();
+            for (ValueIdentifier value_id = 0; value_id < clusters_size; ++value_id) {
+                std::vector<RecordIdentifier> const& cluster = clusters[value_id];
+                std::unordered_set<RecordIdentifier> const* similar_records_ptr =
+                        GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
+                if (similar_records_ptr == nullptr) continue;
+                std::unordered_set<RecordIdentifier> const& similar_records = *similar_records_ptr;
+                support += cluster.size() * similar_records.size();
+                size_t stops = 0;
+                for (WorkingInfo& working_info : working) {
+                    bool const should_stop = LowerForColumnMatch(working_info, cluster,
+                                                                 similar_records, gen_max_rhs);
+                    if (should_stop) ++stops;
+                }
+                if (stops == working_size && support >= min_support) {
+                    for (auto& [_, old_bound, index, __] : working) {
+                        assert(old_bound != 0.0);
+                        to_specialize.emplace_back(index, old_bound);
+                    }
+                    if (same_rhs_as_lhs)
+                        to_specialize.emplace_back(same_rhs_as_lhs->first, same_rhs_as_lhs->second);
+                    return {std::move(violations), std::move(to_specialize), false};
+                }
+            }
+            for (auto& [_, old_bound, index, __] : working) {
+                if (rhs_sims[index] == old_bound) continue;
+                to_specialize.emplace_back(index, old_bound);
+            }
+            if (same_rhs_as_lhs)
+                to_specialize.emplace_back(same_rhs_as_lhs->first, same_rhs_as_lhs->second);
+            return {std::move(violations), std::move(to_specialize), support < min_support};
         }
-        return {std::move(rhs_thresholds), support < min_support};
     } else {
-        assert(!prune_nondisjoint_ || std::all_of(non_zero_indices.begin(), non_zero_indices.end(),
-                                                  [&rhs_thresholds](model::Index const index) {
-                                                      return rhs_thresholds[index] == 0.0;
-                                                  }));
+        std::vector<std::vector<Recommendation>> violations;
+        violations.reserve(rhs_indices.size());
+        std::vector<WorkingInfo> working;
+        for (model::Index index : rhs_indices) {
+            model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
+            if (gen_max_rhs[index] == 1.0) {
+                rhs_ref = 0.0;
+                continue;
+            }
+            violations.emplace_back();
+            working.emplace_back(rhs_ref, index, violations.back(), rhs_ref);
+            // If inference from record pairs is incorrect, this is required.
+            // rhs_ref = 1.0;
+        }
+        size_t const working_size = working.size();
         std::map<model::Index, std::vector<model::Index>> col_col_match_mapping;
         for (model::Index col_match_index : non_zero_indices) {
             col_col_match_mapping[GetLeftPliIndex(col_match_index)].push_back(col_match_index);
@@ -376,19 +462,28 @@ SimilarityData::LhsData SimilarityData::GetMaxRhsDecBounds(
             }
             if (similar_records.empty()) continue;
             support += cluster.size() * similar_records.size();
-            size_t zeroes = 0;
-            for (model::Index const col_match_idx : rhs_indices) {
-                model::md::DecisionBoundary& cur_rhs_sim = rhs_thresholds[col_match_idx];
-                LowerForColumnMatch(cur_rhs_sim, col_match_idx, cluster, similar_records,
-                                    gen_max_rhs, recommendations_ptr);
-                if (cur_rhs_sim == 0.0) ++zeroes;
+            size_t stops = 0;
+            for (WorkingInfo& working_info : working) {
+                bool const should_stop =
+                        LowerForColumnMatch(working_info, cluster, similar_records, gen_max_rhs);
+                if (should_stop) ++stops;
             }
-            if (zeroes == rhs_indices_size && support >= min_support)
-                return {std::move(rhs_thresholds), false};
+            if (stops == working_size && support >= min_support) {
+                for (auto& [violations, old_bound, index, _] : working) {
+                    if (rhs_sims[index] == old_bound) continue;
+                    to_specialize.emplace_back(index, old_bound);
+                }
+                return {std::move(violations), std::move(to_specialize), false};
+            }
         }
-        return {std::move(rhs_thresholds), support < min_support};
+        for (auto& [violations, old_bound, index, _] : working) {
+            if (rhs_sims[index] == old_bound) continue;
+            to_specialize.emplace_back(index, old_bound);
+        }
+        return {std::move(violations), std::move(to_specialize), support < min_support};
     }
-    return {std::move(rhs_thresholds), support < min_support};
+    __builtin_unreachable();
+    assert(false);
 }
 
 std::optional<model::md::DecisionBoundary> SimilarityData::GetPreviousDecisionBound(
