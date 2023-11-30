@@ -27,6 +27,10 @@ private:
         model::Index const index;
         model::md::DecisionBoundary& threshold;
 
+        void SetOld() {
+            threshold = old_bound;
+        }
+
         bool EnoughViolations() const {
             return violations.size() >= 20;
         }

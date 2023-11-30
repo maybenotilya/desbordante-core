@@ -108,7 +108,6 @@ bool SimilarityData::LowerForColumnMatch(
     assert(!similar_records.empty());
     assert(!cluster.empty());
     model::md::DecisionBoundary const cur_gen_max_rhs = gen_max_rhs[working_info.index];
-    model::md::DecisionBoundary const cur_min_sim = rhs_min_similarities_[working_info.index];
 
     auto const& right_records = GetRightRecords().GetRecords();
 
@@ -169,7 +168,6 @@ bool SimilarityData::LowerForColumnMatch(
                     }
                 }
             }
-            assert(working_info.threshold >= cur_min_sim);
         }
     }
     return false;
@@ -265,8 +263,6 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
     std::unordered_set<model::Index>& rhs_indices = info->rhs_indices;
     std::vector<std::pair<model::Index, model::md::DecisionBoundary>> to_specialize;
     to_specialize.reserve(rhs_indices.size());
-    std::vector<model::md::DecisionBoundary> gen_max_rhs =
-            lattice.GetMaxValidGeneralizationRhs(lhs_sims);
     size_t support = 0;
     std::vector<model::Index> non_zero_indices = GetNonZeroIndices(lhs_sims);
     size_t const cardinality = non_zero_indices.size();
@@ -287,15 +283,17 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         if (prune_nondisjoint_) {
             for (model::Index index : rhs_indices) {
                 model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
-                if (gen_max_rhs[index] == 1.0) {
-                    rhs_ref = 0.0;
-                    continue;
-                }
                 assert(rhs_ref != 0.0);
                 violations.emplace_back();
                 working.emplace_back(rhs_ref, index, violations.back(), rhs_ref);
+                rhs_ref = 0.0;
                 // If inference from record pairs is incorrect, this is required.
                 // rhs_ref = 1.0;
+            }
+            std::vector<model::md::DecisionBoundary> gen_max_rhs =
+                    lattice.GetMaxValidGeneralizationRhs(lhs_sims);
+            for (WorkingInfo& working : working) {
+                working.SetOld();
             }
             size_t const working_size = working.size();
             std::vector<indexes::PliCluster> const& clusters =
@@ -331,10 +329,6 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             std::optional<std::pair<model::Index, model::md::DecisionBoundary>> same_rhs_as_lhs;
             for (model::Index index : rhs_indices) {
                 model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
-                if (gen_max_rhs[index] == 1.0) {
-                    rhs_ref = 0.0;
-                    continue;
-                }
                 assert(rhs_ref != 0.0);
                 if (index == non_zero_index) {
                     same_rhs_as_lhs = {index, rhs_ref};
@@ -345,6 +339,11 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     // If inference from record pairs is incorrect, this is required.
                     // rhs_ref = 1.0;
                 }
+            }
+            std::vector<model::md::DecisionBoundary> gen_max_rhs =
+                    lattice.GetMaxValidGeneralizationRhs(lhs_sims);
+            for (WorkingInfo& working : working) {
+                working.SetOld();
             }
             size_t const working_size = working.size();
             std::vector<indexes::PliCluster> const& clusters =
@@ -387,14 +386,16 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         std::vector<WorkingInfo> working;
         for (model::Index index : rhs_indices) {
             model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
-            if (gen_max_rhs[index] == 1.0) {
-                rhs_ref = 0.0;
-                continue;
-            }
             violations.emplace_back();
             working.emplace_back(rhs_ref, index, violations.back(), rhs_ref);
             // If inference from record pairs is incorrect, this is required.
             // rhs_ref = 1.0;
+            rhs_ref = 0.0;
+        }
+        std::vector<model::md::DecisionBoundary> gen_max_rhs =
+                lattice.GetMaxValidGeneralizationRhs(lhs_sims);
+        for (WorkingInfo& working : working) {
+            working.SetOld();
         }
         size_t const working_size = working.size();
         std::map<model::Index, std::vector<model::Index>> col_col_match_mapping;
