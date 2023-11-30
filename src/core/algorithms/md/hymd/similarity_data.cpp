@@ -324,7 +324,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 if (rhs_sims[index] == old_bound) continue;
                 to_specialize.emplace_back(index, old_bound);
             }
-            return {std::move(violations), std::move(to_specialize), false};
+            return {std::move(violations), std::move(to_specialize), support < min_support};
         } else {
             std::optional<std::pair<model::Index, model::md::DecisionBoundary>> same_rhs_as_lhs;
             for (model::Index index : rhs_indices) {
