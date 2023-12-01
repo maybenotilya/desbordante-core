@@ -212,7 +212,6 @@ SimilarityVector SimilarityData::GetSimilarityVector(CompressedRecord const& lef
     size_t const col_match_number = GetColumnMatchNumber();
     SimilarityVector sims(col_match_number);
     for (model::Index i = 0; i < col_match_number; ++i) {
-        // TODO: not at, "get or default"
         indexes::SimilarityMatrix const& sim_matrix = sim_matrices_[i];
         auto row_it = sim_matrix.find(left_record[i]);
         if (row_it == sim_matrix.end()) {
@@ -481,6 +480,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             }
         }
         for (auto& [_, old_bound, index, __, ___] : working) {
+            // Optimization not done in Metanome
             if (rhs_sims[index] == old_bound) continue;
             to_specialize.emplace_back(index, old_bound);
         }
