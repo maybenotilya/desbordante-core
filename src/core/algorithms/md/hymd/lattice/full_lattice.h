@@ -29,16 +29,14 @@ public:
     }
 
     std::vector<MdLatticeNodeInfo> GetLevel(size_t level) {
-        /* Filtering slows down on adult.csv a lot, test on other datasets.
-        std::vector<MdLatticeNodeInfo> mds;
         std::vector<MdLatticeNodeInfo> lattice_mds = md_lattice_.GetLevel(level);
+        std::vector<MdLatticeNodeInfo> mds;
         mds.reserve(lattice_mds.size());
         for (MdLatticeNodeInfo& md : lattice_mds) {
+            if (support_lattice_.IsUnsupported(md.lhs_sims)) continue;
             mds.push_back(std::move(md));
         }
         return mds;
-        */
-        return md_lattice_.GetLevel(level);
     }
 
     std::vector<model::md::DecisionBoundary> GetMaxValidGeneralizationRhs(
