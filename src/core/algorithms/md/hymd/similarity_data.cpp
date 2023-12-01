@@ -112,7 +112,8 @@ bool SimilarityData::LowerForColumnMatch(
     auto const& right_records = GetRightRecords().GetRecords();
 
     // TODO: try calculating sim vecs here.
-    std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped;
+    std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped(
+            std::min(cluster.size(), working_info.col_match_values));
     for (CompressedRecord const* left_record_ptr : cluster) {
         CompressedRecord const& left_record = *left_record_ptr;
         grouped[left_record[working_info.index]].push_back(&left_record);
@@ -255,6 +256,18 @@ std::unordered_set<RecordIdentifier> const* SimilarityData::GetSimilarRecords(
     return *upper;
 }
 
+template <typename Func>
+auto SimilarityData::ZeroWorking(std::vector<WorkingInfo>& working_info, Func func) {
+    for (WorkingInfo& working : working_info) {
+        working.threshold = 0.0;
+    }
+    auto res = func();
+    for (WorkingInfo& working : working_info) {
+        working.threshold = working.old_bound;
+    }
+    return res;
+}
+
 SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& lattice,
                                                           lattice::ValidationInfo* info,
                                                           size_t min_support) const {
@@ -285,16 +298,13 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
                 assert(rhs_ref != 0.0);
                 violations.emplace_back();
-                working.emplace_back(rhs_ref, index, violations.back(), rhs_ref);
-                rhs_ref = 0.0;
-                // If inference from record pairs is incorrect, this is required.
-                // rhs_ref = 1.0;
+                working.emplace_back(rhs_ref, index, violations.back(), rhs_ref,
+                                     GetLeftValueNum(index));
             }
-            std::vector<model::md::DecisionBoundary> gen_max_rhs =
-                    lattice.GetMaxValidGeneralizationRhs(lhs_sims);
-            for (WorkingInfo& working : working) {
-                working.SetOld();
-            }
+            std::vector<model::md::DecisionBoundary> const gen_max_rhs =
+                    ZeroWorking(working, [&lattice, &lhs_sims]() {
+                        return lattice.GetMaxValidGeneralizationRhs(lhs_sims);
+                    });
             size_t const working_size = working.size();
             std::vector<indexes::PliCluster> const& clusters =
                     GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
@@ -313,14 +323,14 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     if (should_stop) ++stops;
                 }
                 if (stops == working_size && support >= min_support) {
-                    for (auto& [_, old_bound, index, __] : working) {
+                    for (auto& [_, old_bound, index, __, ___] : working) {
                         assert(old_bound != 0.0);
                         to_specialize.emplace_back(index, old_bound);
                     }
                     return {std::move(violations), std::move(to_specialize), false};
                 }
             }
-            for (auto& [_, old_bound, index, __] : working) {
+            for (auto& [_, old_bound, index, __, ___] : working) {
                 if (rhs_sims[index] == old_bound) continue;
                 to_specialize.emplace_back(index, old_bound);
             }
@@ -335,16 +345,14 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     rhs_ref = 0.0;
                 } else {
                     violations.emplace_back();
-                    working.emplace_back(rhs_ref, index, violations.back(), rhs_ref);
-                    // If inference from record pairs is incorrect, this is required.
-                    // rhs_ref = 1.0;
+                    working.emplace_back(rhs_ref, index, violations.back(), rhs_ref,
+                                         GetLeftValueNum(index));
                 }
             }
-            std::vector<model::md::DecisionBoundary> gen_max_rhs =
-                    lattice.GetMaxValidGeneralizationRhs(lhs_sims);
-            for (WorkingInfo& working : working) {
-                working.SetOld();
-            }
+            std::vector<model::md::DecisionBoundary> const gen_max_rhs =
+                    ZeroWorking(working, [&lattice, &lhs_sims]() {
+                        return lattice.GetMaxValidGeneralizationRhs(lhs_sims);
+                    });
             size_t const working_size = working.size();
             std::vector<indexes::PliCluster> const& clusters =
                     GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
@@ -363,7 +371,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     if (should_stop) ++stops;
                 }
                 if (stops == working_size && support >= min_support) {
-                    for (auto& [_, old_bound, index, __] : working) {
+                    for (auto& [_, old_bound, index, __, ___] : working) {
                         assert(old_bound != 0.0);
                         to_specialize.emplace_back(index, old_bound);
                     }
@@ -372,7 +380,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     return {std::move(violations), std::move(to_specialize), false};
                 }
             }
-            for (auto& [_, old_bound, index, __] : working) {
+            for (auto& [_, old_bound, index, __, ___] : working) {
                 if (rhs_sims[index] == old_bound) continue;
                 to_specialize.emplace_back(index, old_bound);
             }
@@ -387,16 +395,12 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         for (model::Index index : rhs_indices) {
             model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
             violations.emplace_back();
-            working.emplace_back(rhs_ref, index, violations.back(), rhs_ref);
-            // If inference from record pairs is incorrect, this is required.
-            // rhs_ref = 1.0;
-            rhs_ref = 0.0;
+            working.emplace_back(rhs_ref, index, violations.back(), rhs_ref,
+                                 GetLeftValueNum(index));
         }
-        std::vector<model::md::DecisionBoundary> gen_max_rhs =
-                lattice.GetMaxValidGeneralizationRhs(lhs_sims);
-        for (WorkingInfo& working : working) {
-            working.SetOld();
-        }
+        std::vector<model::md::DecisionBoundary> const gen_max_rhs = ZeroWorking(
+                working,
+                [&lattice, &lhs_sims]() { return lattice.GetMaxValidGeneralizationRhs(lhs_sims); });
         size_t const working_size = working.size();
         std::map<model::Index, std::vector<model::Index>> col_col_match_mapping;
         for (model::Index col_match_index : non_zero_indices) {
@@ -419,7 +423,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 left_records_info.GetPli(col_col_match_mapping.begin()->first).GetClusters();
         size_t const first_pli_size = first_pli.size();
         std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>>
-                grouped;
+                grouped(left_records_info.GetNumberOfRecords());
         for (ValueIdentifier first_value_id = 0; first_value_id < first_pli_size;
              ++first_value_id) {
             indexes::PliCluster const& cluster = first_pli[first_value_id];
@@ -444,9 +448,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 rec_sets.push_back(similar_records_ptr);
             }
             if (rec_sets.size() != cardinality) continue;
-            std::sort(rec_sets.begin(), rec_sets.end(), [](RecSet const* p1, RecSet const* p2) {
-                return p1->size() < p2->size();
-            });
+            std::sort(rec_sets.begin(), rec_sets.end(),
+                      [](RecSet const* p1, RecSet const* p2) { return p1->size() < p2->size(); });
             RecSet similar_records;
             RecSet const& first = **rec_sets.begin();
             auto const try_add_rec = [&similar_records, check_set_begin = ++rec_sets.begin(),
@@ -470,14 +473,14 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 if (should_stop) ++stops;
             }
             if (stops == working_size && support >= min_support) {
-                for (auto& [violations, old_bound, index, _] : working) {
-                    if (rhs_sims[index] == old_bound) continue;
+                for (auto& [_, old_bound, index, __, ___] : working) {
+                    assert(old_bound != 0.0);
                     to_specialize.emplace_back(index, old_bound);
                 }
                 return {std::move(violations), std::move(to_specialize), false};
             }
         }
-        for (auto& [violations, old_bound, index, _] : working) {
+        for (auto& [_, old_bound, index, __, ___] : working) {
             if (rhs_sims[index] == old_bound) continue;
             to_specialize.emplace_back(index, old_bound);
         }

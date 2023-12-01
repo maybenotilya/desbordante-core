@@ -26,6 +26,7 @@ private:
         model::md::DecisionBoundary const old_bound;
         model::Index const index;
         model::md::DecisionBoundary& threshold;
+        size_t const col_match_values;
 
         void SetOld() {
             threshold = old_bound;
@@ -40,9 +41,16 @@ private:
         }
 
         WorkingInfo(model::md::DecisionBoundary old_bound, model::Index index,
-                    std::vector<Recommendation>& violations, model::md::DecisionBoundary& threshold)
-            : violations(violations), old_bound(old_bound), index(index), threshold(threshold) {}
+                    std::vector<Recommendation>& violations, model::md::DecisionBoundary& threshold,
+                    size_t col_match_values)
+            : violations(violations),
+              old_bound(old_bound),
+              index(index),
+              threshold(threshold),
+              col_match_values(col_match_values) {}
     };
+    template <typename Func>
+    static auto ZeroWorking(std::vector<WorkingInfo>& working_info, Func func);
 
     indexes::CompressedRecords* compressed_records_;
     std::vector<model::md::DecisionBoundary> rhs_min_similarities_;
@@ -65,6 +73,10 @@ private:
 
     indexes::DictionaryCompressor const& GetRightRecords() const {
         return compressed_records_->GetRightRecords();
+    }
+
+    size_t GetLeftValueNum(model::Index col_match_index) const {
+        return GetLeftRecords().GetPli(GetLeftPliIndex(col_match_index)).GetClusters().size();
     }
 
     [[nodiscard]] bool LowerForColumnMatch(WorkingInfo& working_info, indexes::PliCluster const& cluster,
