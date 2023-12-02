@@ -106,7 +106,6 @@ bool SimilarityData::LowerForColumnMatch(
     assert(!similar_records.empty());
     assert(!cluster.empty());
 
-    // TODO: try calculating sim vecs here.
     std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped(
             std::min(cluster.size(), working_info.col_match_values));
     for (CompressedRecord const* left_record_ptr : cluster) {
@@ -433,8 +432,11 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         for (ValueIdentifier first_value_id = 0; first_value_id < first_pli_size;
              ++first_value_id) {
             indexes::PliCluster const& cluster = first_pli[first_value_id];
+            // TODO: try adding a perfect hasher (represent each record as a number using the number
+            // of records in each column)
+            // TODO: investigate why this seems to be the fastest on adult.csv (glibc 2.38)
             std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>>
-                grouped{cluster.size()};
+                grouped{0};
             for (RecordIdentifier record_id : cluster) {
                 model::Index idx = 0;
                 std::vector<ValueIdentifier> value_ids(col_col_match_mapping.size());
