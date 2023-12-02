@@ -430,11 +430,11 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         std::vector<indexes::PliCluster> const& first_pli =
                 left_records_info.GetPli(col_col_match_mapping.begin()->first).GetClusters();
         size_t const first_pli_size = first_pli.size();
-        std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>>
-                grouped(left_records_info.GetNumberOfRecords());
         for (ValueIdentifier first_value_id = 0; first_value_id < first_pli_size;
              ++first_value_id) {
             indexes::PliCluster const& cluster = first_pli[first_value_id];
+            std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>>
+                grouped{cluster.size()};
             for (RecordIdentifier record_id : cluster) {
                 model::Index idx = 0;
                 std::vector<ValueIdentifier> value_ids(col_col_match_mapping.size());
@@ -444,50 +444,52 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 }
                 grouped[std::move(value_ids)].push_back(&record);
             }
-        }
-        for (auto const& [val_ids, cluster] : grouped) {
-            using RecSet = std::unordered_set<RecordIdentifier>;
-            std::vector<RecSet const*> rec_sets;
-            rec_sets.reserve(cardinality);
-            for (auto [column_match_index, val_ids_idx] : col_match_val_idx_vec) {
-                std::unordered_set<RecordIdentifier> const* similar_records_ptr = GetSimilarRecords(
-                        val_ids[val_ids_idx], lhs_sims[column_match_index], column_match_index);
-                if (similar_records_ptr == nullptr) break;
-                rec_sets.push_back(similar_records_ptr);
-            }
-            if (rec_sets.size() != cardinality) continue;
-            std::sort(rec_sets.begin(), rec_sets.end(),
-                      [](RecSet const* p1, RecSet const* p2) { return p1->size() < p2->size(); });
-            RecSet similar_records;
-            RecSet const& first = **rec_sets.begin();
-            auto const try_add_rec = [&similar_records, check_set_begin = ++rec_sets.begin(),
-                                      check_set_end = rec_sets.end()](RecordIdentifier rec) {
-                for (auto it = check_set_begin; it != check_set_end; ++it) {
-                    if ((**it).find(rec) == (**it).end()) {
-                        return;
+            for (auto const& [val_ids, cluster] : grouped) {
+                using RecSet = std::unordered_set<RecordIdentifier>;
+                std::vector<RecSet const*> rec_sets;
+                rec_sets.reserve(cardinality);
+                for (auto [column_match_index, val_ids_idx] : col_match_val_idx_vec) {
+                    std::unordered_set<RecordIdentifier> const* similar_records_ptr =
+                            GetSimilarRecords(val_ids[val_ids_idx], lhs_sims[column_match_index],
+                                              column_match_index);
+                    if (similar_records_ptr == nullptr) break;
+                    rec_sets.push_back(similar_records_ptr);
+                }
+                if (rec_sets.size() != cardinality) continue;
+                std::sort(rec_sets.begin(), rec_sets.end(), [](RecSet const* p1, RecSet const* p2) {
+                    return p1->size() < p2->size();
+                });
+                RecSet similar_records;
+                RecSet const& first = **rec_sets.begin();
+                auto const try_add_rec = [&similar_records, check_set_begin = ++rec_sets.begin(),
+                                          check_set_end = rec_sets.end()](RecordIdentifier rec) {
+                    for (auto it = check_set_begin; it != check_set_end; ++it) {
+                        if ((**it).find(rec) == (**it).end()) {
+                            return;
+                        }
                     }
+                    similar_records.insert(rec);
+                };
+                for (RecordIdentifier rec : first) {
+                    try_add_rec(rec);
                 }
-                similar_records.insert(rec);
-            };
-            for (RecordIdentifier rec : first) {
-                try_add_rec(rec);
-            }
-            if (similar_records.empty()) continue;
-            support += cluster.size() * similar_records.size();
-            size_t stops = 0;
-            for (WorkingInfo& working_info : working) {
-                bool const should_stop =
-                        LowerForColumnMatch(working_info, cluster, similar_records);
-                if (should_stop) ++stops;
-            }
-            if (stops == working_size && support >= min_support) {
-                for (WorkingInfo const& working_info : working) {
-                    model::Index const index = working_info.index;
-                    model::md::DecisionBoundary const old_bound = working_info.old_bound;
-                    assert(old_bound != 0.0);
-                    to_specialize.emplace_back(index, old_bound);
+                if (similar_records.empty()) continue;
+                support += cluster.size() * similar_records.size();
+                size_t stops = 0;
+                for (WorkingInfo& working_info : working) {
+                    bool const should_stop =
+                            LowerForColumnMatch(working_info, cluster, similar_records);
+                    if (should_stop) ++stops;
                 }
-                return {std::move(violations), std::move(to_specialize), false};
+                if (stops == working_size && support >= min_support) {
+                    for (WorkingInfo const& working_info : working) {
+                        model::Index const index = working_info.index;
+                        model::md::DecisionBoundary const old_bound = working_info.old_bound;
+                        assert(old_bound != 0.0);
+                        to_specialize.emplace_back(index, old_bound);
+                    }
+                    return {std::move(violations), std::move(to_specialize), false};
+                }
             }
         }
         for (WorkingInfo const& working_info : working) {
