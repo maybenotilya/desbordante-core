@@ -106,8 +106,6 @@ bool SimilarityData::LowerForColumnMatch(
     assert(!similar_records.empty());
     assert(!cluster.empty());
 
-    auto const& right_records = GetRightRecords().GetRecords();
-
     // TODO: try calculating sim vecs here.
     std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped(
             std::min(cluster.size(), working_info.col_match_values));
@@ -117,14 +115,13 @@ bool SimilarityData::LowerForColumnMatch(
     }
     for (auto const& [left_value_id, records_left] : grouped) {
         for (RecordIdentifier record_id_right : similar_records) {
-            CompressedRecord const& right_record = right_records[record_id_right];
+            CompressedRecord const& right_record = working_info.right_records[record_id_right];
             ValueIdentifier const right_value_id = right_record[working_info.index];
-            indexes::SimilarityMatrix const& sim_matrix = sim_matrices_[working_info.index];
-            auto it_left = sim_matrix.find(left_value_id);
+            auto it_left = working_info.sim_matrix.find(left_value_id);
             // note: We are calculating a part of the sim vec here. Will there
             // be a speedup if we store the result somewhere?
             // TODO: try storing the results somewhere, deferring other sim lookups.
-            if (it_left == sim_matrix.end()) {
+            if (it_left == working_info.sim_matrix.end()) {
                 working_info.threshold = 0.0;
                 for (CompressedRecord const* left_record_ptr : records_left) {
                     working_info.violations.emplace_back(left_record_ptr, &right_record);
@@ -275,6 +272,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
     size_t support = 0;
     std::vector<model::Index> non_zero_indices = GetNonZeroIndices(lhs_sims);
     size_t const cardinality = non_zero_indices.size();
+    auto const& right_records = GetRightRecords().GetRecords();
     if (cardinality == 0) {
         support = GetLeftSize() * GetRightSize();
         for (model::Index const i : rhs_indices) {
@@ -295,7 +293,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 assert(rhs_ref != 0.0);
                 violations.emplace_back();
                 working.emplace_back(rhs_ref, index, violations.back(), rhs_ref,
-                                     GetLeftValueNum(index));
+                                     GetLeftValueNum(index), right_records, sim_matrices_[index]);
             }
             std::vector<model::md::DecisionBoundary> const gen_max_rhs =
                     ZeroWorking(working, [&lattice, &lhs_sims]() {
@@ -350,7 +348,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 } else {
                     violations.emplace_back();
                     working.emplace_back(rhs_ref, index, violations.back(), rhs_ref,
-                                         GetLeftValueNum(index));
+                                         GetLeftValueNum(index), right_records,
+                                         sim_matrices_[index]);
                 }
             }
             std::vector<model::md::DecisionBoundary> const gen_max_rhs =
@@ -404,8 +403,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         for (model::Index index : rhs_indices) {
             model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
             violations.emplace_back();
-            working.emplace_back(rhs_ref, index, violations.back(), rhs_ref,
-                                 GetLeftValueNum(index));
+            working.emplace_back(rhs_ref, index, violations.back(), rhs_ref, GetLeftValueNum(index),
+                                 right_records, sim_matrices_[index]);
         }
         std::vector<model::md::DecisionBoundary> const gen_max_rhs = ZeroWorking(
                 working,

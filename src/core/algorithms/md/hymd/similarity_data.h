@@ -28,6 +28,8 @@ private:
         model::md::DecisionBoundary& threshold;
         size_t const col_match_values;
         model::md::DecisionBoundary interestingness_boundary;
+        std::vector<CompressedRecord> const& right_records;
+        indexes::SimilarityMatrix const& sim_matrix;
 
         void SetOld() {
             threshold = old_bound;
@@ -43,12 +45,15 @@ private:
 
         WorkingInfo(model::md::DecisionBoundary old_bound, model::Index index,
                     std::vector<Recommendation>& violations, model::md::DecisionBoundary& threshold,
-                    size_t col_match_values)
+                    size_t col_match_values, std::vector<CompressedRecord> const& right_records,
+                    indexes::SimilarityMatrix const& sim_matrix)
             : violations(violations),
               old_bound(old_bound),
               index(index),
               threshold(threshold),
-              col_match_values(col_match_values) {}
+              col_match_values(col_match_values),
+              right_records(right_records),
+              sim_matrix(sim_matrix) {}
     };
     template <typename Func>
     static auto ZeroWorking(std::vector<WorkingInfo>& working_info, Func func);
