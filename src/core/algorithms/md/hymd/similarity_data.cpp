@@ -89,8 +89,7 @@ model::Index SimilarityData::GetLeftPliIndex(model::Index const column_match_ind
 
 bool SimilarityData::LowerForColumnMatch(
         WorkingInfo& working_info, indexes::PliCluster const& cluster,
-        std::unordered_set<RecordIdentifier> const& similar_records,
-        std::vector<model::md::DecisionBoundary> const& gen_max_rhs) const {
+        std::unordered_set<RecordIdentifier> const& similar_records) const {
     assert(!similar_records.empty());
     std::vector<CompressedRecord const*> cluster_records;
     cluster_records.reserve(cluster.size());
@@ -98,16 +97,14 @@ bool SimilarityData::LowerForColumnMatch(
     for (RecordIdentifier left_record_id : cluster) {
         cluster_records.push_back(&left_records[left_record_id]);
     }
-    return LowerForColumnMatch(working_info, cluster_records, similar_records, gen_max_rhs);
+    return LowerForColumnMatch(working_info, cluster_records, similar_records);
 }
 
 bool SimilarityData::LowerForColumnMatch(
         WorkingInfo& working_info, std::vector<CompressedRecord const*> const& cluster,
-        std::unordered_set<RecordIdentifier> const& similar_records,
-        std::vector<model::md::DecisionBoundary> const& gen_max_rhs) const {
+        std::unordered_set<RecordIdentifier> const& similar_records) const {
     assert(!similar_records.empty());
     assert(!cluster.empty());
-    model::md::DecisionBoundary const cur_gen_max_rhs = gen_max_rhs[working_info.index];
 
     auto const& right_records = GetRightRecords().GetRecords();
 
@@ -160,7 +157,7 @@ bool SimilarityData::LowerForColumnMatch(
 
             if (record_similarity < working_info.threshold) {
                 working_info.threshold = record_similarity;
-                if (working_info.threshold <= cur_gen_max_rhs) {
+                if (working_info.threshold <= working_info.interestingness_boundary) {
                     working_info.threshold = 0.0;
                     if (working_info.EnoughViolations()) {
                         return true;
@@ -304,6 +301,9 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     ZeroWorking(working, [&lattice, &lhs_sims]() {
                         return lattice.GetMaxValidGeneralizationRhs(lhs_sims);
                     });
+            for (WorkingInfo& working_info : working) {
+                working_info.interestingness_boundary = gen_max_rhs[working_info.index];
+            }
             size_t const working_size = working.size();
             std::vector<indexes::PliCluster> const& clusters =
                     GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
@@ -317,20 +317,25 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 support += cluster.size() * similar_records.size();
                 size_t stops = 0;
                 for (WorkingInfo& working_info : working) {
-                    bool const should_stop = LowerForColumnMatch(working_info, cluster,
-                                                                 similar_records, gen_max_rhs);
+                    bool const should_stop =
+                            LowerForColumnMatch(working_info, cluster, similar_records);
                     if (should_stop) ++stops;
                 }
                 if (stops == working_size && support >= min_support) {
-                    for (auto& [_, old_bound, index, __, ___] : working) {
+                    for (WorkingInfo const& working_info : working) {
+                        model::Index const index = working_info.index;
+                        model::md::DecisionBoundary const old_bound = working_info.old_bound;
                         assert(old_bound != 0.0);
                         to_specialize.emplace_back(index, old_bound);
                     }
                     return {std::move(violations), std::move(to_specialize), false};
                 }
             }
-            for (auto& [_, old_bound, index, __, ___] : working) {
-                if (rhs_sims[index] == old_bound) continue;
+            for (auto const& working_info : working) {
+                model::Index const index = working_info.index;
+                model::md::DecisionBoundary const old_bound = working_info.old_bound;
+                model::md::DecisionBoundary const threshold = working_info.threshold;
+                if (threshold == old_bound) continue;
                 to_specialize.emplace_back(index, old_bound);
             }
             return {std::move(violations), std::move(to_specialize), support < min_support};
@@ -365,12 +370,14 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 support += cluster.size() * similar_records.size();
                 size_t stops = 0;
                 for (WorkingInfo& working_info : working) {
-                    bool const should_stop = LowerForColumnMatch(working_info, cluster,
-                                                                 similar_records, gen_max_rhs);
+                    bool const should_stop =
+                            LowerForColumnMatch(working_info, cluster, similar_records);
                     if (should_stop) ++stops;
                 }
                 if (stops == working_size && support >= min_support) {
-                    for (auto& [_, old_bound, index, __, ___] : working) {
+                    for (WorkingInfo const& working_info : working) {
+                        model::Index const index = working_info.index;
+                        model::md::DecisionBoundary const old_bound = working_info.old_bound;
                         assert(old_bound != 0.0);
                         to_specialize.emplace_back(index, old_bound);
                     }
@@ -379,8 +386,11 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     return {std::move(violations), std::move(to_specialize), false};
                 }
             }
-            for (auto& [_, old_bound, index, __, ___] : working) {
-                if (rhs_sims[index] == old_bound) continue;
+            for (auto const& working_info : working) {
+                model::Index const index = working_info.index;
+                model::md::DecisionBoundary const old_bound = working_info.old_bound;
+                model::md::DecisionBoundary const threshold = working_info.threshold;
+                if (threshold == old_bound) continue;
                 to_specialize.emplace_back(index, old_bound);
             }
             if (same_rhs_as_lhs)
@@ -468,20 +478,25 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             size_t stops = 0;
             for (WorkingInfo& working_info : working) {
                 bool const should_stop =
-                        LowerForColumnMatch(working_info, cluster, similar_records, gen_max_rhs);
+                        LowerForColumnMatch(working_info, cluster, similar_records);
                 if (should_stop) ++stops;
             }
             if (stops == working_size && support >= min_support) {
-                for (auto& [_, old_bound, index, __, ___] : working) {
+                for (WorkingInfo const& working_info : working) {
+                    model::Index const index = working_info.index;
+                    model::md::DecisionBoundary const old_bound = working_info.old_bound;
                     assert(old_bound != 0.0);
                     to_specialize.emplace_back(index, old_bound);
                 }
                 return {std::move(violations), std::move(to_specialize), false};
             }
         }
-        for (auto& [_, old_bound, index, __, ___] : working) {
+        for (WorkingInfo const& working_info : working) {
+            model::Index const index = working_info.index;
+            model::md::DecisionBoundary const old_bound = working_info.old_bound;
+            model::md::DecisionBoundary const threshold = working_info.threshold;
             // Optimization not done in Metanome
-            if (rhs_sims[index] == old_bound) continue;
+            if (threshold == old_bound) continue;
             to_specialize.emplace_back(index, old_bound);
         }
         return {std::move(violations), std::move(to_specialize), support < min_support};

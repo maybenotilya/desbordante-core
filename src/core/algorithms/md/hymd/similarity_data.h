@@ -27,6 +27,7 @@ private:
         model::Index const index;
         model::md::DecisionBoundary& threshold;
         size_t const col_match_values;
+        model::md::DecisionBoundary interestingness_boundary;
 
         void SetOld() {
             threshold = old_bound;
@@ -80,12 +81,10 @@ private:
     }
 
     [[nodiscard]] bool LowerForColumnMatch(WorkingInfo& working_info, indexes::PliCluster const& cluster,
-                             std::unordered_set<RecordIdentifier> const& similar_records,
-                             std::vector<model::md::DecisionBoundary> const& gen_max_rhs) const;
+                             std::unordered_set<RecordIdentifier> const& similar_records) const;
     [[nodiscard]] bool LowerForColumnMatch(WorkingInfo& working_info,
                              std::vector<CompressedRecord const*> const& cluster,
-                             std::unordered_set<RecordIdentifier> const& similar_records,
-                             std::vector<model::md::DecisionBoundary> const& gen_max_rhs) const;
+                             std::unordered_set<RecordIdentifier> const& similar_records) const;
     [[nodiscard]] std::unordered_set<RecordIdentifier> const* GetSimilarRecords(
             ValueIdentifier value_id, model::md::DecisionBoundary similarity,
             model::Index column_match_index) const;
