@@ -106,11 +106,14 @@ bool SimilarityData::LowerForColumnMatch(
     assert(!similar_records.empty());
     assert(!cluster.empty());
 
+    /*
+    // Actually loses time on adult.csv
     if (working_info.threshold <= working_info.interestingness_boundary) {
         working_info.threshold = 0.0;
         // Metanome only aborts after grouping.
         if (working_info.EnoughViolations()) return true;
     }
+    */
     std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped(
             std::min(cluster.size(), working_info.col_match_values));
     for (CompressedRecord const* left_record_ptr : cluster) {
