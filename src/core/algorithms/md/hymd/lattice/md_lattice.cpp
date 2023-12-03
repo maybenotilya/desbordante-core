@@ -2,19 +2,12 @@
 
 #include <algorithm>
 
-namespace {
-
-size_t GetCardinality(algos::hymd::DecisionBoundaryVector const& lhs) {
-    return lhs.size() - std::count(lhs.begin(), lhs.end(), 0.0);
-}
-
-}  // namespace
-
 namespace algos::hymd::lattice {
 
-MdLattice::MdLattice(size_t column_matches_size)
+MdLattice::MdLattice(size_t column_matches_size, SingleLevelFunc single_level_func)
     : root_(DecisionBoundaryVector(column_matches_size, 1.0)),
-      column_matches_size_(column_matches_size) {}
+      column_matches_size_(column_matches_size),
+      get_single_level_(std::move(single_level_func)) {}
 
 size_t MdLattice::GetMaxLevel() const {
     return max_level_;
@@ -45,10 +38,10 @@ std::vector<MdLatticeNodeInfo> MdLattice::FindViolated(SimilarityVector const& s
     return found;
 }
 
-std::vector<model::md::DecisionBoundary> MdLattice::GetMaxValidGeneralizationRhs(
+std::vector<model::md::DecisionBoundary> MdLattice::GetRhsInterestingnessBounds(
         DecisionBoundaryVector const& lhs) const {
     std::vector<model::md::DecisionBoundary> rhs = lhs;
-    root_.GetMaxValidGeneralizationRhs(lhs, rhs, 0);
+    root_.RaiseInterestingnessBounds(lhs, rhs, 0);
     return rhs;
 }
 

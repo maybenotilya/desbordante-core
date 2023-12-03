@@ -7,6 +7,7 @@
 #include "algorithms/md/hymd/decision_boundary_vector.h"
 #include "algorithms/md/hymd/lattice/md_lattice.h"
 #include "algorithms/md/hymd/lattice/md_lattice_node_info.h"
+#include "algorithms/md/hymd/lattice/single_level_func.h"
 #include "algorithms/md/hymd/lattice/support_lattice.h"
 #include "model/index.h"
 
@@ -18,6 +19,10 @@ private:
     SupportLattice support_lattice_;
 
 public:
+    std::size_t GetColMatchNumber() const {
+        return md_lattice_.GetColMatchNumber();
+    }
+
     [[nodiscard]] bool HasGeneralization(DecisionBoundaryVector const& lhs_sims,
                                          model::md::DecisionBoundary const rhs_sim,
                                          model::Index const rhs_index) const {
@@ -39,9 +44,9 @@ public:
         return mds;
     }
 
-    std::vector<model::md::DecisionBoundary> GetMaxValidGeneralizationRhs(
+    std::vector<model::md::DecisionBoundary> GetRhsInterestingnessBounds(
             DecisionBoundaryVector const& lhs) const {
-        return md_lattice_.GetMaxValidGeneralizationRhs(lhs);
+        return md_lattice_.GetRhsInterestingnessBounds(lhs);
     }
 
     void AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
@@ -69,8 +74,8 @@ public:
         return support_lattice_.IsUnsupported(lhs_vec);
     }
 
-    explicit FullLattice(size_t column_matches_size)
-        : md_lattice_(column_matches_size), support_lattice_() {}
+    explicit FullLattice(size_t column_matches_size, SingleLevelFunc single_level_func)
+        : md_lattice_(column_matches_size, std::move(single_level_func)), support_lattice_() {}
     FullLattice(MdLattice md_lattice, SupportLattice support_lattice)
         : md_lattice_(std::move(md_lattice)), support_lattice_(std::move(support_lattice)) {}
 };

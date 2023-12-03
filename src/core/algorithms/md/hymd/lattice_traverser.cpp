@@ -25,16 +25,14 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
     SimilarityData& similarity_data = *similarity_data_;
     size_t const col_matches_num = similarity_data.GetColumnMatchNumber();
     lattice::FullLattice& lattice = *lattice_;
-    lattice::cardinality::MinPickerLattice& min_picker_lattice = *min_picker_lattice_;
-    while (cur_level_ <= lattice.GetMaxLevel()) {
-        std::vector<lattice::MdLatticeNodeInfo> level_mds = lattice.GetLevel(cur_level_);
-        std::vector<lattice::ValidationInfo*> cur =
-                min_picker_lattice.GetUncheckedLevelMds(level_mds);
-        if (cur.empty()) {
-            ++cur_level_;
+    lattice::LevelGetter& level_getter = *level_getter_;
+    while (level_getter.AreLevelsLeft()) {
+        std::vector<lattice::ValidationInfo*> mds = level_getter.GetCurrentMds();
+        if (mds.empty()) {
             continue;
         }
-        for (lattice::ValidationInfo* info : cur) {
+
+        for (lattice::ValidationInfo* info : mds) {
             auto [violations, to_specialize, is_unsupported] =
                     similarity_data.Validate(lattice, info, min_support_);
             DecisionBoundaryVector& lhs_sims = info->info->lhs_sims;

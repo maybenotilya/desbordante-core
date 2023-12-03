@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "algorithms/md/hymd/lattice/cardinality/min_picking_level_getter.h"
 #include "model/index.h"
 #include "model/table/column.h"
 
@@ -29,24 +30,11 @@ namespace algos::hymd {
 HyMD::HyMD() : MdAlgorithm({}) {}
 
 void HyMD::ResetStateMd() {
-    // make column_match_col_indices_ here using column_matches_option_
-    std::vector<std::pair<model::Index, model::Index>> column_match_col_indices;
-    // make similarity measures here(?)
-    std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> sim_measures;
-    for (auto const& [left_col_name, right_col_name, measure_ptr] : column_matches_option_) {
-        column_match_col_indices.emplace_back(left_schema_->GetColumn(left_col_name)->GetIndex(),
-                                              right_schema_->GetColumn(right_col_name)->GetIndex());
-        sim_measures.push_back(measure_ptr.get());
-    }
-    similarity_data_ = SimilarityData::CreateFrom(
-            compressed_records_.get(), std::move(rhs_min_similarities_),
-            std::move(column_match_col_indices), sim_measures, is_null_equal_null_);
-    lattice_ = std::make_unique<lattice::FullLattice>(similarity_data_->GetColumnMatchNumber());
+    similarity_data_.reset();
+    lattice_.reset();
     recommendations_.clear();
-    lattice_traverser_ = std::make_unique<LatticeTraverser>(similarity_data_.get(), lattice_.get(),
-                                                            &recommendations_, min_support_);
-    record_pair_inferrer_ = std::make_unique<RecordPairInferrer>(similarity_data_.get(),
-                                                                 lattice_.get(), &recommendations_);
+    lattice_traverser_.reset();
+    record_pair_inferrer_.reset();
 }
 
 void HyMD::LoadDataInternal() {
@@ -69,8 +57,27 @@ void HyMD::LoadDataInternal() {
 }
 
 unsigned long long HyMD::ExecuteInternal() {
-    assert(similarity_data_->GetColumnMatchNumber() != 0);
     auto const start_time = std::chrono::system_clock::now();
+    // make column_match_col_indices_ here using column_matches_option_
+    std::vector<std::pair<model::Index, model::Index>> column_match_col_indices;
+    // make similarity measures here(?)
+    std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> sim_measures;
+    for (auto const& [left_col_name, right_col_name, measure_ptr] : column_matches_option_) {
+        column_match_col_indices.emplace_back(left_schema_->GetColumn(left_col_name)->GetIndex(),
+                                              right_schema_->GetColumn(right_col_name)->GetIndex());
+        sim_measures.push_back(measure_ptr.get());
+    }
+    similarity_data_ = SimilarityData::CreateFrom(
+            compressed_records_.get(), std::move(rhs_min_similarities_),
+            std::move(column_match_col_indices), sim_measures, is_null_equal_null_);
+    size_t const column_match_number = similarity_data_->GetColumnMatchNumber();
+    assert(column_match_number != 0);
+    lattice_ = std::make_unique<lattice::FullLattice>(column_match_number, [](...) { return 1; });
+    lattice_traverser_ = std::make_unique<LatticeTraverser>(
+            similarity_data_.get(), lattice_.get(), &recommendations_, min_support_,
+            std::make_unique<lattice::cardinality::MinPickingLevelGetter>(lattice_.get()));
+    record_pair_inferrer_ = std::make_unique<RecordPairInferrer>(similarity_data_.get(),
+                                                                 lattice_.get(), &recommendations_);
 
     bool done = false;
     do {

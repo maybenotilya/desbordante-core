@@ -25,7 +25,7 @@ public:
     void GetLevel(std::vector<MdLatticeNodeInfo>& collected, DecisionBoundaryVector& this_node_lhs,
                   model::Index this_node_index, size_t sims_left,
                   SingleLevelFunc const& single_level_func);
-    void GetMaxValidGeneralizationRhs(DecisionBoundaryVector const& lhs,
+    void RaiseInterestingnessBounds(DecisionBoundaryVector const& lhs,
                                       std::vector<model::md::DecisionBoundary>& cur_rhs,
                                       model::Index this_node_index) const;
 

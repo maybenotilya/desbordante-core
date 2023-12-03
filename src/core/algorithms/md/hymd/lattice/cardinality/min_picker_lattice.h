@@ -14,20 +14,15 @@ namespace algos::hymd::lattice::cardinality {
 
 class MinPickerLattice {
 private:
-    FullLattice* const lattice_;
     size_t const attribute_num_;
-    std::unordered_map<DecisionBoundaryVector, std::unordered_set<model::Index>> picked_;
     MinPickerNode root_;
 
-    std::vector<ValidationInfo*> GetAll();
-    void PickMinimalMds(std::vector<MdLatticeNodeInfo>& mds);
-    void Advance();
-
 public:
-    std::vector<ValidationInfo*> GetUncheckedLevelMds(std::vector<MdLatticeNodeInfo>& mds);
-
-    explicit MinPickerLattice(FullLattice* const lattice, size_t attribute_num)
-        : lattice_(lattice), attribute_num_(attribute_num) {}
+    explicit MinPickerLattice(size_t attribute_num) : attribute_num_(attribute_num) {}
+    void Reset();
+    void AddGeneralizations(MdLatticeNodeInfo& md,
+                            std::unordered_set<model::Index>& considered_indices);
+    std::vector<ValidationInfo*> GetAll();
 };
 
 }  // namespace algos::hymd::lattice::cardinality

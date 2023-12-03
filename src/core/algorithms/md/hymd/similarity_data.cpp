@@ -304,7 +304,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             }
             std::vector<model::md::DecisionBoundary> const gen_max_rhs =
                     ZeroWorking(working, [&lattice, &lhs_sims]() {
-                        return lattice.GetMaxValidGeneralizationRhs(lhs_sims);
+                        return lattice.GetRhsInterestingnessBounds(lhs_sims);
                     });
             for (WorkingInfo& working_info : working) {
                 working_info.interestingness_boundary = gen_max_rhs[working_info.index];
@@ -361,7 +361,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             }
             std::vector<model::md::DecisionBoundary> const gen_max_rhs =
                     ZeroWorking(working, [&lattice, &lhs_sims]() {
-                        return lattice.GetMaxValidGeneralizationRhs(lhs_sims);
+                        return lattice.GetRhsInterestingnessBounds(lhs_sims);
                     });
             size_t const working_size = working.size();
             std::vector<indexes::PliCluster> const& clusters =
@@ -415,7 +415,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         }
         std::vector<model::md::DecisionBoundary> const gen_max_rhs = ZeroWorking(
                 working,
-                [&lattice, &lhs_sims]() { return lattice.GetMaxValidGeneralizationRhs(lhs_sims); });
+                [&lattice, &lhs_sims]() { return lattice.GetRhsInterestingnessBounds(lhs_sims); });
         size_t const working_size = working.size();
         std::map<model::Index, std::vector<model::Index>> col_col_match_mapping;
         for (model::Index col_match_index : non_zero_indices) {

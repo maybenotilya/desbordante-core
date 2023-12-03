@@ -138,7 +138,7 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
     }
 }
 
-void MdLatticeNode::GetMaxValidGeneralizationRhs(DecisionBoundaryVector const& lhs,
+void MdLatticeNode::RaiseInterestingnessBounds(DecisionBoundaryVector const& lhs,
                                                  std::vector<model::md::DecisionBoundary>& cur_rhs,
                                                  model::Index const this_node_index) const {
     {
@@ -168,7 +168,7 @@ void MdLatticeNode::GetMaxValidGeneralizationRhs(DecisionBoundaryVector const& l
             if (threshold > cur_lhs_sim) {
                 break;
             }
-            node.GetMaxValidGeneralizationRhs(lhs, cur_rhs, cur_node_index + 1);
+            node.RaiseInterestingnessBounds(lhs, cur_rhs, cur_node_index + 1);
             if (std::all_of(cur_rhs.begin(), cur_rhs.end(),
                             [](model::md::DecisionBoundary const v) { return v == 1.0; }))
                     [[unlikely]] {
