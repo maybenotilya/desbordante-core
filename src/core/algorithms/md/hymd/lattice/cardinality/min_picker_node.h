@@ -31,7 +31,7 @@ public:
     void Add(MdLatticeNodeInfo& md, model::Index this_node_index,
              std::unordered_set<model::Index>& indices);
 
-    void GetAll(std::vector<ValidationInfo*>& collected, size_t sims_left);
+    void GetAll(std::vector<ValidationInfo*>& collected);
 };
 
 }  // namespace algos::hymd::lattice::cardinality

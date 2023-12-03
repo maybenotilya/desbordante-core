@@ -17,7 +17,6 @@ private:
     FullLattice* const lattice_;
     size_t const attribute_num_;
     std::unordered_map<DecisionBoundaryVector, std::unordered_set<model::Index>> picked_;
-    size_t cardinality = 0;
     MinPickerNode root_;
 
     std::vector<ValidationInfo*> GetAll();

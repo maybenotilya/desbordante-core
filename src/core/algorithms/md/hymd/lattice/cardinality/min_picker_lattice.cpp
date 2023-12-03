@@ -6,8 +6,6 @@ namespace algos::hymd::lattice::cardinality {
 
 void MinPickerLattice::Advance() {
     picked_.clear();
-    root_ = MinPickerNode();
-    ++cardinality;
 }
 
 void MinPickerLattice::PickMinimalMds(std::vector<MdLatticeNodeInfo>& mds) {
@@ -31,7 +29,7 @@ void MinPickerLattice::PickMinimalMds(std::vector<MdLatticeNodeInfo>& mds) {
 std::vector<ValidationInfo*> MinPickerLattice::GetAll() {
     std::vector<ValidationInfo*> collected;
     DecisionBoundaryVector lhs(attribute_num_, 0.0);
-    root_.GetAll(collected, cardinality);
+    root_.GetAll(collected);
     for (ValidationInfo* info : collected) {
         std::unordered_set<model::Index>& validated_indices = picked_[info->info->lhs_sims];
         for (model::Index const new_index : info->rhs_indices) {

@@ -111,18 +111,15 @@ void MinPickerNode::RemoveSpecializations(MdLatticeNodeInfo const& md, model::In
     }
 }
 
-void MinPickerNode::GetAll(std::vector<ValidationInfo*>& collected, size_t sims_left) {
-    if (sims_left == 0) {
-        if (task_info_.has_value()) {
-            assert(!task_info_->rhs_indices.empty());
-            collected.push_back(std::addressof(task_info_.value()));
-        }
-        return;
+void MinPickerNode::GetAll(std::vector<ValidationInfo*>& collected) {
+    if (task_info_.has_value()) {
+        assert(!task_info_->rhs_indices.empty());
+        collected.push_back(std::addressof(*task_info_));
     }
     for (auto& [index, threshold_mapping] : children_) {
         for (auto& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
-            node.GetAll(collected, sims_left - 1);
+            node.GetAll(collected);
         }
     }
 }

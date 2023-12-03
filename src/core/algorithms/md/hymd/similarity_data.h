@@ -31,10 +31,6 @@ private:
         std::vector<CompressedRecord> const& right_records;
         indexes::SimilarityMatrix const& sim_matrix;
 
-        void SetOld() {
-            threshold = old_bound;
-        }
-
         bool EnoughViolations() const {
             return violations.size() >= 20;
         }
@@ -85,11 +81,12 @@ private:
         return GetLeftRecords().GetPli(GetLeftPliIndex(col_match_index)).GetClusters().size();
     }
 
-    [[nodiscard]] bool LowerForColumnMatch(WorkingInfo& working_info, indexes::PliCluster const& cluster,
-                             std::unordered_set<RecordIdentifier> const& similar_records) const;
-    [[nodiscard]] bool LowerForColumnMatch(WorkingInfo& working_info,
-                             std::vector<CompressedRecord const*> const& cluster,
-                             std::unordered_set<RecordIdentifier> const& similar_records) const;
+    [[nodiscard]] bool LowerForColumnMatch(
+            WorkingInfo& working_info, indexes::PliCluster const& cluster,
+            std::unordered_set<RecordIdentifier> const& similar_records) const;
+    [[nodiscard]] bool LowerForColumnMatch(
+            WorkingInfo& working_info, std::vector<CompressedRecord const*> const& cluster,
+            std::unordered_set<RecordIdentifier> const& similar_records) const;
     [[nodiscard]] std::unordered_set<RecordIdentifier> const* GetSimilarRecords(
             ValueIdentifier value_id, model::md::DecisionBoundary similarity,
             model::Index column_match_index) const;
