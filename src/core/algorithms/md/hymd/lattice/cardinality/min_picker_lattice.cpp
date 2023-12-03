@@ -4,7 +4,9 @@
 
 namespace algos::hymd::lattice::cardinality {
 
-void MinPickerLattice::Reset() {
+void MinPickerLattice::NewBatch(std::size_t max_elements) {
+    info_.clear();
+    info_.reserve(max_elements);
     root_ = MinPickerNode();
 }
 
@@ -13,14 +15,12 @@ void MinPickerLattice::AddGeneralizations(MdLatticeNodeInfo& md,
     root_.ExcludeGeneralizationRhs(md, 0, considered_indices);
     if (considered_indices.empty()) return;
     root_.RemoveSpecializations(md, 0, considered_indices);
-    root_.Add(md, 0, considered_indices);
+    ValidationInfo& ref = info_.emplace_back(&md, std::move(considered_indices));
+    root_.Add(&ref, 0);
 }
 
-std::vector<ValidationInfo*> MinPickerLattice::GetAll() {
-    std::vector<ValidationInfo*> collected;
-    DecisionBoundaryVector lhs(attribute_num_, 0.0);
-    root_.GetAll(collected);
-    return collected;
+std::vector<ValidationInfo> MinPickerLattice::GetAll() {
+    return std::move(info_);
 }
 
 }  // namespace algos::hymd::lattice::cardinality

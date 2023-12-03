@@ -11,7 +11,7 @@ private:
     MinPickerLattice min_picker_;
     std::unordered_map<DecisionBoundaryVector, std::unordered_set<model::Index>> picked_;
 
-    std::vector<ValidationInfo*> GetCurrentMdsInternal(
+    std::vector<ValidationInfo> GetCurrentMdsInternal(
             std::vector<lattice::MdLatticeNodeInfo>& level_mds) final;
 
 public:

@@ -27,15 +27,15 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
     lattice::FullLattice& lattice = *lattice_;
     lattice::LevelGetter& level_getter = *level_getter_;
     while (level_getter.AreLevelsLeft()) {
-        std::vector<lattice::ValidationInfo*> mds = level_getter.GetCurrentMds();
+        std::vector<lattice::ValidationInfo> mds = level_getter.GetCurrentMds();
         if (mds.empty()) {
             continue;
         }
 
-        for (lattice::ValidationInfo* info : mds) {
+        for (lattice::ValidationInfo& info : mds) {
             auto [violations, to_specialize, is_unsupported] =
                     similarity_data.Validate(lattice, info, min_support_);
-            DecisionBoundaryVector& lhs_sims = info->info->lhs_sims;
+            DecisionBoundaryVector& lhs_sims = info.info->lhs_sims;
             for (auto const& rhs_violations : violations) {
                 recommendations_ptr_->insert(rhs_violations.begin(), rhs_violations.end());
             }

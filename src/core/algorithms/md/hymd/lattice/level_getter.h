@@ -15,7 +15,7 @@ protected:
     // Prevent lifetime issues.
     std::vector<lattice::MdLatticeNodeInfo> level_mds_;
 
-    virtual std::vector<ValidationInfo*> GetCurrentMdsInternal(
+    virtual std::vector<ValidationInfo> GetCurrentMdsInternal(
             std::vector<lattice::MdLatticeNodeInfo>& level_mds) = 0;
 
 public:
@@ -24,7 +24,7 @@ public:
     bool AreLevelsLeft() const {
         return cur_level_ <= lattice_->GetMaxLevel();
     }
-    std::vector<ValidationInfo*> GetCurrentMds() {
+    std::vector<ValidationInfo> GetCurrentMds() {
         level_mds_ = lattice_->GetLevel(cur_level_);
         return GetCurrentMdsInternal(level_mds_);
     }

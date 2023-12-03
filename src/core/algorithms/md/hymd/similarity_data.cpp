@@ -269,11 +269,11 @@ auto SimilarityData::ZeroWorking(std::vector<WorkingInfo>& working_info, Func fu
 }
 
 SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& lattice,
-                                                          lattice::ValidationInfo* info,
+                                                          lattice::ValidationInfo& info,
                                                           size_t min_support) const {
-    DecisionBoundaryVector& lhs_sims = info->info->lhs_sims;
-    DecisionBoundaryVector& rhs_sims = *info->info->rhs_sims;
-    std::unordered_set<model::Index>& rhs_indices = info->rhs_indices;
+    DecisionBoundaryVector& lhs_sims = info.info->lhs_sims;
+    DecisionBoundaryVector& rhs_sims = *info.info->rhs_sims;
+    std::unordered_set<model::Index>& rhs_indices = info.rhs_indices;
     std::vector<std::pair<model::Index, model::md::DecisionBoundary>> to_specialize;
     to_specialize.reserve(rhs_indices.size());
     size_t support = 0;

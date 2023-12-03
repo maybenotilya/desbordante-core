@@ -16,13 +16,14 @@ class MinPickerLattice {
 private:
     size_t const attribute_num_;
     MinPickerNode root_;
+    std::vector<ValidationInfo> info_;
 
 public:
     explicit MinPickerLattice(size_t attribute_num) : attribute_num_(attribute_num) {}
-    void Reset();
+    void NewBatch(std::size_t max_elements);
     void AddGeneralizations(MdLatticeNodeInfo& md,
                             std::unordered_set<model::Index>& considered_indices);
-    std::vector<ValidationInfo*> GetAll();
+    std::vector<ValidationInfo> GetAll();
 };
 
 }  // namespace algos::hymd::lattice::cardinality

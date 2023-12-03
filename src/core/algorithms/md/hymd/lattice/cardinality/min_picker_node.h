@@ -17,21 +17,17 @@ namespace algos::hymd::lattice::cardinality {
 
 class MinPickerNode {
 private:
-    std::optional<ValidationInfo> task_info_;
+    ValidationInfo* task_info_ = nullptr;
     LatticeChildArray<MinPickerNode> children_;
 
-    void AddUnchecked(MdLatticeNodeInfo& md, model::Index this_node_index,
-                      std::unordered_set<model::Index>& indices);
+    void AddUnchecked(ValidationInfo* info, model::Index this_node_index);
 
 public:
     void ExcludeGeneralizationRhs(MdLatticeNodeInfo const& md, model::Index this_node_index,
                                   std::unordered_set<model::Index>& considered_indices);
     void RemoveSpecializations(MdLatticeNodeInfo const& md, model::Index this_node_index,
                                std::unordered_set<model::Index> const& indices);
-    void Add(MdLatticeNodeInfo& md, model::Index this_node_index,
-             std::unordered_set<model::Index>& indices);
-
-    void GetAll(std::vector<ValidationInfo*>& collected);
+    void Add(ValidationInfo* info, model::Index this_node_index);
 };
 
 }  // namespace algos::hymd::lattice::cardinality

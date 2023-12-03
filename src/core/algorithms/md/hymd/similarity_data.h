@@ -152,7 +152,7 @@ public:
                                                        CompressedRecord const& right_record) const;
 
     [[nodiscard]] ValidationResult Validate(lattice::FullLattice& lattice,
-                                            lattice::ValidationInfo* validation_info,
+                                            lattice::ValidationInfo& validation_info,
                                             size_t min_support) const;
 
     [[nodiscard]] std::optional<model::md::DecisionBoundary> GetPreviousDecisionBound(
