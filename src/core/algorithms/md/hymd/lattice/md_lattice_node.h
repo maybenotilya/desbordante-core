@@ -7,6 +7,7 @@
 #include "algorithms/md/hymd/decision_boundary_vector.h"
 #include "algorithms/md/hymd/lattice/lattice_child_array.h"
 #include "algorithms/md/hymd/lattice/md_lattice_node_info.h"
+#include "algorithms/md/hymd/lattice/single_level_func.h"
 #include "algorithms/md/hymd/similarity_vector.h"
 #include "model/index.h"
 
@@ -22,7 +23,8 @@ private:
 
 public:
     void GetLevel(std::vector<MdLatticeNodeInfo>& collected, DecisionBoundaryVector& this_node_lhs,
-                  model::Index this_node_index, size_t sims_left);
+                  model::Index this_node_index, size_t sims_left,
+                  SingleLevelFunc const& single_level_func);
     void GetMaxValidGeneralizationRhs(DecisionBoundaryVector const& lhs,
                                       std::vector<model::md::DecisionBoundary>& cur_rhs,
                                       model::Index this_node_index) const;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -9,6 +10,7 @@
 #include "algorithms/md/hymd/decision_boundary_vector.h"
 #include "algorithms/md/hymd/lattice/md_lattice_node.h"
 #include "algorithms/md/hymd/lattice/md_lattice_node_info.h"
+#include "algorithms/md/hymd/lattice/single_level_func.h"
 #include "algorithms/md/hymd/similarity_vector.h"
 #include "model/index.h"
 
@@ -19,6 +21,7 @@ private:
     size_t max_level_ = 0;
     MdLatticeNode root_;
     size_t column_matches_size_;
+    SingleLevelFunc const get_single_level_ = [](...) { return 1; };
 
 public:
     [[nodiscard]] bool HasGeneralization(DecisionBoundaryVector const& lhs_sims,

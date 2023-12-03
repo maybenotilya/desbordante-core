@@ -180,8 +180,9 @@ void MdLatticeNode::GetMaxValidGeneralizationRhs(DecisionBoundaryVector const& l
 
 void MdLatticeNode::GetLevel(std::vector<MdLatticeNodeInfo>& collected,
                              DecisionBoundaryVector& this_node_lhs,
-                             [[maybe_unused]] model::Index this_node_index, size_t sims_left) {
-    if (sims_left == 0) {
+                             [[maybe_unused]] model::Index this_node_index, size_t level_left,
+                             SingleLevelFunc const& single_level_func) {
+    if (level_left == 0) {
         if (std::any_of(rhs_.begin(), rhs_.end(),
                         [](model::md::DecisionBoundary val) { return val != 0.0; }))
             collected.emplace_back(this_node_lhs, &rhs_);
@@ -191,8 +192,11 @@ void MdLatticeNode::GetLevel(std::vector<MdLatticeNodeInfo>& collected,
         assert(index < this_node_lhs.size());
         for (auto& [threshold, node] : threshold_mapping) {
             assert(threshold > 0.0);
+            std::size_t single = single_level_func(index, threshold);
+            if (single > level_left) break;
             this_node_lhs[index] = threshold;
-            node.GetLevel(collected, this_node_lhs, index + 1, sims_left - 1);
+            node.GetLevel(collected, this_node_lhs, index + 1, level_left - single,
+                          single_level_func);
         }
         this_node_lhs[index] = 0.0;
     }
