@@ -10,6 +10,7 @@
 #include "algorithms/md/hymd/lattice/single_level_func.h"
 #include "algorithms/md/hymd/lattice/support_lattice.h"
 #include "model/index.h"
+#include "util/erase_if_replace.h"
 
 namespace algos::hymd::lattice {
 
@@ -34,13 +35,10 @@ public:
     }
 
     std::vector<MdLatticeNodeInfo> GetLevel(size_t level) {
-        std::vector<MdLatticeNodeInfo> lattice_mds = md_lattice_.GetLevel(level);
-        std::vector<MdLatticeNodeInfo> mds;
-        mds.reserve(lattice_mds.size());
-        for (MdLatticeNodeInfo& md : lattice_mds) {
-            if (support_lattice_.IsUnsupported(md.lhs_sims)) continue;
-            mds.push_back(std::move(md));
-        }
+        std::vector<MdLatticeNodeInfo> mds = md_lattice_.GetLevel(level);
+        util::EraseIfReplace(mds, [this](MdLatticeNodeInfo const& md) {
+            return support_lattice_.IsUnsupported(md.lhs_sims);
+        });
         return mds;
     }
 
