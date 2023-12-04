@@ -108,4 +108,15 @@ void MinPickerNode::RemoveSpecializations(MdLatticeNodeInfo const& md, model::In
     }
 }
 
+void MinPickerNode::GetAll(std::vector<ValidationInfo>& collected) {
+    if (task_info_ != nullptr) {
+        collected.push_back(std::move(*task_info_));
+    }
+    for (auto& [index, threshold_mapping] : children_) {
+        for (auto& [threshold, node] : threshold_mapping) {
+            node.GetAll(collected);
+        }
+    }
+}
+
 }  // namespace algos::hymd::lattice::cardinality

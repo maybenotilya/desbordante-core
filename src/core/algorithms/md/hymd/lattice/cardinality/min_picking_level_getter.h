@@ -8,8 +8,9 @@ namespace algos::hymd::lattice::cardinality {
 
 class MinPickingLevelGetter final : public LevelGetter {
 private:
+    using MinPickerType = MinPickerLattice;
     size_t const attribute_num_;
-    OneByOnePicker min_picker_;
+    MinPickerType min_picker_;
     std::unordered_map<DecisionBoundaryVector, std::unordered_set<model::Index>> picked_;
 
     std::vector<ValidationInfo> GetCurrentMdsInternal(
@@ -19,7 +20,7 @@ public:
     MinPickingLevelGetter(FullLattice* lattice)
         : LevelGetter(lattice),
           attribute_num_(lattice_->GetColMatchNumber()),
-          min_picker_() {}
+          min_picker_(attribute_num_) {}
 };
 
 }  // namespace algos::hymd::lattice::cardinality

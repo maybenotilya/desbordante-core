@@ -19,6 +19,8 @@ private:
     std::vector<ValidationInfo> info_;
 
 public:
+    static constexpr bool kNeedsEmptyRemoval = false;
+
     explicit MinPickerLattice(size_t attribute_num) : attribute_num_(attribute_num) {}
     void NewBatch(std::size_t max_elements);
     void AddGeneralizations(MdLatticeNodeInfo& md,

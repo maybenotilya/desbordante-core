@@ -20,8 +20,10 @@ std::vector<ValidationInfo> MinPickingLevelGetter::GetCurrentMdsInternal(
         min_picker_.AddGeneralizations(md, indices);
     }
     std::vector<ValidationInfo> collected = min_picker_.GetAll();
-    util::EraseIfReplace(collected,
-                         [](ValidationInfo const& info) { return info.rhs_indices.empty(); });
+    if constexpr (MinPickerType::kNeedsEmptyRemoval) {
+        util::EraseIfReplace(collected,
+                             [](ValidationInfo const& info) { return info.rhs_indices.empty(); });
+    }
     for (ValidationInfo const& info : collected) {
         std::unordered_set<model::Index>& validated_indices = picked_[info.info->lhs_sims];
         for (model::Index const new_index : info.rhs_indices) {

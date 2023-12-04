@@ -28,6 +28,7 @@ public:
     void RemoveSpecializations(MdLatticeNodeInfo const& md, model::Index this_node_index,
                                std::unordered_set<model::Index> const& indices);
     void Add(ValidationInfo* info, model::Index this_node_index);
+    void GetAll(std::vector<ValidationInfo>& collected);
 };
 
 }  // namespace algos::hymd::lattice::cardinality

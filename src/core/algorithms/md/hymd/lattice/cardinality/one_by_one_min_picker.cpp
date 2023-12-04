@@ -70,6 +70,8 @@ void OneByOnePicker::AddGeneralizations(MdLatticeNodeInfo& md,
 }
 
 std::vector<ValidationInfo> OneByOnePicker::GetAll() {
+    static_assert(kNeedsEmptyRemoval,
+                  "This picker needs post-processing to remove candidates with empty RHS indices");
     return std::move(currently_picked_);
 }
 

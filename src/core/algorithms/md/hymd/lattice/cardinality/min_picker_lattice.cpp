@@ -20,7 +20,18 @@ void MinPickerLattice::AddGeneralizations(MdLatticeNodeInfo& md,
 }
 
 std::vector<ValidationInfo> MinPickerLattice::GetAll() {
-    return std::move(info_);
+    if constexpr (kNeedsEmptyRemoval) {
+        // This actually gives a worse ordering and increases runtime (8.1s vs 15.0s on adult.csv
+        // with no parallelism, hybrid).
+        // TODO: investigate different orders.
+        return std::move(info_);
+
+    } else {
+        std::vector<ValidationInfo> collected;
+        collected.reserve(info_.size());
+        root_.GetAll(collected);
+        return collected;
+    }
 }
 
 }  // namespace algos::hymd::lattice::cardinality

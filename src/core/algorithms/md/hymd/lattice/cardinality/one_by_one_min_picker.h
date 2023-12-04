@@ -14,6 +14,8 @@ private:
     std::vector<ValidationInfo> currently_picked_;
 
 public:
+    static constexpr bool kNeedsEmptyRemoval = true;
+
     void NewBatch(std::size_t elements);
     void AddGeneralizations(MdLatticeNodeInfo& md,
                             std::unordered_set<model::Index>& considered_indices);
