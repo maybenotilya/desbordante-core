@@ -8,28 +8,33 @@ std::vector<ValidationInfo> MinPickingLevelGetter::GetCurrentMdsInternal(
         std::vector<MdLatticeNodeInfo>& level_mds) {
     min_picker_.NewBatch(level_mds.size());
     for (MdLatticeNodeInfo& md : level_mds) {
-        std::unordered_set<model::Index> const& previously_picked_rhs = picked_[md.lhs_sims];
-        std::unordered_set<model::Index> indices;
+        DecisionBoundaryVector const& lhs_sims = md.lhs_sims;
+        std::size_t const col_matches = lhs_sims.size();
+        boost::dynamic_bitset<> const& previously_picked_rhs =
+                picked_.try_emplace(lhs_sims, col_matches).first->second;
+        boost::dynamic_bitset<> indices(col_matches);
         DecisionBoundaryVector const& rhs = *md.rhs_sims;
         for (model::Index i = 0; i < attribute_num_; ++i) {
-            if (rhs[i] != 0.0 && previously_picked_rhs.find(i) == previously_picked_rhs.end()) {
-                indices.insert(i);
+            if (rhs[i] != 0.0) {
+                indices.set(i);
             }
         }
-        if (indices.empty()) continue;
+        indices -= previously_picked_rhs;
+        if (indices.none()) continue;
         min_picker_.AddGeneralizations(md, indices);
     }
     std::vector<ValidationInfo> collected = min_picker_.GetAll();
     if constexpr (MinPickerType::kNeedsEmptyRemoval) {
         util::EraseIfReplace(collected,
-                             [](ValidationInfo const& info) { return info.rhs_indices.empty(); });
+                             [](ValidationInfo const& info) { return info.rhs_indices.none(); });
     }
     for (ValidationInfo const& info : collected) {
-        std::unordered_set<model::Index>& validated_indices = picked_[info.info->lhs_sims];
-        for (model::Index const new_index : info.rhs_indices) {
-            bool const inserted = validated_indices.insert(new_index).second;
-            assert(inserted);
-        }
+        DecisionBoundaryVector const& lhs_sims = info.info->lhs_sims;
+        std::size_t const col_matches = lhs_sims.size();
+        boost::dynamic_bitset<>& validated_indices =
+                picked_.try_emplace(lhs_sims, col_matches).first->second;
+        assert((validated_indices & info.rhs_indices).none());
+        validated_indices |= info.rhs_indices;
     }
     if (collected.empty()) {
         picked_.clear();

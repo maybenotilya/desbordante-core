@@ -54,18 +54,11 @@ void MinPickerNode::Add(ValidationInfo* info, model::Index this_node_index) {
 
 void MinPickerNode::ExcludeGeneralizationRhs(MdLatticeNodeInfo const& md,
                                              model::Index this_node_index,
-                                             std::unordered_set<model::Index>& considered_indices) {
+                                             boost::dynamic_bitset<>& considered_indices) {
     if (task_info_ != nullptr) {
-        std::unordered_set<model::Index> const& indices = task_info_->rhs_indices;
-        for (auto it = considered_indices.begin(); it != considered_indices.end();) {
-            model::Index const index = *it;
-            if (indices.find(index) != indices.end()) {
-                it = considered_indices.erase(it);
-            } else {
-                ++it;
-            }
-        }
-        if (considered_indices.empty()) return;
+        boost::dynamic_bitset<> const& indices = task_info_->rhs_indices;
+        considered_indices -= indices;
+        if (considered_indices.none()) return;
     }
     DecisionBoundaryVector const& lhs_vec = md.lhs_sims;
     model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_vec, this_node_index);
@@ -78,22 +71,21 @@ void MinPickerNode::ExcludeGeneralizationRhs(MdLatticeNodeInfo const& md,
         assert(threshold > 0.0);
         if (threshold > next_lhs_sim) break;
         node.ExcludeGeneralizationRhs(md, next_node_index + 1, considered_indices);
-        if (considered_indices.empty()) return;
+        if (considered_indices.none()) return;
     }
 }
 
 void MinPickerNode::RemoveSpecializations(MdLatticeNodeInfo const& md, model::Index this_node_index,
-                                          std::unordered_set<model::Index> const& indices) {
+                                          boost::dynamic_bitset<> const& indices) {
     // All MDs in the tree are of the same cardinality.
     DecisionBoundaryVector const& lhs_vec = md.lhs_sims;
     model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_vec, this_node_index);
     if (next_node_index == lhs_vec.size()) {
         assert(children_.empty());
         if (task_info_ != nullptr) {
-            std::unordered_set<model::Index>& rhs_indices = task_info_->rhs_indices;
-            std::for_each(indices.begin(), indices.end(),
-                          [&rhs_indices](model::Index index) { rhs_indices.erase(index); });
-            if (rhs_indices.empty()) task_info_ = nullptr;
+            boost::dynamic_bitset<>& rhs_indices = task_info_->rhs_indices;
+            rhs_indices -= indices;
+            if (rhs_indices.none()) task_info_ = nullptr;
         }
         return;
     }

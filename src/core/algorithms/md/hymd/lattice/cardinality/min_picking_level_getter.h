@@ -11,7 +11,7 @@ private:
     using MinPickerType = MinPickerLattice;
     size_t const attribute_num_;
     MinPickerType min_picker_;
-    std::unordered_map<DecisionBoundaryVector, std::unordered_set<model::Index>> picked_;
+    std::unordered_map<DecisionBoundaryVector, boost::dynamic_bitset<>> picked_;
 
     std::vector<ValidationInfo> GetCurrentMdsInternal(
             std::vector<lattice::MdLatticeNodeInfo>& level_mds) final;
@@ -20,7 +20,7 @@ public:
     MinPickingLevelGetter(FullLattice* lattice)
         : LevelGetter(lattice),
           attribute_num_(lattice_->GetColMatchNumber()),
-          min_picker_(attribute_num_) {}
+          min_picker_() {}
 };
 
 }  // namespace algos::hymd::lattice::cardinality

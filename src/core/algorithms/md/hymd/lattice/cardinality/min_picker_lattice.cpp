@@ -11,9 +11,9 @@ void MinPickerLattice::NewBatch(std::size_t max_elements) {
 }
 
 void MinPickerLattice::AddGeneralizations(MdLatticeNodeInfo& md,
-                                          std::unordered_set<model::Index>& considered_indices) {
+                                          boost::dynamic_bitset<>& considered_indices) {
     root_.ExcludeGeneralizationRhs(md, 0, considered_indices);
-    if (considered_indices.empty()) return;
+    if (considered_indices.none()) return;
     root_.RemoveSpecializations(md, 0, considered_indices);
     ValidationInfo& ref = info_.emplace_back(&md, std::move(considered_indices));
     root_.Add(&ref, 0);

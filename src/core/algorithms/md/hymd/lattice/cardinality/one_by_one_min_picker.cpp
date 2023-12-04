@@ -11,12 +11,12 @@ void OneByOnePicker::NewBatch(std::size_t elements) {
 }
 
 void OneByOnePicker::AddGeneralizations(MdLatticeNodeInfo& md,
-                                        std::unordered_set<model::Index>& considered_indices) {
+                                        boost::dynamic_bitset<>& considered_indices) {
     DecisionBoundaryVector const& lhs_sims_cur = md.lhs_sims;
     auto cur_end = lhs_sims_cur.end();
     for (ValidationInfo& prev_info : currently_picked_) {
         DecisionBoundaryVector const& prev = prev_info.info->lhs_sims;
-        std::unordered_set<model::Index>& prev_indices = prev_info.rhs_indices;
+        boost::dynamic_bitset<>& prev_indices = prev_info.rhs_indices;
         for (auto cur_it = lhs_sims_cur.begin(), prev_it = prev.begin(); cur_it != cur_end;
              ++cur_it, ++prev_it) {
             model::md::DecisionBoundary const cur_bound = *cur_it;
@@ -29,17 +29,7 @@ void OneByOnePicker::AddGeneralizations(MdLatticeNodeInfo& md,
                         goto incomparable;
                     }
                 }
-                if (prev_indices.size() < considered_indices.size()) {
-                    std::erase_if(prev_indices,
-                                  [&considered_indices,
-                                   cons_end = considered_indices.end()](model::Index index) {
-                                      return considered_indices.find(index) != cons_end;
-                                  });
-                } else {
-                    std::for_each(
-                            considered_indices.begin(), considered_indices.end(),
-                            [&prev_indices](model::Index index) { prev_indices.erase(index); });
-                }
+                prev_indices -= considered_indices;
             } else if (cur_bound > prev_bound) {
                 for (++cur_it, ++prev_it; cur_it != cur_end; ++cur_it, ++prev_it) {
                     model::md::DecisionBoundary const cur_bound = *cur_it;
@@ -48,24 +38,13 @@ void OneByOnePicker::AddGeneralizations(MdLatticeNodeInfo& md,
                         goto incomparable;
                     }
                 }
-                if (considered_indices.size() < prev_indices.size()) {
-                    std::erase_if(
-                            considered_indices,
-                            [&prev_indices, prev_end = prev_indices.end()](model::Index index) {
-                                return prev_indices.find(index) != prev_end;
-                            });
-                } else {
-                    std::for_each(prev_indices.begin(), prev_indices.end(),
-                                  [&considered_indices](model::Index index) {
-                                      considered_indices.erase(index);
-                                  });
-                }
-                if (considered_indices.empty()) return;
+                considered_indices -= prev_indices;
+                if (considered_indices.none()) return;
             }
         }
     incomparable:;
     }
-    assert(!considered_indices.empty());
+    assert(!considered_indices.none());
     currently_picked_.emplace_back(&md, std::move(considered_indices));
 }
 

@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <boost/dynamic_bitset.hpp>
+
 #include "algorithms/md/hymd/lattice/lattice_child_array.h"
 #include "algorithms/md/hymd/lattice/md_lattice_node_info.h"
 #include "algorithms/md/hymd/lattice/validation_info.h"
@@ -24,9 +26,9 @@ private:
 
 public:
     void ExcludeGeneralizationRhs(MdLatticeNodeInfo const& md, model::Index this_node_index,
-                                  std::unordered_set<model::Index>& considered_indices);
+                                  boost::dynamic_bitset<>& considered_indices);
     void RemoveSpecializations(MdLatticeNodeInfo const& md, model::Index this_node_index,
-                               std::unordered_set<model::Index> const& indices);
+                               boost::dynamic_bitset<> const& indices);
     void Add(ValidationInfo* info, model::Index this_node_index);
     void GetAll(std::vector<ValidationInfo>& collected);
 };
