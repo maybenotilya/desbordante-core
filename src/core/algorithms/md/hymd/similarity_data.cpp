@@ -507,7 +507,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             model::md::DecisionBoundary const old_bound = working_info.old_bound;
             model::md::DecisionBoundary const threshold = working_info.threshold;
             // Optimization not done in Metanome
-            if (threshold == old_bound) continue;
+            if (threshold >= old_bound) continue;
             to_specialize.emplace_back(index, old_bound);
         }
         return {std::move(violations), std::move(to_specialize), support < min_support};
