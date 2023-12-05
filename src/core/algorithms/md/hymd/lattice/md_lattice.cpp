@@ -39,9 +39,16 @@ std::vector<MdLatticeNodeInfo> MdLattice::FindViolated(SimilarityVector const& s
 }
 
 std::vector<model::md::DecisionBoundary> MdLattice::GetRhsInterestingnessBounds(
-        DecisionBoundaryVector const& lhs) const {
-    std::vector<model::md::DecisionBoundary> rhs = lhs;
-    root_.RaiseInterestingnessBounds(lhs, rhs, 0);
+        DecisionBoundaryVector const& lhs, std::vector<model::Index> const& indices) const {
+    std::vector<model::md::DecisionBoundary> rhs;
+    rhs.reserve(indices.size());
+    std::size_t ones = 0;
+    for (model::Index index : indices) {
+        model::md::DecisionBoundary const lhs_bound = lhs[index];
+        rhs.push_back(lhs_bound);
+        if (lhs_bound == 1.0) ++ones;
+    }
+    root_.RaiseInterestingnessBounds(lhs, rhs, 0, indices, ones);
     return rhs;
 }
 

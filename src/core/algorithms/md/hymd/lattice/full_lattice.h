@@ -43,8 +43,8 @@ public:
     }
 
     std::vector<model::md::DecisionBoundary> GetRhsInterestingnessBounds(
-            DecisionBoundaryVector const& lhs) const {
-        return md_lattice_.GetRhsInterestingnessBounds(lhs);
+            DecisionBoundaryVector const& lhs, std::vector<model::Index> const& indices) const {
+        return md_lattice_.GetRhsInterestingnessBounds(lhs, indices);
     }
 
     void AddIfMinimal(DecisionBoundaryVector const& lhs_sims,

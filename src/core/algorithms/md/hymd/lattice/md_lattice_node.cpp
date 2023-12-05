@@ -139,23 +139,22 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
 }
 
 void MdLatticeNode::RaiseInterestingnessBounds(DecisionBoundaryVector const& lhs,
-                                                 std::vector<model::md::DecisionBoundary>& cur_rhs,
-                                                 model::Index const this_node_index) const {
+                                               std::vector<model::md::DecisionBoundary>& cur_rhs,
+                                               model::Index const this_node_index,
+                                               std::vector<model::Index> const& indices,
+                                               std::size_t& ones) const {
+    std::size_t const ind_size = indices.size();
     {
-        assert(rhs_.size() == cur_rhs.size());
-        auto it_rhs = rhs_.begin();
-        auto it_cur_rhs = cur_rhs.begin();
-        auto it_rhs_end = rhs_.end();
-        for (; it_rhs != it_rhs_end; ++it_cur_rhs, ++it_rhs) {
-            model::md::DecisionBoundary const rhs_threshold = *it_rhs;
-            model::md::DecisionBoundary& cur_rhs_threshold = *it_cur_rhs;
-            if (rhs_threshold > cur_rhs_threshold) cur_rhs_threshold = rhs_threshold;
+        for (std::size_t i = 0; i < ind_size; ++i) {
+            model::md::DecisionBoundary const this_node_bound = rhs_[indices[i]];
+            model::md::DecisionBoundary& cur = cur_rhs[i];
+            if (this_node_bound > cur) {
+                cur = this_node_bound;
+                if (cur == 1.0) ++ones;
+            }
         }
     }
-    if (std::all_of(cur_rhs.begin(), cur_rhs.end(),
-                    [](model::md::DecisionBoundary const v) { return v == 1.0; })) [[unlikely]] {
-        return;
-    }
+    if (ones == ind_size) return;
 
     auto child_array_end = children_.end();
     for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs, this_node_index);
@@ -168,12 +167,8 @@ void MdLatticeNode::RaiseInterestingnessBounds(DecisionBoundaryVector const& lhs
             if (threshold > cur_lhs_sim) {
                 break;
             }
-            node.RaiseInterestingnessBounds(lhs, cur_rhs, cur_node_index + 1);
-            if (std::all_of(cur_rhs.begin(), cur_rhs.end(),
-                            [](model::md::DecisionBoundary const v) { return v == 1.0; }))
-                    [[unlikely]] {
-                return;
-            }
+            node.RaiseInterestingnessBounds(lhs, cur_rhs, cur_node_index + 1, indices, ones);
+            if (ones == ind_size) return;
         }
     }
 }

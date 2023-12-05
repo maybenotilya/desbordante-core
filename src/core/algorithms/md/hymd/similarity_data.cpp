@@ -313,8 +313,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                                      GetLeftValueNum(index), right_records, sim_matrices_[index]);
             }
             std::vector<model::md::DecisionBoundary> const gen_max_rhs =
-                    ZeroWorking(working, [&lattice, &lhs_sims]() {
-                        return lattice.GetRhsInterestingnessBounds(lhs_sims);
+                    ZeroWorking(working, [&lattice, &lhs_sims, &indices]() {
+                        return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
                     });
             for (WorkingInfo& working_info : working) {
                 working_info.interestingness_boundary = gen_max_rhs[working_info.index];
@@ -370,8 +370,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 }
             }
             std::vector<model::md::DecisionBoundary> const gen_max_rhs =
-                    ZeroWorking(working, [&lattice, &lhs_sims]() {
-                        return lattice.GetRhsInterestingnessBounds(lhs_sims);
+                    ZeroWorking(working, [&lattice, &lhs_sims, &indices]() {
+                        return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
                     });
             size_t const working_size = working.size();
             std::vector<indexes::PliCluster> const& clusters =
@@ -423,9 +423,10 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             working.emplace_back(rhs_ref, index, violations.back(), rhs_ref, GetLeftValueNum(index),
                                  right_records, sim_matrices_[index]);
         }
-        std::vector<model::md::DecisionBoundary> const gen_max_rhs = ZeroWorking(
-                working,
-                [&lattice, &lhs_sims]() { return lattice.GetRhsInterestingnessBounds(lhs_sims); });
+        std::vector<model::md::DecisionBoundary> const gen_max_rhs =
+                ZeroWorking(working, [&lattice, &lhs_sims, &indices]() {
+                    return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
+                });
         size_t const working_size = working.size();
         std::map<model::Index, std::vector<model::Index>> col_col_match_mapping;
         for (model::Index col_match_index : non_zero_indices) {
@@ -517,7 +518,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             model::md::DecisionBoundary const old_bound = working_info.old_bound;
             model::md::DecisionBoundary const threshold = working_info.threshold;
             // Optimization not done in Metanome
-            if (threshold >= old_bound) continue;
+            if (threshold == old_bound) continue;
             to_specialize.emplace_back(index, old_bound);
         }
         return {std::move(violations), std::move(to_specialize), support < min_support};

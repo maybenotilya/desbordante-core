@@ -26,8 +26,10 @@ public:
                   model::Index this_node_index, size_t sims_left,
                   SingleLevelFunc const& single_level_func);
     void RaiseInterestingnessBounds(DecisionBoundaryVector const& lhs,
-                                      std::vector<model::md::DecisionBoundary>& cur_rhs,
-                                      model::Index this_node_index) const;
+                                    std::vector<model::md::DecisionBoundary>& cur_rhs,
+                                    model::Index this_node_index,
+                                    std::vector<model::Index> const& indices,
+                                    std::size_t& ones) const;
 
     [[nodiscard]] bool HasGeneralization(DecisionBoundaryVector const& lhs_sims,
                                          model::md::DecisionBoundary rhs_sim,

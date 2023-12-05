@@ -36,7 +36,7 @@ public:
     [[nodiscard]] size_t GetMaxLevel() const;
     std::vector<MdLatticeNodeInfo> GetLevel(size_t level);
     std::vector<model::md::DecisionBoundary> GetRhsInterestingnessBounds(
-            DecisionBoundaryVector const& lhs) const;
+            DecisionBoundaryVector const& lhs, std::vector<model::Index> const& indices) const;
     void AddIfMinimal(DecisionBoundaryVector const& lhs_sims, model::md::DecisionBoundary rhs_sim,
                       model::Index rhs_index);
     std::vector<MdLatticeNodeInfo> FindViolated(SimilarityVector const& similarity_vector);
