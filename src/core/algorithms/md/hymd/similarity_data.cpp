@@ -274,6 +274,16 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
     DecisionBoundaryVector& lhs_sims = info.info->lhs_sims;
     DecisionBoundaryVector& rhs_sims = *info.info->rhs_sims;
     boost::dynamic_bitset<>& rhs_indices = info.rhs_indices;
+    std::vector<model::Index> indices;
+    indices.reserve(rhs_indices.count());
+    for (std::size_t index = rhs_indices.find_first(); index != boost::dynamic_bitset<>::npos;
+         index = rhs_indices.find_next(index)) {
+        indices.push_back(index);
+    }
+    // TODO: investigate best order.
+    std::sort(indices.begin(), indices.end(), [this](model::Index ind1, model::Index ind2) {
+        return natural_decision_bounds_[ind1].size() < natural_decision_bounds_[ind2].size();
+    });
     std::vector<std::pair<model::Index, model::md::DecisionBoundary>> to_specialize;
     to_specialize.reserve(rhs_indices.count());
     size_t support = 0;
@@ -282,8 +292,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
     auto const& right_records = GetRightRecords().GetRecords();
     if (cardinality == 0) {
         support = GetLeftSize() * GetRightSize();
-        for (std::size_t index = rhs_indices.find_first(); index != boost::dynamic_bitset<>::npos;
-             index = rhs_indices.find_next(index)) {
+        for (std::size_t index : indices) {
             model::md::DecisionBoundary& rhs_bound = rhs_sims[index];
             to_specialize.emplace_back(index, rhs_bound);
             rhs_bound = lowest_sims_[index];
@@ -296,8 +305,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         model::Index const non_zero_index = non_zero_indices[0];
         std::vector<WorkingInfo> working;
         if (prune_nondisjoint_) {
-            for (std::size_t index = rhs_indices.find_first();
-                 index != boost::dynamic_bitset<>::npos; index = rhs_indices.find_next(index)) {
+            for (std::size_t index : indices) {
                 model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
                 assert(rhs_ref != 0.0);
                 violations.emplace_back();
@@ -348,8 +356,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             return {std::move(violations), std::move(to_specialize), support < min_support};
         } else {
             std::optional<std::pair<model::Index, model::md::DecisionBoundary>> same_rhs_as_lhs;
-            for (std::size_t index = rhs_indices.find_first();
-                 index != boost::dynamic_bitset<>::npos; index = rhs_indices.find_next(index)) {
+            for (std::size_t index : indices) {
                 model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
                 assert(rhs_ref != 0.0);
                 if (index == non_zero_index) {
@@ -410,8 +417,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         std::vector<std::vector<Recommendation>> violations;
         violations.reserve(rhs_indices.count());
         std::vector<WorkingInfo> working;
-        for (std::size_t index = rhs_indices.find_first(); index != boost::dynamic_bitset<>::npos;
-             index = rhs_indices.find_next(index)) {
+        for (std::size_t index : indices) {
             model::md::DecisionBoundary& rhs_ref = rhs_sims[index];
             violations.emplace_back();
             working.emplace_back(rhs_ref, index, violations.back(), rhs_ref, GetLeftValueNum(index),
@@ -448,7 +454,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             // of records in each column)
             // TODO: investigate why this seems to be the fastest on adult.csv (glibc 2.38)
             std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>>
-                grouped{0};
+                    grouped{0};
             for (RecordIdentifier record_id : cluster) {
                 model::Index idx = 0;
                 std::vector<ValueIdentifier> value_ids(col_col_match_mapping.size());
