@@ -275,7 +275,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
     DecisionBoundaryVector& rhs_sims = *info.info->rhs_sims;
     boost::dynamic_bitset<>& rhs_indices = info.rhs_indices;
     std::vector<std::pair<model::Index, model::md::DecisionBoundary>> to_specialize;
-    to_specialize.reserve(rhs_indices.size());
+    to_specialize.reserve(rhs_indices.count());
     size_t support = 0;
     std::vector<model::Index> non_zero_indices = GetNonZeroIndices(lhs_sims);
     size_t const cardinality = non_zero_indices.size();
@@ -292,7 +292,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
     }
     if (cardinality == 1) {
         std::vector<std::vector<Recommendation>> violations;
-        violations.reserve(rhs_indices.size());
+        violations.reserve(rhs_indices.count());
         model::Index const non_zero_index = non_zero_indices[0];
         std::vector<WorkingInfo> working;
         if (prune_nondisjoint_) {
@@ -408,7 +408,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         }
     } else {
         std::vector<std::vector<Recommendation>> violations;
-        violations.reserve(rhs_indices.size());
+        violations.reserve(rhs_indices.count());
         std::vector<WorkingInfo> working;
         for (std::size_t index = rhs_indices.find_first(); index != boost::dynamic_bitset<>::npos;
              index = rhs_indices.find_next(index)) {
