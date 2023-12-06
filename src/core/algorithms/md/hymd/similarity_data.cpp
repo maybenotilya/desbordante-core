@@ -316,10 +316,10 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     ZeroWorking(working, [&lattice, &lhs_sims, &indices]() {
                         return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
                     });
-            for (WorkingInfo& working_info : working) {
-                working_info.interestingness_boundary = gen_max_rhs[working_info.index];
-            }
             size_t const working_size = working.size();
+            for (std::size_t i = 0; i < working_size; ++i) {
+                working[i].interestingness_boundary = gen_max_rhs[i];
+            }
             std::vector<indexes::PliCluster> const& clusters =
                     GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
             size_t const clusters_size = clusters.size();
@@ -374,6 +374,9 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                         return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
                     });
             size_t const working_size = working.size();
+            for (std::size_t i = 0; i < working_size; ++i) {
+                working[i].interestingness_boundary = gen_max_rhs[i];
+            }
             std::vector<indexes::PliCluster> const& clusters =
                     GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
             size_t const clusters_size = clusters.size();
@@ -428,6 +431,9 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
                 });
         size_t const working_size = working.size();
+        for (std::size_t i = 0; i < working_size; ++i) {
+            working[i].interestingness_boundary = gen_max_rhs[i];
+        }
         std::map<model::Index, std::vector<model::Index>> col_col_match_mapping;
         for (model::Index col_match_index : non_zero_indices) {
             col_col_match_mapping[GetLeftPliIndex(col_match_index)].push_back(col_match_index);

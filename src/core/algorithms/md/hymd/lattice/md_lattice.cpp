@@ -45,8 +45,8 @@ std::vector<model::md::DecisionBoundary> MdLattice::GetRhsInterestingnessBounds(
     std::size_t ones = 0;
     for (model::Index index : indices) {
         model::md::DecisionBoundary const lhs_bound = lhs[index];
-        rhs.push_back(lhs_bound);
         if (lhs_bound == 1.0) ++ones;
+        rhs.push_back(lhs_bound);
     }
     root_.RaiseInterestingnessBounds(lhs, rhs, 0, indices, ones);
     return rhs;
