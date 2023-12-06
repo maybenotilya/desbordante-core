@@ -84,7 +84,7 @@ inline void parallel_foreach_async(It begin, It end, unsigned const tasks_num_ma
         It prev = p;
         std::advance(p, items_per_thread);
         try {
-            tasks.emplace_back(task, prev, p);
+            tasks.push_back(std::async(task, prev, p));
         } catch (std::system_error const& e) {
             /* Could not create a new thread */
             LOG(WARNING) << "Created " << tasks.size() << " tasks in parallel_foreach_async. "

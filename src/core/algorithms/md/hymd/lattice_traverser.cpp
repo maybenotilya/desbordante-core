@@ -130,17 +130,26 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             continue;
         }
 
-        std::vector<RhsTask> tasks_;
-        tasks_.reserve(mds.size());
+        std::vector<RhsTask> tasks;
+        tasks.reserve(mds.size());
         for (lattice::ValidationInfo& info : mds) {
-            tasks_.emplace_back(lattice, info, similarity_data, min_support_, *recommendations_ptr_,
-                         prune_nondisjoint_);
+            tasks.emplace_back(lattice, info, similarity_data, min_support_, *recommendations_ptr_,
+                               prune_nondisjoint_);
         }
-        for (RhsTask& task : tasks_) {
-            task.Validate();
-            task.AddViolations();
-            task.Specialize();
-        }
+        util::parallel_foreach_async(tasks.begin(), tasks.end(), 12,
+                                     [](RhsTask& task) { task.Validate(); });
+        auto viol_future = std::async([&tasks]() {
+            for (RhsTask& task : tasks) {
+                task.AddViolations();
+            }
+        });
+        auto spec_future = std::async([&tasks]() {
+            for (RhsTask& task : tasks) {
+                task.Specialize();
+            }
+        });
+        viol_future.get();
+        spec_future.get();
         if (!traverse_all) return false;
         // TODO: if we specialized no LHSs, we can cut off the rest of the lattice here. (Can we?)
     }
