@@ -54,6 +54,9 @@ public:
 
     void Specialize() {
         auto const& [violations, to_specialize, is_unsupported] = result_;
+        for (auto const& [index, old_bound, actual_bound] : to_specialize) {
+            info_.info->rhs_sims->operator[](index) = actual_bound;
+        }
         if (is_unsupported) {
             lattice_.MarkUnsupported(info_.info->lhs_sims);
             return;
@@ -74,10 +77,10 @@ public:
                 auto it = to_specialize.begin();
                 auto end = to_specialize.end();
                 for (; it != end; ++it) {
-                    auto const& [index, old_bound] = *it;
+                    auto const& [index, old_bound, _] = *it;
                     if (index == lhs_spec_index) {
                         for (++it; it != end; ++it) {
-                            auto const& [index, old_bound] = *it;
+                            auto const& [index, old_bound, _] = *it;
                             lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_bound, index);
                         }
                         break;
@@ -99,13 +102,13 @@ public:
                 auto it = to_specialize.begin();
                 auto end = to_specialize.end();
                 for (; it != end; ++it) {
-                    auto const& [index, old_bound] = *it;
+                    auto const& [index, old_bound, _] = *it;
                     if (index == lhs_spec_index) {
                         if (old_bound > *new_sim) {
                             lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_bound, index);
                         }
                         for (++it; it != end; ++it) {
-                            auto const& [index, old_bound] = *it;
+                            auto const& [index, old_bound, _] = *it;
                             lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_bound, index);
                         }
                         break;
@@ -127,9 +130,13 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             continue;
         }
 
+        std::vector<RhsTask> tasks_;
+        tasks_.reserve(mds.size());
         for (lattice::ValidationInfo& info : mds) {
-            RhsTask task(lattice, info, similarity_data, min_support_, *recommendations_ptr_,
+            tasks_.emplace_back(lattice, info, similarity_data, min_support_, *recommendations_ptr_,
                          prune_nondisjoint_);
+        }
+        for (RhsTask& task : tasks_) {
             task.Validate();
             task.AddViolations();
             task.Specialize();

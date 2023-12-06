@@ -45,11 +45,11 @@ bool MdLatticeNode::HasGeneralization(DecisionBoundaryVector const& lhs_sims,
     return false;
 }
 
-void MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
+bool MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
                                  model::md::DecisionBoundary rhs_sim, model::Index const rhs_index,
                                  model::Index const this_node_index) {
     model::md::DecisionBoundary& this_rhs_sim = rhs_[rhs_index];
-    if (this_rhs_sim >= rhs_sim) return;
+    if (this_rhs_sim >= rhs_sim) return false;
     size_t const rhs_size = rhs_.size();
     model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_sims, this_node_index);
     if (next_node_index == rhs_size) {
@@ -64,7 +64,7 @@ void MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
         this_rhs_sim = rhs_sim;
         // TODO: if rhs_sim is 1, we can remove all specializations, check performance
         //  (if we do, then we can avoid checking for all 1 in GetMaxValidGeneralizationRhs)
-        return;
+        return true;
     }
     {
         auto children_end = children_.end();
@@ -78,7 +78,7 @@ void MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
             for (auto const& [threshold, node] : it->second) {
                 if (threshold > child_lhs_sim) break;
                 if (node.HasGeneralization(lhs_sims, rhs_sim, rhs_index, child_node_index + 1))
-                    return;
+                    return false;
             }
         }
     }
@@ -88,7 +88,7 @@ void MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
     if (is_first_arr) [[unlikely]] {
         threshold_mapping.emplace(next_lhs_sim, rhs_size)
                 .first->second.AddUnchecked(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
-        return;
+        return true;
     }
     auto it = threshold_mapping.begin();
     auto end = threshold_mapping.end();
@@ -98,15 +98,15 @@ void MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
             break;
         }
         if (threshold == next_lhs_sim) {
-            node.AddIfMinimal(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
-            return;
+            return node.AddIfMinimal(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
         }
         if (node.HasGeneralization(lhs_sims, rhs_sim, rhs_index, next_node_index + 1)) {
-            return;
+            return false;
         }
     }
     threshold_mapping.emplace_hint(it, next_lhs_sim, rhs_size)
             ->second.AddUnchecked(lhs_sims, rhs_sim, rhs_index, next_node_index + 1);
+    return true;
 }
 
 void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,

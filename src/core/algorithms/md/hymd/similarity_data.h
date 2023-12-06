@@ -25,7 +25,7 @@ private:
         std::vector<Recommendation>& violations;
         model::md::DecisionBoundary const old_bound;
         model::Index const index;
-        model::md::DecisionBoundary& threshold;
+        model::md::DecisionBoundary threshold;
         size_t const col_match_values;
         model::md::DecisionBoundary interestingness_boundary;
         std::vector<CompressedRecord> const& right_records;
@@ -40,13 +40,13 @@ private:
         }
 
         WorkingInfo(model::md::DecisionBoundary old_bound, model::Index index,
-                    std::vector<Recommendation>& violations, model::md::DecisionBoundary& threshold,
-                    size_t col_match_values, std::vector<CompressedRecord> const& right_records,
+                    std::vector<Recommendation>& violations, size_t col_match_values,
+                    std::vector<CompressedRecord> const& right_records,
                     indexes::SimilarityMatrix const& sim_matrix)
             : violations(violations),
               old_bound(old_bound),
               index(index),
-              threshold(threshold),
+              threshold(old_bound),
               col_match_values(col_match_values),
               right_records(right_records),
               sim_matrix(sim_matrix) {}
@@ -94,7 +94,9 @@ private:
 public:
     struct ValidationResult {
         std::vector<std::vector<Recommendation>> violations;
-        std::vector<std::pair<model::Index, model::md::DecisionBoundary>> to_specialize;
+        std::vector<
+                std::tuple<model::Index, model::md::DecisionBoundary, model::md::DecisionBoundary>>
+                to_specialize;
         bool is_unsupported;
     };
 

@@ -35,7 +35,7 @@ public:
                                          model::md::DecisionBoundary rhs_sim,
                                          model::Index rhs_index,
                                          model::Index this_node_index) const;
-    void AddIfMinimal(DecisionBoundaryVector const& lhs_sims, model::md::DecisionBoundary rhs_sim,
+    bool AddIfMinimal(DecisionBoundaryVector const& lhs_sims, model::md::DecisionBoundary rhs_sim,
                       model::Index rhs_index, model::Index this_node_index);
 
     void FindViolated(std::vector<MdLatticeNodeInfo>& found, DecisionBoundaryVector& this_node_lhs,

@@ -15,7 +15,8 @@ size_t MdLattice::GetMaxLevel() const {
 
 void MdLattice::AddIfMinimal(DecisionBoundaryVector const& lhs_sims,
                              model::md::DecisionBoundary const rhs_sim, model::Index rhs_index) {
-    root_.AddIfMinimal(lhs_sims, rhs_sim, rhs_index, 0);
+    bool succeded = root_.AddIfMinimal(lhs_sims, rhs_sim, rhs_index, 0);
+    if (!succeded) return;
     std::size_t level = 0;
     for (size_t i = 0; i < column_matches_size_; ++i) {
         model::md::DecisionBoundary cur_bound = lhs_sims[i];
