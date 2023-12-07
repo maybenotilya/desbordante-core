@@ -107,7 +107,6 @@ bool SimilarityData::LowerForColumnMatch(
     assert(!cluster.empty());
 
     /*
-    // Is the function still correct without this?
     // Actually loses time on adult.csv
     if (working_info.threshold <= working_info.interestingness_boundary) {
         working_info.threshold = 0.0;
@@ -433,6 +432,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                               [](RecSet const* p1, RecSet const* p2) {
                                   return p1->size() < p2->size();
                               });
+                    // Don't change to vector until a good order is figured out.
                     RecSet similar_records;
                     RecSet const& first = **rec_sets.begin();
                     auto const try_add_rec =
