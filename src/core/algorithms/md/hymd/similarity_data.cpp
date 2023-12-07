@@ -331,7 +331,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             std::size_t const working_size = working.size();
             std::vector<indexes::PliCluster> const& clusters =
                     GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
-            size_t const clusters_size = clusters.size();
+            std::size_t const clusters_size = clusters.size();
             for (ValueIdentifier value_id = 0; value_id < clusters_size; ++value_id) {
                 std::vector<RecordIdentifier> const& cluster = clusters[value_id];
                 std::unordered_set<RecordIdentifier> const* similar_records_ptr =
@@ -340,7 +340,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 std::unordered_set<RecordIdentifier> const& similar_records =
                         *similar_records_ptr;
                 support += cluster.size() * similar_records.size();
-                size_t stops = 0;
+                std::size_t stops = 0;
                 for (WorkingInfo& working_info : working) {
                     bool const should_stop =
                             LowerForColumnMatch(working_info, cluster, similar_records);
@@ -367,7 +367,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             return {std::move(violations), std::move(to_specialize), support < min_support};
         } else {
             prepare();
-            size_t const working_size = working.size();
+            std::size_t const working_size = working.size();
             std::map<Index, std::vector<Index>> col_col_match_mapping;
             for (Index col_match_index : non_zero_indices) {
                 col_col_match_mapping[GetLeftPliIndex(col_match_index)].push_back(col_match_index);
@@ -387,7 +387,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             auto const& left_records = left_records_info.GetRecords();
             std::vector<indexes::PliCluster> const& first_pli =
                     left_records_info.GetPli(col_col_match_mapping.begin()->first).GetClusters();
-            size_t const first_pli_size = first_pli.size();
+            std::size_t const first_pli_size = first_pli.size();
+            std::size_t const plis_involved = col_col_match_mapping.size();
             for (ValueIdentifier first_value_id = 0; first_value_id < first_pli_size;
                  ++first_value_id) {
                 indexes::PliCluster const& cluster = first_pli[first_value_id];
@@ -397,14 +398,20 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 std::unordered_map<std::vector<ValueIdentifier>,
                                    std::vector<CompressedRecord const*>>
                         grouped{0};
-                for (RecordIdentifier record_id : cluster) {
-                    Index idx = 0;
-                    std::vector<ValueIdentifier> value_ids(col_col_match_mapping.size());
-                    std::vector<ValueIdentifier> const& record = left_records[record_id];
-                    for (auto const& [pli_idx, col_match_idxs] : col_col_match_mapping) {
-                        value_ids[idx++] = record[pli_idx];
+                {
+                    std::vector<ValueIdentifier> value_ids;
+                    value_ids.reserve(plis_involved);
+                    value_ids.push_back(first_value_id);
+                    auto it_map_start = ++col_col_match_mapping.begin();
+                    auto it_map_end = col_col_match_mapping.end();
+                    for (RecordIdentifier record_id : cluster) {
+                        std::vector<ValueIdentifier> const& record = left_records[record_id];
+                        for (auto it_map = it_map_start; it_map != it_map_end; ++it_map) {
+                            value_ids.push_back(record[it_map->first]);
+                        }
+                        grouped[value_ids].push_back(&record);
+                        value_ids.erase(++value_ids.begin(), value_ids.end());
                     }
-                    grouped[std::move(value_ids)].push_back(&record);
                 }
                 for (auto const& [val_ids, cluster] : grouped) {
                     using RecSet = std::unordered_set<RecordIdentifier>;
@@ -414,10 +421,13 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                         std::unordered_set<RecordIdentifier> const* similar_records_ptr =
                                 GetSimilarRecords(val_ids[val_ids_idx],
                                                   lhs_sims[column_match_index], column_match_index);
-                        if (similar_records_ptr == nullptr) break;
+                        if (similar_records_ptr == nullptr) goto no_similar_records;
                         rec_sets.push_back(similar_records_ptr);
                     }
-                    if (rec_sets.size() != cardinality) continue;
+                    goto something_found;
+                no_similar_records:
+                    continue;
+                something_found:
                     std::sort(rec_sets.begin(), rec_sets.end(),
                               [](RecSet const* p1, RecSet const* p2) {
                                   return p1->size() < p2->size();
@@ -428,7 +438,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                             [&similar_records, check_set_begin = ++rec_sets.begin(),
                              check_set_end = rec_sets.end()](RecordIdentifier rec) {
                                 for (auto it = check_set_begin; it != check_set_end; ++it) {
-                                    if ((**it).find(rec) == (**it).end()) {
+                                    RecSet const& rec_set = **it;
+                                    if (rec_set.find(rec) == rec_set.end()) {
                                         return;
                                     }
                                 }
@@ -439,7 +450,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     }
                     if (similar_records.empty()) continue;
                     support += cluster.size() * similar_records.size();
-                    size_t stops = 0;
+                    std::size_t stops = 0;
                     for (WorkingInfo& working_info : working) {
                         bool const should_stop =
                                 LowerForColumnMatch(working_info, cluster, similar_records);
