@@ -291,37 +291,40 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         return {{}, to_specialize, support < min_support};
     } else {
         std::vector<Index> indices;
-        indices.reserve(rhs_indices.count());
-        for (Index index = rhs_indices.find_first(); index != boost::dynamic_bitset<>::npos;
-             index = rhs_indices.find_next(index)) {
-            indices.push_back(index);
-        }
-        // TODO: investigate best order.
-        std::sort(indices.begin(), indices.end(), [this](Index ind1, Index ind2) {
-            return natural_decision_bounds_[ind1].size() < natural_decision_bounds_[ind2].size();
-        });
         std::vector<std::vector<Recommendation>> violations;
-        violations.reserve(rhs_indices.count());
         std::vector<WorkingInfo> working;
-        working.reserve(rhs_indices.count());
-        violations.reserve(rhs_indices.count());
+        auto prepare = [&]() {
+            indices.reserve(rhs_indices.count());
+            for (Index index = rhs_indices.find_first(); index != boost::dynamic_bitset<>::npos;
+                 index = rhs_indices.find_next(index)) {
+                indices.push_back(index);
+            }
+            // TODO: investigate best order.
+            std::sort(indices.begin(), indices.end(), [this](Index ind1, Index ind2) {
+                return natural_decision_bounds_[ind1].size() <
+                       natural_decision_bounds_[ind2].size();
+            });
+            violations.reserve(rhs_indices.count());
+            working.reserve(rhs_indices.count());
+            for (Index index : indices) {
+                violations.emplace_back();
+                working.emplace_back(rhs_sims[index], index, violations.back(),
+                                     GetLeftValueNum(index), right_records, sim_matrices_[index]);
+            }
+            std::vector<DecisionBoundary> const gen_max_rhs =
+                    ZeroWorking(working, [&lattice, &lhs_sims, &indices]() {
+                        return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
+                    });
+            std::size_t const working_size = working.size();
+            for (Index i = 0; i < working_size; ++i) {
+                working[i].interestingness_boundary = gen_max_rhs[i];
+            }
+        };
         if (cardinality == 1) {
             Index const non_zero_index = *non_zero_indices.data();
             if (prune_nondisjoint_) {
-                for (Index index : indices) {
-                    violations.emplace_back();
-                    working.emplace_back(rhs_sims[index], index, violations.back(),
-                                         GetLeftValueNum(index), right_records,
-                                         sim_matrices_[index]);
-                }
-                std::vector<DecisionBoundary> const gen_max_rhs =
-                        ZeroWorking(working, [&lattice, &lhs_sims, &indices]() {
-                            return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
-                        });
+                prepare();
                 std::size_t const working_size = working.size();
-                for (Index i = 0; i < working_size; ++i) {
-                    working[i].interestingness_boundary = gen_max_rhs[i];
-                }
                 std::vector<indexes::PliCluster> const& clusters =
                         GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
                 size_t const clusters_size = clusters.size();
@@ -359,26 +362,11 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 }
                 return {std::move(violations), std::move(to_specialize), support < min_support};
             } else {
-                std::optional<std::pair<Index, DecisionBoundary>> same_rhs_as_lhs;
-                for (std::size_t index : indices) {
-                    DecisionBoundary const rhs_old = rhs_sims[index];
-                    if (index == non_zero_index) {
-                        same_rhs_as_lhs = {index, rhs_old};
-                    } else {
-                        violations.emplace_back();
-                        working.emplace_back(rhs_old, index, violations.back(),
-                                             GetLeftValueNum(index), right_records,
-                                             sim_matrices_[index]);
-                    }
+                if (rhs_indices.test_set(non_zero_index, false)) {
+                    to_specialize.emplace_back(non_zero_index, rhs_sims[non_zero_index], 0.0);
                 }
-                std::vector<DecisionBoundary> const gen_max_rhs =
-                        ZeroWorking(working, [&lattice, &lhs_sims, &indices]() {
-                            return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
-                        });
-                size_t const working_size = working.size();
-                for (std::size_t i = 0; i < working_size; ++i) {
-                    working[i].interestingness_boundary = gen_max_rhs[i];
-                }
+                prepare();
+                std::size_t const working_size = working.size();
                 std::vector<indexes::PliCluster> const& clusters =
                         GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
                 size_t const clusters_size = clusters.size();
@@ -404,9 +392,6 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                             assert(old_bound != 0.0);
                             to_specialize.emplace_back(index, old_bound, threshold);
                         }
-                        if (same_rhs_as_lhs)
-                            to_specialize.emplace_back(same_rhs_as_lhs->first,
-                                                       same_rhs_as_lhs->second, 0.0);
                         return {std::move(violations), std::move(to_specialize), false};
                     }
                 }
@@ -417,28 +402,11 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     if (threshold == old_bound) continue;
                     to_specialize.emplace_back(index, old_bound, threshold);
                 }
-                if (same_rhs_as_lhs)
-                    to_specialize.emplace_back(same_rhs_as_lhs->first, same_rhs_as_lhs->second,
-                                               0.0);
                 return {std::move(violations), std::move(to_specialize), support < min_support};
             }
         } else {
-            std::vector<std::vector<Recommendation>> violations;
-            violations.reserve(rhs_indices.count());
-            std::vector<WorkingInfo> working;
-            for (std::size_t index : indices) {
-                violations.emplace_back();
-                working.emplace_back(rhs_sims[index], index, violations.back(),
-                                     GetLeftValueNum(index), right_records, sim_matrices_[index]);
-            }
-            std::vector<DecisionBoundary> const gen_max_rhs =
-                    ZeroWorking(working, [&lattice, &lhs_sims, &indices]() {
-                        return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
-                    });
+            prepare();
             size_t const working_size = working.size();
-            for (std::size_t i = 0; i < working_size; ++i) {
-                working[i].interestingness_boundary = gen_max_rhs[i];
-            }
             std::map<Index, std::vector<Index>> col_col_match_mapping;
             for (Index col_match_index : non_zero_indices) {
                 col_col_match_mapping[GetLeftPliIndex(col_match_index)].push_back(col_match_index);
