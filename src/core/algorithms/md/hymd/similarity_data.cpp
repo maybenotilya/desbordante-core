@@ -275,17 +275,18 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
     using model::Index, model::md::DecisionBoundary;
     DecisionBoundaryVector const& lhs_sims = info.info->lhs_sims;
     DecisionBoundaryVector const& rhs_sims = *info.info->rhs_sims;
-    boost::dynamic_bitset<>& rhs_indices = info.rhs_indices;
+    // After a call to this method, info.rhs_indices must not be used
+    boost::dynamic_bitset<>& indices_bitset = info.rhs_indices;
     size_t support = 0;
     std::vector<Index> non_zero_indices = GetNonZeroIndices(lhs_sims);
     size_t const cardinality = non_zero_indices.size();
     auto const& right_records = GetRightRecords().GetRecords();
     std::vector<std::tuple<Index, DecisionBoundary, DecisionBoundary>> to_specialize;
-    to_specialize.reserve(rhs_indices.count());
+    to_specialize.reserve(indices_bitset.count());
     if (cardinality == 0) {
         support = GetLeftSize() * GetRightSize();
-        for (Index index = rhs_indices.find_first(); index != boost::dynamic_bitset<>::npos;
-             index = rhs_indices.find_next(index)) {
+        for (Index index = indices_bitset.find_first(); index != boost::dynamic_bitset<>::npos;
+             index = indices_bitset.find_next(index)) {
             to_specialize.emplace_back(index, rhs_sims[index], lowest_sims_[index]);
         }
         return {{}, to_specialize, support < min_support};
@@ -294,9 +295,9 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         std::vector<std::vector<Recommendation>> violations;
         std::vector<WorkingInfo> working;
         auto prepare = [&]() {
-            indices.reserve(rhs_indices.count());
-            for (Index index = rhs_indices.find_first(); index != boost::dynamic_bitset<>::npos;
-                 index = rhs_indices.find_next(index)) {
+            indices.reserve(indices_bitset.count());
+            for (Index index = indices_bitset.find_first(); index != boost::dynamic_bitset<>::npos;
+                 index = indices_bitset.find_next(index)) {
                 indices.push_back(index);
             }
             // TODO: investigate best order.
@@ -304,8 +305,9 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 return natural_decision_bounds_[ind1].size() <
                        natural_decision_bounds_[ind2].size();
             });
-            violations.reserve(rhs_indices.count());
-            working.reserve(rhs_indices.count());
+            std::size_t indices_size = indices.size();
+            violations.reserve(indices_size);
+            working.reserve(indices_size);
             for (Index index : indices) {
                 violations.emplace_back();
                 working.emplace_back(rhs_sims[index], index, violations.back(),
@@ -323,7 +325,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         if (cardinality == 1) {
             Index const non_zero_index = *non_zero_indices.data();
             if (!prune_nondisjoint_) {
-                if (rhs_indices.test_set(non_zero_index, false)) {
+                if (indices_bitset.test_set(non_zero_index, false)) {
                     to_specialize.emplace_back(non_zero_index, rhs_sims[non_zero_index], 0.0);
                 }
             }
@@ -337,8 +339,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                 std::unordered_set<RecordIdentifier> const* similar_records_ptr =
                         GetSimilarRecords(value_id, lhs_sims[non_zero_index], non_zero_index);
                 if (similar_records_ptr == nullptr) continue;
-                std::unordered_set<RecordIdentifier> const& similar_records =
-                        *similar_records_ptr;
+                std::unordered_set<RecordIdentifier> const& similar_records = *similar_records_ptr;
                 support += cluster.size() * similar_records.size();
                 std::size_t stops = 0;
                 for (WorkingInfo& working_info : working) {

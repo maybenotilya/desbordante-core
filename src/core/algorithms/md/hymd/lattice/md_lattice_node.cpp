@@ -141,34 +141,36 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
 void MdLatticeNode::RaiseInterestingnessBounds(DecisionBoundaryVector const& lhs,
                                                std::vector<model::md::DecisionBoundary>& cur_rhs,
                                                model::Index const this_node_index,
-                                               std::vector<model::Index> const& indices,
-                                               std::size_t& ones) const {
-    std::size_t const ind_size = indices.size();
+                                               std::vector<model::Index> const& indices) const {
     {
-        for (std::size_t i = 0; i < ind_size; ++i) {
+        std::size_t const indices_size = indices.size();
+        for (model::Index i = 0; i < indices_size; ++i) {
             model::md::DecisionBoundary const this_node_bound = rhs_[indices[i]];
             model::md::DecisionBoundary& cur = cur_rhs[i];
             if (this_node_bound > cur) {
                 cur = this_node_bound;
-                if (cur == 1.0) ++ones;
+                // The original paper mentions checking for the case where all decision bounds are
+                // 1.0, but if such a situation occurs for any one RHS, and the generalization with
+                // that RHS happens to be valid on the data, it would make inference from record
+                // pairs give an incorrect result, meaning the algorithm is incorrect.
+                // However, it is possible to stop decreasing when the bound's index in the list of
+                // natural decision boundaries is exactly one less than the RHS bound's index.
+                assert(this_node_bound != 1.0);
             }
         }
     }
-    if (ones == ind_size) return;
 
     auto child_array_end = children_.end();
+    std::size_t const lhs_size = lhs.size();
     for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs, this_node_index);
-         cur_node_index != lhs.size();
+         cur_node_index != lhs_size;
          cur_node_index = utility::GetFirstNonZeroIndex(lhs, cur_node_index + 1)) {
         auto it = children_.find(cur_node_index);
         if (it == child_array_end) continue;
         model::md::DecisionBoundary const cur_lhs_sim = lhs[cur_node_index];
         for (auto const& [threshold, node] : it->second) {
-            if (threshold > cur_lhs_sim) {
-                break;
-            }
-            node.RaiseInterestingnessBounds(lhs, cur_rhs, cur_node_index + 1, indices, ones);
-            if (ones == ind_size) return;
+            if (threshold > cur_lhs_sim) break;
+            node.RaiseInterestingnessBounds(lhs, cur_rhs, cur_node_index + 1, indices);
         }
     }
 }

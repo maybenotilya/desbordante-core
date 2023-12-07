@@ -1,6 +1,7 @@
 #include "algorithms/md/hymd/lattice/md_lattice.h"
 
 #include <algorithm>
+#include <cassert>
 
 namespace algos::hymd::lattice {
 
@@ -43,13 +44,12 @@ std::vector<model::md::DecisionBoundary> MdLattice::GetRhsInterestingnessBounds(
         DecisionBoundaryVector const& lhs, std::vector<model::Index> const& indices) const {
     std::vector<model::md::DecisionBoundary> rhs;
     rhs.reserve(indices.size());
-    std::size_t ones = 0;
     for (model::Index index : indices) {
         model::md::DecisionBoundary const lhs_bound = lhs[index];
-        if (lhs_bound == 1.0) ++ones;
+        assert(lhs_bound != 1.0);
         rhs.push_back(lhs_bound);
     }
-    root_.RaiseInterestingnessBounds(lhs, rhs, 0, indices, ones);
+    root_.RaiseInterestingnessBounds(lhs, rhs, 0, indices);
     return rhs;
 }
 
