@@ -32,17 +32,29 @@ namespace std {
 template <>
 struct hash<algos::hymd::Recommendation> {
     std::size_t operator()(algos::hymd::Recommendation const& p) const noexcept {
+        constexpr bool kUseJavaHash = true;
         using algos::hymd::CompressedRecord, algos::hymd::ValueIdentifier;
         CompressedRecord const& left_record = *p.left_record;
         CompressedRecord const& right_record = *p.right_record;
-        util::PyTupleHash<ValueIdentifier> hasher{left_record.size() * 2};
-        for (ValueIdentifier v : left_record) {
-            hasher.AddValue(v);
+        if constexpr (kUseJavaHash) {
+            auto hash_arr = [](auto const& arr) {
+                int32_t hash = 1;
+                for (algos::hymd::ValueIdentifier value_id : arr) {
+                    hash = 31 * hash + (value_id ^ value_id >> 32);
+                }
+                return hash;
+            };
+            return (59 + hash_arr(left_record)) * 59 + hash_arr(right_record);
+        } else {
+            util::PyTupleHash<ValueIdentifier> hasher{left_record.size() * 2};
+            for (ValueIdentifier v : left_record) {
+                hasher.AddValue(v);
+            }
+            for (ValueIdentifier v : right_record) {
+                hasher.AddValue(v);
+            }
+            return hasher.GetResult();
         }
-        for (ValueIdentifier v : right_record) {
-            hasher.AddValue(v);
-        }
-        return hasher.GetResult();
     }
 };
 }  // namespace std

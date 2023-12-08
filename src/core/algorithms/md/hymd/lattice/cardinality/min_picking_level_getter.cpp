@@ -25,8 +25,13 @@ std::vector<ValidationInfo> MinPickingLevelGetter::GetCurrentMdsInternal(
     }
     std::vector<ValidationInfo> collected = min_picker_.GetAll();
     if constexpr (MinPickerType::kNeedsEmptyRemoval) {
-        util::EraseIfReplace(collected,
-                             [](ValidationInfo const& info) { return info.rhs_indices.none(); });
+        if constexpr (kEraseEmptyKeepOrder) {
+            std::erase_if(collected,
+                          [](ValidationInfo const& info) { return info.rhs_indices.none(); });
+        } else {
+            util::EraseIfReplace(
+                    collected, [](ValidationInfo const& info) { return info.rhs_indices.none(); });
+        }
     }
     for (ValidationInfo const& info : collected) {
         DecisionBoundaryVector const& lhs_sims = info.info->lhs_sims;

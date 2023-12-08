@@ -64,8 +64,10 @@ private:
     std::vector<indexes::SimilarityMatrix> sim_matrices_;
     std::vector<indexes::SimilarityIndex> sim_indexes_;
 
-    bool prune_nondisjoint_ = true;
+    bool const prune_nondisjoint_ = true;
     bool const single_table_;
+
+    constexpr static bool kSortIndices = false;
 
     [[nodiscard]] model::Index GetLeftPliIndex(model::Index column_match_index) const;
 
@@ -84,9 +86,10 @@ private:
     [[nodiscard]] bool LowerForColumnMatch(
             WorkingInfo& working_info, indexes::PliCluster const& cluster,
             std::unordered_set<RecordIdentifier> const& similar_records) const;
+    template <typename Collection>
     [[nodiscard]] bool LowerForColumnMatch(
             WorkingInfo& working_info, std::vector<CompressedRecord const*> const& cluster,
-            std::unordered_set<RecordIdentifier> const& similar_records) const;
+            Collection const& similar_records) const;
     [[nodiscard]] std::unordered_set<RecordIdentifier> const* GetSimilarRecords(
             ValueIdentifier value_id, model::md::DecisionBoundary similarity,
             model::Index column_match_index) const;

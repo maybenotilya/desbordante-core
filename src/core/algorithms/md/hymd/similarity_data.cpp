@@ -11,11 +11,20 @@ template <>
 struct hash<std::vector<algos::hymd::ValueIdentifier>> {
     std::size_t operator()(std::vector<algos::hymd::ValueIdentifier> const& p) const {
         using algos::hymd::ValueIdentifier;
-        auto hasher = util::PyTupleHash<ValueIdentifier>(p.size());
-        for (ValueIdentifier el : p) {
-            hasher.AddValue(el);
+        constexpr bool kUseJavaHash = true;
+        if constexpr (kUseJavaHash) {
+            int32_t hash = 1;
+            for (algos::hymd::ValueIdentifier value_id : p) {
+                hash = 31 * hash + (value_id ^ value_id >> 32);
+            }
+            return hash;
+        } else {
+            auto hasher = util::PyTupleHash<ValueIdentifier>(p.size());
+            for (ValueIdentifier el : p) {
+                hasher.AddValue(el);
+            }
+            return hasher.GetResult();
         }
-        return hasher.GetResult();
     }
 };
 }  // namespace std
@@ -100,20 +109,18 @@ bool SimilarityData::LowerForColumnMatch(
     return LowerForColumnMatch(working_info, cluster_records, similar_records);
 }
 
+template <typename Collection>
 bool SimilarityData::LowerForColumnMatch(
         WorkingInfo& working_info, std::vector<CompressedRecord const*> const& cluster,
-        std::unordered_set<RecordIdentifier> const& similar_records) const {
+        Collection const& similar_records) const {
     assert(!similar_records.empty());
     assert(!cluster.empty());
 
-    /*
+
     // Actually loses time on adult.csv
-    if (working_info.threshold <= working_info.interestingness_boundary) {
-        working_info.threshold = 0.0;
-        // Metanome only aborts after grouping.
-        if (working_info.EnoughViolations()) return true;
+    if (working_info.ShouldStop()) {
+        return true;
     }
-    */
     std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped(
             std::min(cluster.size(), working_info.col_match_values));
     for (CompressedRecord const* left_record_ptr : cluster) {
@@ -286,7 +293,11 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         support = GetLeftSize() * GetRightSize();
         for (Index index = indices_bitset.find_first(); index != boost::dynamic_bitset<>::npos;
              index = indices_bitset.find_next(index)) {
-            to_specialize.emplace_back(index, rhs_sims[index], lowest_sims_[index]);
+            DecisionBoundary const old_sim = rhs_sims[index];
+            DecisionBoundary const new_sim = lowest_sims_[index];
+            if (old_sim == new_sim) [[unlikely]]
+                continue;
+            to_specialize.emplace_back(index, old_sim, new_sim);
         }
         return {{}, to_specialize, support < min_support};
     } else {
@@ -299,11 +310,13 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                  index = indices_bitset.find_next(index)) {
                 indices.push_back(index);
             }
-            // TODO: investigate best order.
-            std::sort(indices.begin(), indices.end(), [this](Index ind1, Index ind2) {
-                return natural_decision_bounds_[ind1].size() <
-                       natural_decision_bounds_[ind2].size();
-            });
+            if constexpr (kSortIndices) {
+                // TODO: investigate best order.
+                std::sort(indices.begin(), indices.end(), [this](Index ind1, Index ind2) {
+                    return natural_decision_bounds_[ind1].size() <
+                           natural_decision_bounds_[ind2].size();
+                });
+            }
             std::size_t indices_size = indices.size();
             violations.reserve(indices_size);
             working.reserve(indices_size);
@@ -432,8 +445,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                               [](RecSet const* p1, RecSet const* p2) {
                                   return p1->size() < p2->size();
                               });
-                    // Don't change to vector until a good order is figured out.
-                    RecSet similar_records;
+                    std::vector<RecordIdentifier> similar_records;
                     RecSet const& first = **rec_sets.begin();
                     auto const try_add_rec =
                             [&similar_records, check_set_begin = ++rec_sets.begin(),
@@ -444,7 +456,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                                         return;
                                     }
                                 }
-                                similar_records.insert(rec);
+                                similar_records.push_back(rec);
                             };
                     for (RecordIdentifier rec : first) {
                         try_add_rec(rec);

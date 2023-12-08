@@ -8,13 +8,17 @@ namespace algos::hymd::lattice::cardinality {
 
 class MinPickingLevelGetter final : public LevelGetter {
 private:
-    using MinPickerType = MinPickerLattice;
+    using MinPickerType = OneByOnePicker;
     size_t const attribute_num_;
     MinPickerType min_picker_;
     std::unordered_map<DecisionBoundaryVector, boost::dynamic_bitset<>> picked_;
 
     std::vector<ValidationInfo> GetCurrentMdsInternal(
             std::vector<lattice::MdLatticeNodeInfo>& level_mds) final;
+
+    // false simulates Metanome, true is faster, but the order changes may lead to
+    // unpredictable effects on runtime
+    static constexpr bool kEraseEmptyKeepOrder = false;
 
 public:
     MinPickingLevelGetter(FullLattice* lattice)
