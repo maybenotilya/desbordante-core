@@ -143,13 +143,10 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
                 task.AddViolations();
             }
         });
-        auto spec_future = std::async([&tasks]() {
-            for (RhsTask& task : tasks) {
-                task.Specialize();
-            }
-        });
+        for (RhsTask& task : tasks) {
+            task.Specialize();
+        }
         viol_future.get();
-        spec_future.get();
         if (!traverse_all) return false;
         // TODO: if we specialized no LHSs, we can cut off the rest of the lattice here. (Can we?)
     }
