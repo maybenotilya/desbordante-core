@@ -59,6 +59,8 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
     sim_matrices.reserve(col_match_number);
     std::vector<indexes::SimilarityIndex> sim_indexes{};
     sim_indexes.reserve(col_match_number);
+    auto const& left_records = compressed_records->GetLeftRecords();
+    auto const& right_records = compressed_records->GetRightRecords();
     // TODO: Parallelize, cache data info, make infrastructure for metrics like
     //  abs(left_value - right_value) / (max - min) <- max and min for every left value or for all
     //  values in a column match? Option? Memory limits?
@@ -67,12 +69,12 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         auto [left_col_index, right_col_index] = column_match_col_indices[column_match_index];
         preprocessing::similarity_measure::SimilarityMeasure const& measure =
                 *sim_measures[column_match_index];
-        auto const& left_pli = compressed_records->GetLeftRecords().GetPli(left_col_index);
+        auto const& left_pli = left_records.GetPli(left_col_index);
         // shared_ptr for caching
         std::shared_ptr<preprocessing::DataInfo const> data_info_left =
                 preprocessing::DataInfo::MakeFrom(left_pli, measure.GetArgType());
         std::shared_ptr<preprocessing::DataInfo const> data_info_right;
-        auto const& right_pli = compressed_records->GetRightRecords().GetPli(right_col_index);
+        auto const& right_pli = right_records.GetPli(right_col_index);
         if (one_table_given && left_col_index == right_col_index) {
             data_info_right = data_info_left;
         } else {
@@ -89,7 +91,7 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
     return std::make_unique<SimilarityData>(
             compressed_records, std::move(min_similarities), std::move(column_match_col_indices),
             std::move(natural_decision_bounds), std::move(lowest_sims), std::move(sim_matrices),
-            std::move(sim_indexes), one_table_given);
+            std::move(sim_indexes));
 }
 
 model::Index SimilarityData::GetLeftPliIndex(model::Index const column_match_index) const {
@@ -304,11 +306,13 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         }
         return {{}, to_specialize, support < min_support};
     } else {
-        std::vector<Index> indices;
         std::vector<std::vector<Recommendation>> violations;
         std::vector<WorkingInfo> working;
-        auto prepare = [&]() {
-            indices.reserve(indices_bitset.count());
+        auto prepare = [this, &violations, &working, &rhs_sims, &right_records, &lattice,
+                        &lhs_sims](boost::dynamic_bitset<> const& indices_bitset) {
+            std::size_t const indices_size = indices_bitset.count();
+            std::vector<Index> indices;
+            indices.reserve(indices_size);
             for (Index index = indices_bitset.find_first(); index != boost::dynamic_bitset<>::npos;
                  index = indices_bitset.find_next(index)) {
                 indices.push_back(index);
@@ -320,7 +324,6 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                            natural_decision_bounds_[ind2].size();
                 });
             }
-            std::size_t indices_size = indices.size();
             violations.reserve(indices_size);
             working.reserve(indices_size);
             for (Index index : indices) {
@@ -344,7 +347,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                     to_specialize.emplace_back(non_zero_index, rhs_sims[non_zero_index], 0.0);
                 }
             }
-            prepare();
+            prepare(indices_bitset);
             std::size_t const working_size = working.size();
             std::vector<indexes::PliCluster> const& clusters =
                     GetLeftRecords().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
@@ -382,7 +385,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             }
             return {std::move(violations), std::move(to_specialize), support < min_support};
         } else {
-            prepare();
+            prepare(indices_bitset);
             std::size_t const working_size = working.size();
             std::map<Index, std::vector<Index>> col_col_match_mapping;
             for (Index col_match_index : non_zero_indices) {

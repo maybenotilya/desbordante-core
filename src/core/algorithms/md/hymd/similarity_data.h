@@ -113,7 +113,7 @@ public:
                    std::vector<std::vector<model::md::DecisionBoundary>> natural_decision_bounds,
                    std::vector<preprocessing::Similarity> lowest_sims,
                    std::vector<indexes::SimilarityMatrix> sim_matrices,
-                   std::vector<indexes::SimilarityIndex> sim_indexes, bool single_table)
+                   std::vector<indexes::SimilarityIndex> sim_indexes)
         : compressed_records_(compressed_records),
           rhs_min_similarities_(std::move(rhs_min_similarities)),
           column_match_col_indices_(std::move(column_match_col_indices)),
@@ -121,7 +121,7 @@ public:
           lowest_sims_(std::move(lowest_sims)),
           sim_matrices_(std::move(sim_matrices)),
           sim_indexes_(std::move(sim_indexes)),
-          single_table_(single_table) {}
+          single_table_(compressed_records_->OneTableGiven()) {}
 
     static std::unique_ptr<SimilarityData> CreateFrom(
             indexes::CompressedRecords* compressed_records,
