@@ -86,8 +86,12 @@ private:
     [[nodiscard]] bool LowerForColumnMatch(
             WorkingInfo& working_info, indexes::PliCluster const& cluster,
             std::unordered_set<RecordIdentifier> const& similar_records) const;
-    template <typename Collection>
     [[nodiscard]] bool LowerForColumnMatch(
+            WorkingInfo& working_info, std::vector<CompressedRecord const*> const& cluster,
+            std::vector<RecordIdentifier> const& similar_records) const;
+
+    template <typename Collection>
+    [[nodiscard]] bool LowerForColumnMatchNoCheck(
             WorkingInfo& working_info, std::vector<CompressedRecord const*> const& cluster,
             Collection const& similar_records) const;
     [[nodiscard]] std::unordered_set<RecordIdentifier> const* GetSimilarRecords(

@@ -99,6 +99,8 @@ model::Index SimilarityData::GetLeftPliIndex(model::Index const column_match_ind
 bool SimilarityData::LowerForColumnMatch(
         WorkingInfo& working_info, indexes::PliCluster const& cluster,
         std::unordered_set<RecordIdentifier> const& similar_records) const {
+    if (working_info.ShouldStop()) return true;
+
     assert(!similar_records.empty());
     std::vector<CompressedRecord const*> cluster_records;
     cluster_records.reserve(cluster.size());
@@ -106,26 +108,27 @@ bool SimilarityData::LowerForColumnMatch(
     for (RecordIdentifier left_record_id : cluster) {
         cluster_records.push_back(&left_records[left_record_id]);
     }
-    return LowerForColumnMatch(working_info, cluster_records, similar_records);
+    return LowerForColumnMatchNoCheck(working_info, cluster_records, similar_records);
+}
+
+bool SimilarityData::LowerForColumnMatch(
+        WorkingInfo& working_info, std::vector<CompressedRecord const*> const& cluster,
+        std::vector<RecordIdentifier> const& similar_records) const {
+    if (working_info.ShouldStop()) return true;
+    return LowerForColumnMatchNoCheck(working_info, cluster, similar_records);
 }
 
 template <typename Collection>
-bool SimilarityData::LowerForColumnMatch(
-        WorkingInfo& working_info, std::vector<CompressedRecord const*> const& cluster,
-        Collection const& similar_records) const {
+bool SimilarityData::LowerForColumnMatchNoCheck(WorkingInfo& working_info,
+                                                std::vector<CompressedRecord const*> const& cluster,
+                                                Collection const& similar_records) const {
     assert(!similar_records.empty());
     assert(!cluster.empty());
 
-
-    // Actually loses time on adult.csv
-    if (working_info.ShouldStop()) {
-        return true;
-    }
     std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped(
             std::min(cluster.size(), working_info.col_match_values));
     for (CompressedRecord const* left_record_ptr : cluster) {
-        CompressedRecord const& left_record = *left_record_ptr;
-        grouped[left_record[working_info.index]].push_back(&left_record);
+        grouped[left_record_ptr->operator[](working_info.index)].push_back(left_record_ptr);
     }
     for (auto const& [left_value_id, records_left] : grouped) {
         for (RecordIdentifier record_id_right : similar_records) {
@@ -168,7 +171,7 @@ bool SimilarityData::LowerForColumnMatch(
 
             if (record_similarity < working_info.threshold) {
                 working_info.threshold = record_similarity;
-                if (working_info.threshold <= working_info.interestingness_boundary) {
+                if (record_similarity <= working_info.interestingness_boundary) {
                     working_info.threshold = 0.0;
                     if (working_info.EnoughViolations()) {
                         return true;
