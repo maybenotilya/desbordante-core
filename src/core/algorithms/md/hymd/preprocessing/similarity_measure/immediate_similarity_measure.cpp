@@ -46,15 +46,6 @@ indexes::ColumnSimilarityInfo ImmediateSimilarityMeasure::MakeIndexes(
             Similarity similarity =
                     GetSimilarity(*data_info_left, *data_info_right, compute_similarity_,
                                   is_null_equal_null, value_id_left, value_id_right);
-            if (should_check_) {
-                if (!(similarity >= 0 && similarity <= 1)) {
-                    // Configuration error because bundled similarity functions
-                    // are certain to be correct, but the same cannot be said
-                    // about user-supplied functions
-                    throw config::ConfigurationError("Unexpected similarity (" +
-                                                     std::to_string(similarity) + ")");
-                }
-            }
             if (similarity < min_sim) {
                 // Metanome keeps the actual value for some reason.
                 lowest = 0.0 /*similarity???*/;
