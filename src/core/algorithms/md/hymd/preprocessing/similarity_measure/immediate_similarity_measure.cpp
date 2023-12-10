@@ -40,6 +40,7 @@ indexes::ColumnSimilarityInfo ImmediateSimilarityMeasure::MakeIndexes(
     Similarity lowest = 1.0;
     for (ValueIdentifier value_id_left = 0; value_id_left < data_left_size; ++value_id_left) {
         std::vector<std::pair<Similarity, RecordIdentifier>> sim_rec_id_vec;
+        indexes::SimilarityMatrixRow row;
         for (ValueIdentifier value_id_right = 0; value_id_right < data_right_size;
              ++value_id_right) {
             Similarity similarity =
@@ -61,12 +62,13 @@ indexes::ColumnSimilarityInfo ImmediateSimilarityMeasure::MakeIndexes(
             }
             if (lowest > similarity) lowest = similarity;
             decision_bounds.push_back(similarity);
-            similarity_matrix[value_id_left][value_id_right] = similarity;
+            row[value_id_right] = similarity;
             for (RecordIdentifier record_id : clusters_right->operator[](value_id_right)) {
                 sim_rec_id_vec.emplace_back(similarity, record_id);
             }
         }
         if (sim_rec_id_vec.empty()) continue;
+        similarity_matrix[value_id_left] = std::move(row);
         std::sort(sim_rec_id_vec.begin(), sim_rec_id_vec.end(), std::greater<>{});
         std::vector<RecordIdentifier> records;
         records.reserve(sim_rec_id_vec.size());
@@ -80,13 +82,10 @@ indexes::ColumnSimilarityInfo ImmediateSimilarityMeasure::MakeIndexes(
             Similarity const similarity = sim_rec_id_vec[j].first;
             if (similarity == previous_similarity) continue;
             auto const it_end = it_begin + static_cast<long>(j);
-            // TODO: use std::inplace_merge
-            std::sort(it_begin, it_end);
             sim_info[previous_similarity] = {it_begin, it_end};
             previous_similarity = similarity;
         }
-        std::sort(records.begin(), records.end());
-        sim_info[previous_similarity] = {records.begin(), records.end()};
+        sim_info[previous_similarity] = {it_begin, records.end()};
         similarity_index[value_id_left] = std::move(sim_info);
     }
     std::sort(decision_bounds.begin(), decision_bounds.end());
