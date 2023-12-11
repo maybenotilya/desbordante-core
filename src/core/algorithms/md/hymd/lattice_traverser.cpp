@@ -1,11 +1,14 @@
 #include "algorithms/md/hymd/lattice_traverser.h"
 
+#include <easylogging++.h>
+
 #include "model/index.h"
 
 namespace algos::hymd {
 
 bool LatticeTraverser::TraverseLattice(bool const traverse_all) {
     using model::Index;
+    LOG(DEBUG) << "Traversing lattice";
     while (level_getter_->AreLevelsLeft()) {
         LatticeStatistics lattice_statistics;
         std::vector<lattice::ValidationInfo> validations = level_getter_->GetCurrentMds();

@@ -18,3 +18,5 @@ if (SAFE_VERTICAL_HASHING)
     target_compile_definitions(${BINARY} PUBLIC SAFE_VERTICAL_HASHING)
 endif(SAFE_VERTICAL_HASHING)
 
+add_executable(${BINARY}_run main.cpp)
+target_link_libraries(${BINARY}_run PRIVATE ${BINARY})

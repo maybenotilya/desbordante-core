@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <limits>
 
+#include <easylogging++.h>
+
 #include "algorithms/md/hymd/lattice/cardinality/min_picking_level_getter.h"
 #include "algorithms/md/hymd/lattice/md_lattice.h"
 #include "algorithms/md/hymd/lattice_traverser.h"
@@ -109,6 +111,7 @@ void HyMD::RegisterOptions() {
 void HyMD::ResetStateMd() {}
 
 void HyMD::LoadDataInternal() {
+    LOG(DEBUG) << "Started loading";
     left_schema_ = std::make_shared<RelationalSchema>(left_table_->GetRelationName());
     std::size_t const left_table_cols = left_table_->GetNumberOfColumns();
     for (Index i = 0; i < left_table_cols; ++i) {
@@ -129,10 +132,12 @@ void HyMD::LoadDataInternal() {
         records_info_->GetRightCompressor().GetNumberOfRecords() == 0) {
         throw config::ConfigurationError("MD mining with either table empty is meaningless!");
     }
+    LOG(DEBUG) << "Finished loading";
 }
 
 unsigned long long HyMD::ExecuteInternal() {
     auto const start_time = std::chrono::system_clock::now();
+    LOG(DEBUG) << "Started execution";
     std::optional<util::WorkerThreadPool> pool_opt;
     util::WorkerThreadPool* pool_ptr = nullptr;
     if (threads_ > 1) {
@@ -142,12 +147,14 @@ unsigned long long HyMD::ExecuteInternal() {
     // TODO: make infrastructure for depth level
     auto [similarity_data, short_sampling_enable] =
             SimilarityData::CreateFrom(records_info_.get(), column_matches_option_, pool_ptr);
+    LOG(DEBUG) << "Finished similarity calculation";
     lattice::MdLattice lattice{[](...) { return 1; }, similarity_data.GetLhsIdsInfo(),
                                prune_nondisjoint_, max_cardinality_,
                                similarity_data.CreateMaxRhs()};
     auto [record_pair_inferrer, done] = RecordPairInferrer::Create(
             &lattice, records_info_.get(), &similarity_data.GetColumnMatchesInfo(),
             similarity_data.GetLhsIdsInfo(), std::move(short_sampling_enable), pool_ptr);
+    LOG(DEBUG) << "Inferrer initialization finished";
     LatticeTraverser lattice_traverser{
             std::make_unique<lattice::cardinality::MinPickingLevelGetter>(&lattice),
             {pool_ptr, records_info_.get(), similarity_data.GetColumnMatchesInfo(), min_support_,
@@ -159,8 +166,10 @@ unsigned long long HyMD::ExecuteInternal() {
         done = record_pair_inferrer.InferFromRecordPairs(lattice_traverser.TakeRecommendations());
         done = lattice_traverser.TraverseLattice(done);
     }
+    LOG(DEBUG) << "Done!";
 
     RegisterResults(similarity_data, lattice.GetAll());
+    LOG(DEBUG) << "Registered MDs.";
 
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() -
                                                                  start_time)
