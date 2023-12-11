@@ -136,8 +136,8 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             tasks.emplace_back(lattice, info, similarity_data, min_support_, *recommendations_ptr_,
                                prune_nondisjoint_);
         }
-        util::parallel_foreach_async(tasks.begin(), tasks.end(), 12,
-                                     [](RhsTask& task) { task.Validate(); });
+        util::parallel_foreach(tasks.begin(), tasks.end(), 12,
+                               [](RhsTask& task) { task.Validate(); });
         auto viol_future = std::async([&tasks]() {
             for (RhsTask& task : tasks) {
                 task.AddViolations();
