@@ -52,7 +52,8 @@ private:
               sim_matrix(sim_matrix) {}
     };
     template <typename Func>
-    static auto ZeroWorking(std::vector<WorkingInfo>& working_info, Func func);
+    static auto ZeroWorking(std::vector<WorkingInfo>& working_info, DecisionBoundaryVector& rhs,
+                            Func func);
 
     indexes::CompressedRecords* compressed_records_;
     std::vector<model::md::DecisionBoundary> rhs_min_similarities_;

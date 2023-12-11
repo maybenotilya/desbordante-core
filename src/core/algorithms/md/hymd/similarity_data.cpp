@@ -269,13 +269,14 @@ std::unordered_set<RecordIdentifier> const* SimilarityData::GetSimilarRecords(
 }
 
 template <typename Func>
-auto SimilarityData::ZeroWorking(std::vector<WorkingInfo>& working_info, Func func) {
+auto SimilarityData::ZeroWorking(std::vector<WorkingInfo>& working_info,
+                                 DecisionBoundaryVector& rhs, Func func) {
     for (WorkingInfo& working : working_info) {
-        working.threshold = 0.0;
+        rhs[working.index] = 0.0;
     }
     auto res = func();
     for (WorkingInfo& working : working_info) {
-        working.threshold = working.old_bound;
+        rhs[working.index] = working.old_bound;
     }
     return res;
 }
@@ -285,7 +286,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                                                           size_t min_support) const {
     using model::Index, model::md::DecisionBoundary;
     DecisionBoundaryVector const& lhs_sims = info.info->lhs_sims;
-    DecisionBoundaryVector const& rhs_sims = *info.info->rhs_sims;
+    DecisionBoundaryVector& rhs_sims = *info.info->rhs_sims;
     // After a call to this method, info.rhs_indices must not be used
     boost::dynamic_bitset<>& indices_bitset = info.rhs_indices;
     size_t support = 0;
@@ -332,7 +333,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                                      GetLeftValueNum(index), right_records, sim_matrices_[index]);
             }
             std::vector<DecisionBoundary> const gen_max_rhs =
-                    ZeroWorking(working, [&lattice, &lhs_sims, &indices]() {
+                    ZeroWorking(working, rhs_sims, [&lattice, &lhs_sims, &indices]() {
                         return lattice.GetRhsInterestingnessBounds(lhs_sims, indices);
                     });
             std::size_t const working_size = working.size();

@@ -62,7 +62,7 @@ inline void ParallelForeach(It begin, It end, unsigned const threads_num_max, Un
 template <typename It, typename UnaryFunction>
 inline void parallel_foreach_async(It begin, It end, unsigned const tasks_num_max,
                                    UnaryFunction f) {
-    assert(threads_num_max != 0);
+    assert(tasks_num_max != 0);
     auto const length = std::distance(begin, end);
     if (length == 0) {
         return;
