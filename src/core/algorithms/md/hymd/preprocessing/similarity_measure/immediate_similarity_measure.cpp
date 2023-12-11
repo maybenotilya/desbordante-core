@@ -41,6 +41,9 @@ indexes::ColumnSimilarityInfo ImmediateSimilarityMeasure::MakeIndexes(
     for (ValueIdentifier value_id_left = 0; value_id_left < data_left_size; ++value_id_left) {
         std::vector<std::pair<Similarity, RecordIdentifier>> sim_rec_id_vec;
         indexes::SimilarityMatrixRow row;
+        std::vector<model::md::DecisionBoundary> row_decision_bounds;
+        indexes::SimInfo sim_info;
+        model::md::DecisionBoundary row_lowest = 1.0;
         for (ValueIdentifier value_id_right = 0; value_id_right < data_right_size;
              ++value_id_right) {
             Similarity similarity =
@@ -48,28 +51,30 @@ indexes::ColumnSimilarityInfo ImmediateSimilarityMeasure::MakeIndexes(
                                   is_null_equal_null, value_id_left, value_id_right);
             if (similarity < min_sim) {
                 // Metanome keeps the actual value for some reason.
-                lowest = 0.0 /*similarity???*/;
+                row_lowest = 0.0 /*similarity???*/;
                 continue;
             }
-            if (lowest > similarity) lowest = similarity;
-            decision_bounds.push_back(similarity);
+            if (row_lowest > similarity) row_lowest = similarity;
+            row_decision_bounds.push_back(similarity);
             row[value_id_right] = similarity;
             for (RecordIdentifier record_id : clusters_right->operator[](value_id_right)) {
                 sim_rec_id_vec.emplace_back(similarity, record_id);
             }
         }
         if (sim_rec_id_vec.empty()) continue;
-        similarity_matrix[value_id_left] = std::move(row);
+        if (row_lowest < lowest) lowest = row_lowest;
+        decision_bounds.insert(decision_bounds.end(), row_decision_bounds.begin(),
+                               row_decision_bounds.end());
         std::sort(sim_rec_id_vec.begin(), sim_rec_id_vec.end(), std::greater<>{});
+        std::size_t const rec_num = sim_rec_id_vec.size();
         std::vector<RecordIdentifier> records;
-        records.reserve(sim_rec_id_vec.size());
+        records.reserve(rec_num);
         for (auto [_, rec] : sim_rec_id_vec) {
             records.push_back(rec);
         }
-        indexes::SimInfo sim_info;
         Similarity previous_similarity = sim_rec_id_vec.begin()->first;
         auto const it_begin = records.begin();
-        for (model::Index j = 0; j < sim_rec_id_vec.size(); ++j) {
+        for (model::Index j = 0; j < rec_num; ++j) {
             Similarity const similarity = sim_rec_id_vec[j].first;
             if (similarity == previous_similarity) continue;
             auto const it_end = it_begin + static_cast<long>(j);
@@ -78,6 +83,7 @@ indexes::ColumnSimilarityInfo ImmediateSimilarityMeasure::MakeIndexes(
         }
         sim_info[previous_similarity] = {it_begin, records.end()};
         similarity_index[value_id_left] = std::move(sim_info);
+        similarity_matrix[value_id_left] = std::move(row);
     }
     std::sort(decision_bounds.begin(), decision_bounds.end());
     decision_bounds.erase(std::unique(decision_bounds.begin(), decision_bounds.end()),
