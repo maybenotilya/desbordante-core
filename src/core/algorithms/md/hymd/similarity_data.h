@@ -56,7 +56,6 @@ private:
                             Func func);
 
     indexes::CompressedRecords* compressed_records_;
-    std::vector<model::md::DecisionBoundary> rhs_min_similarities_;
 
     std::vector<std::pair<model::Index, model::Index>> column_match_col_indices_;
 
@@ -109,14 +108,12 @@ public:
     };
 
     SimilarityData(indexes::CompressedRecords* compressed_records,
-                   std::vector<model::md::DecisionBoundary> rhs_min_similarities,
                    std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
                    std::vector<std::vector<model::md::DecisionBoundary>> natural_decision_bounds,
                    std::vector<preprocessing::Similarity> lowest_sims,
                    std::vector<indexes::SimilarityMatrix> sim_matrices,
                    std::vector<indexes::SimilarityIndex> sim_indexes)
         : compressed_records_(compressed_records),
-          rhs_min_similarities_(std::move(rhs_min_similarities)),
           column_match_col_indices_(std::move(column_match_col_indices)),
           natural_decision_bounds_(std::move(natural_decision_bounds)),
           lowest_sims_(std::move(lowest_sims)),
@@ -126,15 +123,10 @@ public:
 
     static std::unique_ptr<SimilarityData> CreateFrom(
             indexes::CompressedRecords* compressed_records,
-            std::vector<model::md::DecisionBoundary> min_similarities,
             std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
             std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> const&
                     sim_measures,
             bool is_null_equal_null);
-
-    [[nodiscard]] std::vector<model::md::DecisionBoundary> const& GetRhsMinSimilarities() const {
-        return rhs_min_similarities_;
-    }
 
     [[nodiscard]] size_t GetColumnMatchNumber() const {
         return column_match_col_indices_.size();

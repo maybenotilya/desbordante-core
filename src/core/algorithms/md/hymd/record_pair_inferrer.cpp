@@ -16,8 +16,6 @@ bool RecordPairInferrer::ShouldKeepInferring(Statistics const& statistics) const
 
 void RecordPairInferrer::ProcessSimVec(SimilarityVector const& sim) {
     std::vector<lattice::MdLatticeNodeInfo> violated_in_lattice = lattice_->FindViolated(sim);
-    std::vector<model::md::DecisionBoundary> const& rhs_min_similarities =
-            similarity_data_->GetRhsMinSimilarities();
     size_t const col_match_number = similarity_data_->GetColumnMatchNumber();
     for (lattice::MdLatticeNodeInfo& md : violated_in_lattice) {
         DecisionBoundaryVector& rhs_sims = *md.rhs_sims;
@@ -37,7 +35,6 @@ void RecordPairInferrer::ProcessSimVec(SimilarityVector const& sim) {
                 // everything else is cut off during index building.
                 if (pair_rhs_sim <= lhs_sim_on_rhs) break;
                 // supposed to be interesting at this point
-                assert(pair_rhs_sim >= rhs_min_similarities[rhs_index]);
                 // not minimal
                 if (lattice_->HasGeneralization(lhs_sims, pair_rhs_sim, rhs_index)) break;
                 md_rhs_sim_ref = pair_rhs_sim;

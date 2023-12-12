@@ -41,7 +41,6 @@ private:
     std::vector<std::tuple<std::string, std::string,
                            std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>>>
             column_matches_option_;
-    std::vector<model::md::DecisionBoundary> rhs_min_similarities_;
 
     void ResetStateMd() final;
     void LoadDataInternal() final;

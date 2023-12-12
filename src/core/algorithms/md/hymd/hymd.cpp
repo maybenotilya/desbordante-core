@@ -72,7 +72,7 @@ unsigned long long HyMD::ExecuteInternal() {
         sim_measures.push_back(measure_ptr.get());
     }
     similarity_data_ = SimilarityData::CreateFrom(
-            compressed_records_.get(), std::move(rhs_min_similarities_),
+            compressed_records_.get(),
             std::move(column_match_col_indices), sim_measures, is_null_equal_null_);
     size_t const column_match_number = similarity_data_->GetColumnMatchNumber();
     assert(column_match_number != 0);

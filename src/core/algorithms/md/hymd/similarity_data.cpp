@@ -43,7 +43,6 @@ namespace algos::hymd {
 
 std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         indexes::CompressedRecords* compressed_records,
-        std::vector<model::md::DecisionBoundary> min_similarities,
         std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
         std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> const&
                 sim_measures,
@@ -80,18 +79,18 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         } else {
             data_info_right = preprocessing::DataInfo::MakeFrom(right_pli, measure.GetArgType());
         }
-        indexes::ColumnSimilarityInfo sim_info = measure.MakeIndexes(
-                std::move(data_info_left), std::move(data_info_right), &right_pli.GetClusters(),
-                min_similarities[column_match_index], is_null_equal_null);
+        indexes::ColumnSimilarityInfo sim_info =
+                measure.MakeIndexes(std::move(data_info_left), std::move(data_info_right),
+                                    &right_pli.GetClusters(), is_null_equal_null);
         natural_decision_bounds.push_back(std::move(sim_info.natural_decision_boundaries));
         lowest_sims.push_back(sim_info.lowest_similarity);
         sim_matrices.push_back(std::move(sim_info.similarity_matrix));
         sim_indexes.push_back(std::move(sim_info.similarity_index));
     }
-    return std::make_unique<SimilarityData>(
-            compressed_records, std::move(min_similarities), std::move(column_match_col_indices),
-            std::move(natural_decision_bounds), std::move(lowest_sims), std::move(sim_matrices),
-            std::move(sim_indexes));
+    return std::make_unique<SimilarityData>(compressed_records, std::move(column_match_col_indices),
+                                            std::move(natural_decision_bounds),
+                                            std::move(lowest_sims), std::move(sim_matrices),
+                                            std::move(sim_indexes));
 }
 
 model::Index SimilarityData::GetLeftPliIndex(model::Index const column_match_index) const {
