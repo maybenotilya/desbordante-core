@@ -54,6 +54,10 @@ void HyMD::LoadDataInternal() {
         }
         compressed_records_ = indexes::CompressedRecords::CreateFrom(*left_table_, *right_table_);
     }
+    if (compressed_records_->GetLeftRecords().GetNumberOfRecords() == 0 ||
+        compressed_records_->GetRightRecords().GetNumberOfRecords() == 0) {
+        throw config::ConfigurationError("MD mining with either table empty is meaningless!");
+    }
 }
 
 unsigned long long HyMD::ExecuteInternal() {
