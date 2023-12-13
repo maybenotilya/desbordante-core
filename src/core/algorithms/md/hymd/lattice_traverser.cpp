@@ -55,6 +55,7 @@ public:
     }
 
     void Specialize() {
+        using model::md::DecisionBoundary;
         auto const& [violations, to_specialize, is_unsupported] = result_;
         for (auto const& [index, old_bound, actual_bound] : to_specialize) {
             info_.info->rhs_sims->operator[](index) = actual_bound;
@@ -65,59 +66,43 @@ public:
         }
         DecisionBoundaryVector& lhs_sims = info_.info->lhs_sims;
         std::size_t const col_matches_num = lhs_sims.size();
+        auto specialize_all_lhs = [&](auto handle_same_lhs_as_rhs) {
+            for (model::Index lhs_spec_index = 0; lhs_spec_index < col_matches_num;
+                 ++lhs_spec_index) {
+                DecisionBoundary& lhs_sim = lhs_sims[lhs_spec_index];
+                std::optional<DecisionBoundary> const new_sim =
+                        similarity_data_.SpecializeOneLhs(lhs_spec_index, lhs_sim);
+                if (!new_sim.has_value()) continue;
+                auto context = SetForScope(lhs_sim, *new_sim);
+                if (lattice_.IsUnsupported(lhs_sims)) {
+                    continue;
+                }
+                auto it = to_specialize.begin();
+                auto end = to_specialize.end();
+                for (; it != end; ++it) {
+                    auto const& [rhs_index, old_rhs_bound, _] = *it;
+                    if (rhs_index == lhs_spec_index) {
+                        handle_same_lhs_as_rhs(old_rhs_bound, *new_sim, rhs_index);
+                        for (++it; it != end; ++it) {
+                            auto const& [rhs_index, old_rhs_bound, _] = *it;
+                            lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_rhs_bound,
+                                                                   rhs_index);
+                        }
+                        break;
+                    }
+                    lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_rhs_bound, rhs_index);
+                }
+            }
+        };
         if (prune_nondisjoint_) {
-            for (model::Index lhs_spec_index = 0; lhs_spec_index < col_matches_num;
-                 ++lhs_spec_index) {
-                model::md::DecisionBoundary& lhs_sim = lhs_sims[lhs_spec_index];
-                std::optional<model::md::DecisionBoundary> const new_sim =
-                        similarity_data_.SpecializeOneLhs(lhs_spec_index, lhs_sim);
-                if (!new_sim.has_value()) continue;
-                auto context = SetForScope(lhs_sim, *new_sim);
-                if (lattice_.IsUnsupported(lhs_sims)) {
-                    continue;
-                }
-                auto it = to_specialize.begin();
-                auto end = to_specialize.end();
-                for (; it != end; ++it) {
-                    auto const& [index, old_bound, _] = *it;
-                    if (index == lhs_spec_index) {
-                        for (++it; it != end; ++it) {
-                            auto const& [index, old_bound, _] = *it;
-                            lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_bound, index);
-                        }
-                        break;
-                    }
-                    lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_bound, index);
-                }
-            }
+            specialize_all_lhs([](...) {});
         } else {
-            for (model::Index lhs_spec_index = 0; lhs_spec_index < col_matches_num;
-                 ++lhs_spec_index) {
-                model::md::DecisionBoundary& lhs_sim = lhs_sims[lhs_spec_index];
-                std::optional<model::md::DecisionBoundary> const new_sim =
-                        similarity_data_.SpecializeOneLhs(lhs_spec_index, lhs_sim);
-                if (!new_sim.has_value()) continue;
-                auto context = SetForScope(lhs_sim, *new_sim);
-                if (lattice_.IsUnsupported(lhs_sims)) {
-                    continue;
+            specialize_all_lhs([&](DecisionBoundary old_rhs_bound, DecisionBoundary new_bound,
+                                   model::Index rhs_index) {
+                if (old_rhs_bound > new_bound) {
+                    lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_rhs_bound, rhs_index);
                 }
-                auto it = to_specialize.begin();
-                auto end = to_specialize.end();
-                for (; it != end; ++it) {
-                    auto const& [index, old_bound, _] = *it;
-                    if (index == lhs_spec_index) {
-                        if (old_bound > *new_sim) {
-                            lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_bound, index);
-                        }
-                        for (++it; it != end; ++it) {
-                            auto const& [index, old_bound, _] = *it;
-                            lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_bound, index);
-                        }
-                        break;
-                    }
-                    lattice_.AddIfMinimalAndNotUnsupported(lhs_sims, old_bound, index);
-                }
-            }
+            });
         }
     }
 };
