@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include <boost/asio.hpp>
+
 #include "model/index.h"
 #include "util/parallel_for.h"
 
@@ -136,8 +138,12 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
             tasks.emplace_back(lattice, info, similarity_data, min_support_, *recommendations_ptr_,
                                prune_nondisjoint_);
         }
-        util::parallel_foreach(tasks.begin(), tasks.end(), 12,
-                               [](RhsTask& task) { task.Validate(); });
+        // TODO: add reusable thread pool
+        boost::asio::thread_pool thread_pool;
+        for (RhsTask& task : tasks) {
+            boost::asio::post(thread_pool, [&task]() { task.Validate(); });
+        }
+        thread_pool.join();
         auto viol_future = std::async([&tasks]() {
             for (RhsTask& task : tasks) {
                 task.AddViolations();
