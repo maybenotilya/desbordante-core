@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <numeric>
 #include <vector>
 
 namespace util {
@@ -41,44 +40,6 @@ unsigned LevenshteinDistance(std::string_view l, std::string_view r) {
     }
 
     return v0.back();
-}
-
-unsigned LevenshteinDistance(std::string_view l, std::string_view r, unsigned* v0, unsigned* v1) {
-    std::size_t const r_size = r.size();
-    std::size_t l_size = l.size();
-
-    std::iota(v0, v0 + r_size + 1, 0);
-
-    auto do_work = [&](auto* v0, auto* v1, unsigned i) {
-        *v1 = i + 1;
-        auto const li = l[i];
-
-        for (unsigned j = 0; j != r_size;) {
-            unsigned const insert_cost = v1[j] + 1;
-            unsigned substition_cost = v0[j] + (li != r[j]);
-            ++j;
-            unsigned const del_cost = v0[j] + 1;
-
-            v1[j] = std::min({del_cost, insert_cost, substition_cost});
-        }
-    };
-    if (l_size & 1) {
-        --l_size;
-        for (unsigned i = 0; i != l_size; ++i) {
-            do_work(v0, v1, i);
-            ++i;
-            do_work(v1, v0, i);
-        }
-        do_work(v0, v1, l_size);
-        return v1[r_size];
-    } else {
-        for (unsigned i = 0; i != l_size; ++i) {
-            do_work(v0, v1, i);
-            ++i;
-            do_work(v1, v0, i);
-        }
-        return v0[r_size];
-    }
 }
 
 }  // namespace util

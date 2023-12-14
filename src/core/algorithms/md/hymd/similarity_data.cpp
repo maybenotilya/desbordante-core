@@ -79,9 +79,8 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         } else {
             data_info_right = preprocessing::DataInfo::MakeFrom(right_pli, measure.GetArgType());
         }
-        indexes::ColumnSimilarityInfo sim_info =
-                measure.MakeIndexes(std::move(data_info_left), std::move(data_info_right),
-                                    &right_pli.GetClusters(), is_null_equal_null);
+        indexes::ColumnSimilarityInfo sim_info = measure.MakeIndexes(
+                std::move(data_info_left), std::move(data_info_right), right_pli.GetClusters());
         natural_decision_bounds.push_back(std::move(sim_info.natural_decision_boundaries));
         lowest_sims.push_back(sim_info.lowest_similarity);
         sim_matrices.push_back(std::move(sim_info.similarity_matrix));

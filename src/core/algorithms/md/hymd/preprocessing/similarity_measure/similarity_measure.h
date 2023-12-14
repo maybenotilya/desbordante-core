@@ -23,17 +23,12 @@ private:
     std::unique_ptr<model::Type> const arg_type_;
     std::unique_ptr<model::INumericType> const ret_type_;
 
-protected:
-    model::md::DecisionBoundary const min_sim_;
-
 public:
     SimilarityMeasure(std::string name, std::unique_ptr<model::Type> arg_type,
-                      std::unique_ptr<model::INumericType> ret_type,
-                      model::md::DecisionBoundary min_sim)
+                      std::unique_ptr<model::INumericType> ret_type)
         : name_(std::move(name)),
           arg_type_(std::move(arg_type)),
-          ret_type_(std::move(ret_type)),
-          min_sim_(min_sim) {}
+          ret_type_(std::move(ret_type)) {}
 
     virtual ~SimilarityMeasure() = default;
 
@@ -52,8 +47,7 @@ public:
     [[nodiscard]] virtual indexes::ColumnSimilarityInfo MakeIndexes(
             std::shared_ptr<DataInfo const> data_info_left,
             std::shared_ptr<DataInfo const> data_info_right,
-            std::vector<indexes::PliCluster> const* clusters_right,
-            bool is_null_equal_null) const = 0;
+            std::vector<indexes::PliCluster> const& clusters_right) const = 0;
 };
 
 }  // namespace algos::hymd::preprocessing::similarity_measure
