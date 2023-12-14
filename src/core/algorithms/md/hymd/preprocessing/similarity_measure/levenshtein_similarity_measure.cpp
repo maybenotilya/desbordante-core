@@ -8,6 +8,7 @@
 #include "model/types/double_type.h"
 #include "model/types/string_type.h"
 #include "util/levenshtein_distance.h"
+#include "util/pick_m_highest_bias.h"
 
 namespace {
 using namespace algos::hymd;
@@ -160,6 +161,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
                 data.row_decision_bounds.push_back(similarity);
             }
 
+            // TODO: move to decision bound indices to turn some O(log_n) std::map searches to O(1)
             if (data.sim_value_id_vec.empty()) {
                 assert(data.row_decision_bounds.empty());
                 assert(data.valid_records_number == 0);
@@ -209,15 +211,22 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
     std::sort(decision_bounds.begin(), decision_bounds.end());
     decision_bounds.erase(std::unique(decision_bounds.begin(), decision_bounds.end()),
                           decision_bounds.end());
-    return {std::move(decision_bounds), lowest, std::move(similarity_matrix),
-            std::move(similarity_index)};
+    std::size_t const dec_bound_size = decision_bounds.size();
+    if (size_limit_ == 0 || dec_bound_size <= size_limit_) {
+        return {std::move(decision_bounds), lowest, std::move(similarity_matrix),
+                std::move(similarity_index)};
+    }
+    return {util::PickMHighestBias(decision_bounds, size_limit_), lowest,
+            std::move(similarity_matrix), std::move(similarity_index)};
 }
 
 LevenshteinSimilarityMeasure::LevenshteinSimilarityMeasure(model::md::DecisionBoundary min_sim,
-                                                           bool is_null_equal_null)
+                                                           bool is_null_equal_null,
+                                                           std::size_t size_limit)
     : SimilarityMeasure("levenshtein_similarity", std::make_unique<model::StringType>(),
                         std::make_unique<model::DoubleType>()),
       is_null_equal_null_(is_null_equal_null),
-      min_sim_(min_sim) {}
+      min_sim_(min_sim),
+      size_limit_(size_limit) {}
 
 }  // namespace algos::hymd::preprocessing::similarity_measure

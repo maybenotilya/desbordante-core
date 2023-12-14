@@ -7,6 +7,7 @@ namespace algos::hymd::preprocessing::similarity_measure {
 class LevenshteinSimilarityMeasure final : public SimilarityMeasure {
     bool const is_null_equal_null_;
     model::md::DecisionBoundary const min_sim_;
+    std::size_t const size_limit_;
 
 public:
     [[nodiscard]] indexes::ColumnSimilarityInfo MakeIndexes(
@@ -14,7 +15,8 @@ public:
             std::shared_ptr<DataInfo const> data_info_right,
             std::vector<indexes::PliCluster> const& clusters_right) const final;
 
-    LevenshteinSimilarityMeasure(model::md::DecisionBoundary min_sim, bool is_null_equal_null);
+    LevenshteinSimilarityMeasure(model::md::DecisionBoundary min_sim, bool is_null_equal_null,
+                                 std::size_t size_limit);
 };
 
 }  // namespace algos::hymd::preprocessing::similarity_measure
