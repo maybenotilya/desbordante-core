@@ -10,11 +10,17 @@
 #include "util/levenshtein_distance.h"
 
 namespace {
+using namespace algos::hymd;
+using SimValPair = std::pair<preprocessing::Similarity, ValueIdentifier>;
+
 struct SimTaskData {
-    algos::hymd::indexes::SimilarityMatrixRow row;
     std::vector<model::md::DecisionBoundary> row_decision_bounds;
-    algos::hymd::indexes::SimInfo sim_info;
     model::md::DecisionBoundary row_lowest = 1.0;
+    std::vector<SimValPair> sim_value_id_vec;
+    std::size_t valid_records_number = 0;
+
+    indexes::SimilarityMatrixRow row;
+    indexes::SimInfo sim_info;
 };
 
 std::size_t GetLevenshteinBufferSize(auto const& right_string) {
@@ -74,6 +80,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
     indexes::SimilarityMatrix similarity_matrix;
     indexes::SimilarityIndex similarity_index;
     std::size_t const data_left_size = data_info_left->GetElementNumber();
+    std::size_t const data_right_size = data_info_right->GetElementNumber();
     Similarity lowest = 1.0;
     auto const& left_nulls = data_info_left->GetNulls();
     auto const& left_empty = data_info_left->GetEmpty();
@@ -87,13 +94,23 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
             assert(right_size != 0);
             if (collection_size != right_size) {
                 data.row_lowest = 0.0;
-                if (collection.empty()) return;
             }
             data.row_decision_bounds.assign(collection_size, 1.0);
-            for (ValueIdentifier value_id : collection) {
-                data.row[value_id] = 1.0;
+            data.sim_value_id_vec.reserve(collection_size);
+            for (ValueIdentifier value_id_right : collection) {
+                indexes::PliCluster const& cluster = clusters_right[value_id_right];
+                data.valid_records_number += cluster.size();
+                data.sim_value_id_vec.emplace_back(1.0, value_id_right);
             }
-            data.sim_info[1.0] = collection;
+
+            if (data.sim_value_id_vec.empty()) return;
+            auto& rec_set = data.sim_info[1.0];
+            rec_set.reserve(data.valid_records_number);
+            for (ValueIdentifier value_id_right : collection) {
+                data.row[value_id_right] = 1.0;
+                indexes::PliCluster const& cluster = clusters_right[value_id_right];
+                rec_set.insert(cluster.begin(), cluster.end());
+            }
         };
         if (left_nulls.find(value_id_left) != left_nulls.end()) {
             if (!is_null_equal_null_) return;
@@ -127,8 +144,6 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
                 return value;
             };
 
-            std::vector<std::pair<Similarity, RecordIdentifier>> sim_rec_id_vec;
-            std::size_t const data_right_size = data_info_right->GetElementNumber();
             SimTaskData& data = task_info[value_id_left];
             assert(data_right_size > 0);
             for (ValueIdentifier value_id_right = 0; value_id_right < data_right_size;
@@ -140,36 +155,39 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
                     continue;
                 }
                 if (data.row_lowest > similarity) data.row_lowest = similarity;
+                data.sim_value_id_vec.emplace_back(similarity, value_id_right);
+                data.valid_records_number += clusters_right[value_id_right].size();
                 data.row_decision_bounds.push_back(similarity);
-                data.row[value_id_right] = similarity;
-                for (RecordIdentifier record_id : clusters_right[value_id_right]) {
-                    sim_rec_id_vec.emplace_back(similarity, record_id);
-                }
             }
-            if (sim_rec_id_vec.empty()) {
-                assert(data.row.empty());
+
+            if (data.sim_value_id_vec.empty()) {
                 assert(data.row_decision_bounds.empty());
+                assert(data.valid_records_number == 0);
                 assert(data.row_lowest == 0.0);
                 return;
             }
-            std::sort(sim_rec_id_vec.begin(), sim_rec_id_vec.end(), std::greater<>{});
-            Similarity previous_similarity = sim_rec_id_vec.begin()->first;
-            auto fill_sim_info_set = [&data, &sim_rec_id_vec,
-                                      &previous_similarity](model::Index to) {
-                auto& prev_sim_set = data.sim_info[previous_similarity];
-                prev_sim_set.reserve(to);
-                for (model::Index j = 0; j < to; ++j) {
-                    prev_sim_set.insert(sim_rec_id_vec[j].second);
+            std::sort(
+                    data.sim_value_id_vec.begin(), data.sim_value_id_vec.end(),
+                    [](SimValPair const& p1, SimValPair const& p2) { return p1.first > p2.first; });
+            std::vector<RecordIdentifier> valid_records;
+            valid_records.reserve(data.valid_records_number);
+            auto val_rec_begin = valid_records.begin();
+            Similarity previous_similarity = data.sim_value_id_vec.begin()->first;
+            for (auto [similarity, value_id_right] : data.sim_value_id_vec) {
+                data.row[value_id_right] = similarity;
+                auto val_rec_end = valid_records.end();
+                if (similarity != previous_similarity) {
+                    auto& prev_rec_set = data.sim_info[previous_similarity];
+                    prev_rec_set.reserve(val_rec_end - val_rec_begin);
+                    prev_rec_set.insert(val_rec_begin, val_rec_end);
+                    previous_similarity = similarity;
                 }
-            };
-            std::size_t const rec_num = sim_rec_id_vec.size();
-            for (model::Index i = 0; i < rec_num; ++i) {
-                Similarity const similarity = sim_rec_id_vec[i].first;
-                if (similarity == previous_similarity) continue;
-                fill_sim_info_set(i);
-                previous_similarity = similarity;
+                auto const& records = clusters_right[value_id_right];
+                valid_records.insert(val_rec_end, records.begin(), records.end());
             }
-            fill_sim_info_set(rec_num);
+            auto& last_rec_set = data.sim_info[previous_similarity];
+            last_rec_set.reserve(data.valid_records_number);
+            last_rec_set.insert(val_rec_begin, valid_records.end());
         }
     };
     // TODO: add reusable thread pool
