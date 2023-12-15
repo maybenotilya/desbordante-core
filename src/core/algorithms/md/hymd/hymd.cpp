@@ -72,20 +72,20 @@ unsigned long long HyMD::ExecuteInternal() {
         sim_measures.push_back(measure_ptr.get());
     }
     similarity_data_ = SimilarityData::CreateFrom(
-            compressed_records_.get(),
-            std::move(column_match_col_indices), sim_measures, is_null_equal_null_);
+            compressed_records_.get(), std::move(column_match_col_indices), sim_measures);
     size_t const column_match_number = similarity_data_->GetColumnMatchNumber();
     assert(column_match_number != 0);
     lattice_ = std::make_unique<lattice::FullLattice>(column_match_number, [](...) { return 1; });
     lattice_traverser_ = std::make_unique<LatticeTraverser>(
-            similarity_data_.get(), lattice_.get(), &recommendations_, min_support_,
+            similarity_data_.get(), lattice_.get(), min_support_,
             std::make_unique<lattice::cardinality::MinPickingLevelGetter>(lattice_.get()));
-    record_pair_inferrer_ = std::make_unique<RecordPairInferrer>(similarity_data_.get(),
-                                                                 lattice_.get(), &recommendations_);
+    record_pair_inferrer_ =
+            std::make_unique<RecordPairInferrer>(similarity_data_.get(), lattice_.get());
 
     bool done = false;
     do {
-        done = record_pair_inferrer_->InferFromRecordPairs();
+        done = record_pair_inferrer_->InferFromRecordPairs(
+                lattice_traverser_->TakeRecommendations());
         done = lattice_traverser_->TraverseLattice(done);
     } while (!done);
 

@@ -34,7 +34,6 @@ private:
     std::unique_ptr<LatticeTraverser> lattice_traverser_;
     std::unique_ptr<RecordPairInferrer> record_pair_inferrer_;
 
-    bool is_null_equal_null_ = true;
     size_t min_support_ = 0;
 
     std::vector<preprocessing::similarity_measure::SimilarityMeasure*> sim_measures_;

@@ -12,7 +12,7 @@ class LatticeTraverser {
     SimilarityData* similarity_data_;
 
     lattice::FullLattice* lattice_;
-    Recommendations* recommendations_ptr_;
+    Recommendations recommendations;
 
     size_t min_support_;
 
@@ -22,15 +22,17 @@ class LatticeTraverser {
 
 public:
     LatticeTraverser(SimilarityData* similarity_data, lattice::FullLattice* lattice,
-                     Recommendations* recommendations_ptr, size_t min_support,
-                     std::unique_ptr<lattice::LevelGetter> level_getter)
+                     size_t min_support, std::unique_ptr<lattice::LevelGetter> level_getter)
         : similarity_data_(similarity_data),
           lattice_(lattice),
-          recommendations_ptr_(recommendations_ptr),
           min_support_(min_support),
           level_getter_(std::move(level_getter)) {}
 
     bool TraverseLattice(bool traverse_all);
+
+    Recommendations TakeRecommendations() {
+        return std::move(recommendations);
+    }
 };
 
 }  // namespace algos::hymd

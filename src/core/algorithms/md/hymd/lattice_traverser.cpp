@@ -4,25 +4,11 @@
 
 #include <boost/asio.hpp>
 
+#include "algorithms/md/hymd/utility/set_for_scope.h"
 #include "model/index.h"
 #include "util/parallel_for.h"
 
 namespace algos::hymd {
-
-class SetForScope {
-    model::md::DecisionBoundary& ref_;
-    model::md::DecisionBoundary const old_value_;
-
-public:
-    SetForScope(model::md::DecisionBoundary& ref, model::md::DecisionBoundary const new_value)
-        : ref_(ref), old_value_(ref) {
-        ref_ = new_value;
-    }
-
-    ~SetForScope() {
-        ref_ = old_value_;
-    }
-};
 
 class RhsTask {
     SimilarityData::ValidationResult result_;
@@ -73,7 +59,7 @@ public:
                 std::optional<DecisionBoundary> const new_sim =
                         similarity_data_.SpecializeOneLhs(lhs_spec_index, lhs_sim);
                 if (!new_sim.has_value()) continue;
-                auto context = SetForScope(lhs_sim, *new_sim);
+                auto context = utility::SetForScope(lhs_sim, *new_sim);
                 if (lattice_.IsUnsupported(lhs_sims)) {
                     continue;
                 }
@@ -120,7 +106,7 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
         std::vector<RhsTask> tasks;
         tasks.reserve(mds.size());
         for (lattice::ValidationInfo& info : mds) {
-            tasks.emplace_back(lattice, info, similarity_data, min_support_, *recommendations_ptr_,
+            tasks.emplace_back(lattice, info, similarity_data, min_support_, recommendations,
                                prune_nondisjoint_);
         }
         // TODO: add reusable thread pool

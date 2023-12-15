@@ -125,8 +125,7 @@ public:
             indexes::CompressedRecords* compressed_records,
             std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
             std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> const&
-                    sim_measures,
-            bool is_null_equal_null);
+                    sim_measures);
 
     [[nodiscard]] size_t GetColumnMatchNumber() const {
         return column_match_col_indices_.size();

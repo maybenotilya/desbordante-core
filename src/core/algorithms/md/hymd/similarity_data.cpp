@@ -45,8 +45,7 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         indexes::CompressedRecords* compressed_records,
         std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
         std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> const&
-                sim_measures,
-        bool is_null_equal_null) {
+                sim_measures) {
     assert(column_match_col_indices.size() == sim_measures.size());
 
     bool const one_table_given = compressed_records->OneTableGiven();

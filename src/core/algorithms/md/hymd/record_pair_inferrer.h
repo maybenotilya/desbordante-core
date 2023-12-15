@@ -13,38 +13,31 @@ namespace algos::hymd {
 
 class RecordPairInferrer {
 private:
-    struct Statistics {
-        size_t samples_done = 0;
-        size_t sim_vecs_processed = 0;
-    };
+    struct Statistics;
 
     SimilarityData* similarity_data_;
 
     lattice::FullLattice* lattice_;
-    Recommendations* recommendations_ptr_;
 
     // Metanome uses a linked list for some reason.
     std::unordered_set<SimilarityVector> sim_vecs_to_check_;
     std::unordered_set<SimilarityVector> checked_sim_vecs_;
 
-    RecordIdentifier cur_record_left_ = 0;
+    RecordIdentifier next_left_record_ = 0;
 
-    // size_t efficiency_reciprocal_ = 100;
+    // std::size_t efficiency_reciprocal_ = 100;
 
     bool const prune_nondisjoint_ = true;
     bool const avoid_same_sim_vec_processing_ = true;
 
     void ProcessSimVec(SimilarityVector const& sim);
-    bool ShouldKeepInferring(Statistics const& statistics) const;
+    bool ShouldStopInferring(Statistics const& statistics) const;
 
 public:
-    RecordPairInferrer(SimilarityData* similarity_data, lattice::FullLattice* lattice,
-                       Recommendations* recommendations_ptr)
-        : similarity_data_(similarity_data),
-          lattice_(lattice),
-          recommendations_ptr_(recommendations_ptr) {}
+    RecordPairInferrer(SimilarityData* similarity_data, lattice::FullLattice* lattice)
+        : similarity_data_(similarity_data), lattice_(lattice) {}
 
-    bool InferFromRecordPairs();
+    bool InferFromRecordPairs(Recommendations recommendations);
 };
 
 }  // namespace algos::hymd
