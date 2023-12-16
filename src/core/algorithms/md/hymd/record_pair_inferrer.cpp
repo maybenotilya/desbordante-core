@@ -26,19 +26,19 @@ void RecordPairInferrer::ProcessSimVec(SimilarityVector const& sim) {
     std::vector<lattice::MdLatticeNodeInfo> violated_in_lattice = lattice_->FindViolated(sim);
     std::size_t const col_match_number = similarity_data_->GetColumnMatchNumber();
     for (lattice::MdLatticeNodeInfo& md : violated_in_lattice) {
-        DecisionBoundaryVector& rhs_sims = *md.rhs_sims;
-        DecisionBoundaryVector& lhs_sims = md.lhs_sims;
+        DecisionBoundaryVector& rhs_sims = *md.rhs_bounds;
+        DecisionBoundaryVector& lhs_sims = md.lhs_bounds;
         for (Index rhs_index = 0; rhs_index < col_match_number; ++rhs_index) {
             preprocessing::Similarity const pair_rhs_bound = sim[rhs_index];
             DecisionBoundary const old_md_rhs_bound = rhs_sims[rhs_index];
-            DecisionBoundary const lhs_bound_on_rhs = lhs_sims[rhs_index];
-            assert(!(prune_nondisjoint_ && lhs_bound_on_rhs != 0.0) || old_md_rhs_bound == 0.0);
+            DecisionBoundary const md_lhs_bound_on_rhs = lhs_sims[rhs_index];
+            assert(!(prune_nondisjoint_ && md_lhs_bound_on_rhs != 0.0) || old_md_rhs_bound == 0.0);
             if (pair_rhs_bound >= old_md_rhs_bound) continue;
             do {
                 DecisionBoundary& md_rhs_bound_ref = rhs_sims[rhs_index];
                 md_rhs_bound_ref = 0.0;
                 // trivial
-                if (pair_rhs_bound <= lhs_bound_on_rhs) break;
+                if (pair_rhs_bound <= md_lhs_bound_on_rhs) break;
                 // not minimal
                 if (lattice_->HasGeneralization(lhs_sims, pair_rhs_bound, rhs_index)) break;
                 md_rhs_bound_ref = pair_rhs_bound;

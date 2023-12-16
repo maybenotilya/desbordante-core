@@ -15,33 +15,36 @@ namespace algos::hymd::lattice {
 
 class MdLatticeNode {
 private:
-    DecisionBoundaryVector rhs_;
+    DecisionBoundaryVector rhs_bounds_;
     LatticeChildArray<MdLatticeNode> children_;
 
-    void AddUnchecked(DecisionBoundaryVector const& lhs_sims, model::md::DecisionBoundary rhs_sim,
-                      model::Index rhs_index, model::Index this_node_index);
+    void AddUnchecked(DecisionBoundaryVector const& lhs_bounds,
+                      model::md::DecisionBoundary rhs_bound, model::Index rhs_index,
+                      model::Index this_node_index);
 
 public:
-    void GetLevel(std::vector<MdLatticeNodeInfo>& collected, DecisionBoundaryVector& this_node_lhs,
-                  model::Index this_node_index, size_t sims_left,
-                  SingleLevelFunc const& single_level_func);
-    void RaiseInterestingnessBounds(DecisionBoundaryVector const& lhs,
-                                    std::vector<model::md::DecisionBoundary>& cur_rhs,
-                                    model::Index this_node_index,
-                                    std::vector<model::Index> const& indices) const;
+    void GetLevel(std::vector<MdLatticeNodeInfo>& collected,
+                  DecisionBoundaryVector& this_node_lhs_bounds, model::Index this_node_index,
+                  std::size_t level_left, SingleLevelFunc const& single_level_func);
+    void RaiseInterestingnessBounds(
+            DecisionBoundaryVector const& lhs_bounds,
+            std::vector<model::md::DecisionBoundary>& cur_interestingness_bounds,
+            model::Index this_node_index, std::vector<model::Index> const& indices) const;
 
-    [[nodiscard]] bool HasGeneralization(DecisionBoundaryVector const& lhs_sims,
-                                         model::md::DecisionBoundary rhs_sim,
+    [[nodiscard]] bool HasGeneralization(DecisionBoundaryVector const& lhs_bounds,
+                                         model::md::DecisionBoundary rhs_bound,
                                          model::Index rhs_index,
                                          model::Index this_node_index) const;
-    bool AddIfMinimal(DecisionBoundaryVector const& lhs_sims, model::md::DecisionBoundary rhs_sim,
-                      model::Index rhs_index, model::Index this_node_index);
+    bool AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
+                      model::md::DecisionBoundary rhs_bound, model::Index rhs_index,
+                      model::Index this_node_index);
 
-    void FindViolated(std::vector<MdLatticeNodeInfo>& found, DecisionBoundaryVector& this_node_lhs,
+    void FindViolated(std::vector<MdLatticeNodeInfo>& found,
+                      DecisionBoundaryVector& this_node_lhs_bounds,
                       SimilarityVector const& similarity_vector, model::Index this_node_index);
 
-    explicit MdLatticeNode(size_t attributes_num) : rhs_(attributes_num) {}
-    explicit MdLatticeNode(DecisionBoundaryVector rhs) : rhs_(std::move(rhs)) {}
+    explicit MdLatticeNode(std::size_t attributes_num) : rhs_bounds_(attributes_num) {}
+    explicit MdLatticeNode(DecisionBoundaryVector rhs) : rhs_bounds_(std::move(rhs)) {}
 };
 
 }  // namespace algos::hymd::lattice

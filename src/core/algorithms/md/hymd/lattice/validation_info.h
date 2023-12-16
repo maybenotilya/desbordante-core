@@ -10,7 +10,7 @@
 namespace algos::hymd::lattice {
 
 struct ValidationInfo {
-    MdLatticeNodeInfo* info;
+    MdLatticeNodeInfo* node_info;
     boost::dynamic_bitset<> rhs_indices;
 };
 

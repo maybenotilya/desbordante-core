@@ -9,94 +9,97 @@
 
 namespace algos::hymd::lattice::cardinality {
 
-void MinPickerNode::AddUnchecked(ValidationInfo* info, model::Index this_node_index) {
+void MinPickerNode::AddUnchecked(ValidationInfo* validation_info, model::Index this_node_index) {
     assert(children_.empty());
-    DecisionBoundaryVector const& lhs_vec = info->info->lhs_sims;
-    size_t const size = lhs_vec.size();
+    DecisionBoundaryVector const& lhs_bounds = validation_info->node_info->lhs_bounds;
+    size_t const col_match_number = lhs_bounds.size();
     MinPickerNode* cur_node_ptr = this;
-    for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs_vec, this_node_index);
-         cur_node_index != size;
-         cur_node_index = utility::GetFirstNonZeroIndex(lhs_vec, cur_node_index + 1)) {
+    for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
+         cur_node_index != col_match_number;
+         cur_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, cur_node_index + 1)) {
         cur_node_ptr = &cur_node_ptr->children_.try_emplace(cur_node_index)
-                                .first->second.try_emplace(lhs_vec[cur_node_index])
+                                .first->second.try_emplace(lhs_bounds[cur_node_index])
                                 .first->second;
     }
-    cur_node_ptr->task_info_ = info;
+    cur_node_ptr->task_info_ = validation_info;
 }
 
-void MinPickerNode::Add(ValidationInfo* info, model::Index this_node_index) {
-    DecisionBoundaryVector const& lhs_vec = info->info->lhs_sims;
-    assert(this_node_index <= lhs_vec.size());
+void MinPickerNode::Add(ValidationInfo* validation_info, model::Index this_node_index) {
+    DecisionBoundaryVector const& lhs_bounds = validation_info->node_info->lhs_bounds;
+    assert(this_node_index <= lhs_bounds.size());
     model::Index const first_non_zero_index =
-            utility::GetFirstNonZeroIndex(lhs_vec, this_node_index);
-    if (first_non_zero_index == lhs_vec.size()) {
+            utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
+    std::size_t const col_match_number = lhs_bounds.size();
+    if (first_non_zero_index == col_match_number) {
         assert(task_info_ == nullptr);
-        task_info_ = info;
+        task_info_ = validation_info;
         return;
     }
-    assert(first_non_zero_index < lhs_vec.size());
-    model::md::DecisionBoundary const child_similarity = lhs_vec[first_non_zero_index];
+    assert(first_non_zero_index < col_match_number);
+    model::md::DecisionBoundary const child_lhs_bound = lhs_bounds[first_non_zero_index];
     auto [it_arr, is_first_arr] = children_.try_emplace(first_non_zero_index);
-    ThresholdMap<MinPickerNode>& threshold_map = it_arr->second;
+    BoundaryMap<MinPickerNode>& threshold_map = it_arr->second;
     if (is_first_arr) {
-        threshold_map.try_emplace(child_similarity)
-                .first->second.AddUnchecked(info, first_non_zero_index + 1);
+        threshold_map.try_emplace(child_lhs_bound)
+                .first->second.AddUnchecked(validation_info, first_non_zero_index + 1);
         return;
     }
-    auto [it_map, is_first_map] = threshold_map.try_emplace(child_similarity);
+    auto [it_map, is_first_map] = threshold_map.try_emplace(child_lhs_bound);
     MinPickerNode& next_node = it_map->second;
     if (is_first_map) {
-        next_node.AddUnchecked(info, first_non_zero_index + 1);
+        next_node.AddUnchecked(validation_info, first_non_zero_index + 1);
         return;
     }
-    next_node.Add(info, first_non_zero_index + 1);
+    next_node.Add(validation_info, first_non_zero_index + 1);
 }
 
-void MinPickerNode::ExcludeGeneralizationRhs(MdLatticeNodeInfo const& md,
+void MinPickerNode::ExcludeGeneralizationRhs(MdLatticeNodeInfo const& lattice_node_info,
                                              model::Index this_node_index,
                                              boost::dynamic_bitset<>& considered_indices) {
     if (task_info_ != nullptr) {
-        boost::dynamic_bitset<> const& indices = task_info_->rhs_indices;
-        considered_indices -= indices;
+        boost::dynamic_bitset<> const& this_node_indices = task_info_->rhs_indices;
+        considered_indices -= this_node_indices;
         if (considered_indices.none()) return;
     }
-    DecisionBoundaryVector const& lhs_vec = md.lhs_sims;
-    model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_vec, this_node_index);
+    DecisionBoundaryVector const& lhs_bounds = lattice_node_info.lhs_bounds;
+    model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
     auto it = children_.find(next_node_index);
     if (it == children_.end()) return;
-    assert(next_node_index < lhs_vec.size());
-    ThresholdMap<MinPickerNode>& threshold_mapping = it->second;
-    model::md::DecisionBoundary const next_lhs_sim = lhs_vec[next_node_index];
+    assert(next_node_index < lhs_bounds.size());
+    BoundaryMap<MinPickerNode>& threshold_mapping = it->second;
+    model::md::DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
     for (auto& [threshold, node] : threshold_mapping) {
         assert(threshold > 0.0);
-        if (threshold > next_lhs_sim) break;
-        node.ExcludeGeneralizationRhs(md, next_node_index + 1, considered_indices);
+        if (threshold > next_lhs_bound) break;
+        node.ExcludeGeneralizationRhs(lattice_node_info, next_node_index + 1, considered_indices);
         if (considered_indices.none()) return;
     }
 }
 
-void MinPickerNode::RemoveSpecializations(MdLatticeNodeInfo const& md, model::Index this_node_index,
-                                          boost::dynamic_bitset<> const& indices) {
+void MinPickerNode::RemoveSpecializations(MdLatticeNodeInfo const& lattice_node_info,
+                                          model::Index this_node_index,
+                                          boost::dynamic_bitset<> const& picked_indices) {
     // All MDs in the tree are of the same cardinality.
-    DecisionBoundaryVector const& lhs_vec = md.lhs_sims;
-    model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_vec, this_node_index);
-    if (next_node_index == lhs_vec.size()) {
+    DecisionBoundaryVector const& lhs_bounds = lattice_node_info.lhs_bounds;
+    model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
+    if (next_node_index == lhs_bounds.size()) {
         assert(children_.empty());
         if (task_info_ != nullptr) {
-            boost::dynamic_bitset<>& rhs_indices = task_info_->rhs_indices;
-            rhs_indices -= indices;
-            if (rhs_indices.none()) task_info_ = nullptr;
+            boost::dynamic_bitset<>& this_node_rhs_indices = task_info_->rhs_indices;
+            this_node_rhs_indices -= picked_indices;
+            if (this_node_rhs_indices.none()) task_info_ = nullptr;
         }
         return;
     }
     auto it = children_.find(next_node_index);
     if (it == children_.end()) return;
-    model::md::DecisionBoundary const next_node_sim = lhs_vec[next_node_index];
-    ThresholdMap<MinPickerNode>& threshold_mapping = it->second;
-    for (auto it_map = threshold_mapping.lower_bound(next_node_sim);
-         it_map != threshold_mapping.end(); ++it_map) {
+    model::md::DecisionBoundary const next_node_bound = lhs_bounds[next_node_index];
+    BoundaryMap<MinPickerNode>& threshold_mapping = it->second;
+    auto mapping_end = threshold_mapping.end();
+    for (auto it_map = threshold_mapping.lower_bound(next_node_bound); it_map != mapping_end;
+         ++it_map) {
         auto& node = it_map->second;
-        node.RemoveSpecializations(md, next_node_index + 1, indices);
+        node.RemoveSpecializations(lattice_node_info, next_node_index + 1, picked_indices);
     }
 }
 

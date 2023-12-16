@@ -10,8 +10,8 @@ private:
     SupportNode root_;
 
 public:
-    void MarkUnsupported(DecisionBoundaryVector const& lhs_vec);
-    bool IsUnsupported(DecisionBoundaryVector const& lhs_vec);
+    void MarkUnsupported(DecisionBoundaryVector const& lhs_bounds);
+    bool IsUnsupported(DecisionBoundaryVector const& lhs_bounds);
 };
 
 }  // namespace algos::hymd::lattice

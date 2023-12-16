@@ -5,41 +5,43 @@
 namespace algos::hymd::lattice::cardinality {
 
 std::vector<ValidationInfo> MinPickingLevelGetter::GetCurrentMdsInternal(
-        std::vector<MdLatticeNodeInfo>& level_mds) {
-    min_picker_.NewBatch(level_mds.size());
-    for (MdLatticeNodeInfo& md : level_mds) {
-        DecisionBoundaryVector const& lhs_sims = md.lhs_sims;
-        std::size_t const col_matches = lhs_sims.size();
+        std::vector<MdLatticeNodeInfo>& level_lattice_info) {
+    min_picker_.NewBatch(level_lattice_info.size());
+    for (MdLatticeNodeInfo& node_info : level_lattice_info) {
+        DecisionBoundaryVector const& lhs_bounds = node_info.lhs_bounds;
+        std::size_t const column_match_number = lhs_bounds.size();
         boost::dynamic_bitset<> const& previously_picked_rhs =
-                picked_.try_emplace(lhs_sims, col_matches).first->second;
-        boost::dynamic_bitset<> indices(col_matches);
-        DecisionBoundaryVector const& rhs = *md.rhs_sims;
-        for (model::Index i = 0; i < attribute_num_; ++i) {
+                picked_.try_emplace(lhs_bounds, column_match_number).first->second;
+        boost::dynamic_bitset<> indices(column_match_number);
+        DecisionBoundaryVector const& rhs = *node_info.rhs_bounds;
+        for (model::Index i = 0; i < column_match_number; ++i) {
             if (rhs[i] != 0.0) {
                 indices.set(i);
             }
         }
         indices -= previously_picked_rhs;
         if (indices.none()) continue;
-        min_picker_.AddGeneralizations(md, indices);
+        min_picker_.AddGeneralizations(node_info, indices);
     }
     std::vector<ValidationInfo> collected = min_picker_.GetAll();
     if constexpr (MinPickerType::kNeedsEmptyRemoval) {
         if constexpr (kEraseEmptyKeepOrder) {
-            std::erase_if(collected,
-                          [](ValidationInfo const& info) { return info.rhs_indices.none(); });
+            std::erase_if(collected, [](ValidationInfo const& validation_info) {
+                return validation_info.rhs_indices.none();
+            });
         } else {
-            util::EraseIfReplace(
-                    collected, [](ValidationInfo const& info) { return info.rhs_indices.none(); });
+            util::EraseIfReplace(collected, [](ValidationInfo const& validation_info) {
+                return validation_info.rhs_indices.none();
+            });
         }
     }
-    for (ValidationInfo const& info : collected) {
-        DecisionBoundaryVector const& lhs_sims = info.info->lhs_sims;
-        std::size_t const col_matches = lhs_sims.size();
+    for (ValidationInfo const& validation_info : collected) {
+        DecisionBoundaryVector const& lhs_bounds = validation_info.node_info->lhs_bounds;
+        std::size_t const column_match_number = lhs_bounds.size();
         boost::dynamic_bitset<>& validated_indices =
-                picked_.try_emplace(lhs_sims, col_matches).first->second;
-        assert((validated_indices & info.rhs_indices).none());
-        validated_indices |= info.rhs_indices;
+                picked_.try_emplace(lhs_bounds, column_match_number).first->second;
+        assert((validated_indices & validation_info.rhs_indices).none());
+        validated_indices |= validation_info.rhs_indices;
     }
     if (collected.empty()) {
         picked_.clear();

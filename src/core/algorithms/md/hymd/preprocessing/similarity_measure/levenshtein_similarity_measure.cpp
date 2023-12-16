@@ -7,7 +7,6 @@
 
 #include "model/types/double_type.h"
 #include "model/types/string_type.h"
-#include "util/levenshtein_distance.h"
 #include "util/pick_m_highest_bias.h"
 
 namespace {
@@ -20,7 +19,7 @@ struct SimTaskData {
     std::vector<SimValPair> sim_value_id_vec;
     std::size_t valid_records_number = 0;
 
-    indexes::SimilarityMatrixRow row;
+    indexes::SimilarityMatrixRow sim_matrix_row;
     indexes::SimInfo sim_info;
 };
 
@@ -87,20 +86,18 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
     auto const& left_empty = data_info_left->GetEmpty();
     auto const& right_nulls = data_info_right->GetNulls();
     auto const& right_empty = data_info_right->GetEmpty();
-    std::size_t const right_size = data_info_right->GetElementNumber();
     std::vector<SimTaskData> task_info(data_left_size);
-    auto process_value_id = [&](std::size_t const value_id_left) {
+    auto process_value_id = [&](ValueIdentifier const value_id_left) {
         auto simple_case = [&](SimTaskData& data, auto const& collection) {
             std::size_t const collection_size = collection.size();
-            assert(right_size != 0);
-            if (collection_size != right_size) {
+            assert(data_right_size != 0);
+            if (collection_size != data_right_size) {
                 data.row_lowest = 0.0;
             }
             data.row_decision_bounds.assign(collection_size, 1.0);
             data.sim_value_id_vec.reserve(collection_size);
             for (ValueIdentifier value_id_right : collection) {
-                indexes::PliCluster const& cluster = clusters_right[value_id_right];
-                data.valid_records_number += cluster.size();
+                data.valid_records_number += clusters_right[value_id_right].size();
                 data.sim_value_id_vec.emplace_back(1.0, value_id_right);
             }
 
@@ -108,7 +105,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
             auto& rec_set = data.sim_info[1.0];
             rec_set.reserve(data.valid_records_number);
             for (ValueIdentifier value_id_right : collection) {
-                data.row[value_id_right] = 1.0;
+                data.sim_matrix_row[value_id_right] = 1.0;
                 indexes::PliCluster const& cluster = clusters_right[value_id_right];
                 rec_set.insert(cluster.begin(), cluster.end());
             }
@@ -161,7 +158,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
                 data.row_decision_bounds.push_back(similarity);
             }
 
-            // TODO: move to decision bound indices to turn some O(log_n) std::map searches to O(1)
+            // TODO: move to decision bound indices to turn some logarithmic-time std::map searches to constant-time
             if (data.sim_value_id_vec.empty()) {
                 assert(data.row_decision_bounds.empty());
                 assert(data.valid_records_number == 0);
@@ -176,7 +173,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
             auto val_rec_begin = valid_records.begin();
             Similarity previous_similarity = data.sim_value_id_vec.begin()->first;
             for (auto [similarity, value_id_right] : data.sim_value_id_vec) {
-                data.row[value_id_right] = similarity;
+                data.sim_matrix_row[value_id_right] = similarity;
                 auto val_rec_end = valid_records.end();
                 if (similarity != previous_similarity) {
                     auto& prev_rec_set = data.sim_info[previous_similarity];
@@ -203,7 +200,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
         SimTaskData& task = task_info[left_value_id];
         if (task.row_decision_bounds.empty()) continue;
         similarity_index[left_value_id] = std::move(task.sim_info);
-        similarity_matrix[left_value_id] = std::move(task.row);
+        similarity_matrix[left_value_id] = std::move(task.sim_matrix_row);
         decision_bounds.insert(decision_bounds.end(), task.row_decision_bounds.begin(),
                                task.row_decision_bounds.end());
         if (task.row_lowest < lowest) lowest = task.row_lowest;

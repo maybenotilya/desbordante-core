@@ -2,12 +2,12 @@
 
 namespace algos::hymd::lattice {
 
-bool SupportLattice::IsUnsupported(DecisionBoundaryVector const& lhs_vec) {
-    return root_.IsUnsupported(lhs_vec, 0);
+bool SupportLattice::IsUnsupported(DecisionBoundaryVector const& lhs_bounds) {
+    return root_.IsUnsupported(lhs_bounds);
 }
 
-void SupportLattice::MarkUnsupported(DecisionBoundaryVector const& lhs_vec) {
-    root_.MarkUnsupported(lhs_vec, 0);
+void SupportLattice::MarkUnsupported(DecisionBoundaryVector const& lhs_bounds) {
+    root_.MarkUnsupported(lhs_bounds, 0);
 }
 
 }  // namespace algos::hymd::lattice

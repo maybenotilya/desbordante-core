@@ -5,11 +5,11 @@
 namespace algos::hymd::lattice {
 
 struct MdLatticeNodeInfo {
-    DecisionBoundaryVector lhs_sims;
-    DecisionBoundaryVector* rhs_sims;
+    DecisionBoundaryVector lhs_bounds;
+    DecisionBoundaryVector* rhs_bounds;
 
-    MdLatticeNodeInfo(DecisionBoundaryVector lhs_sims, DecisionBoundaryVector* rhs_sims)
-        : lhs_sims(std::move(lhs_sims)), rhs_sims(rhs_sims) {}
+    MdLatticeNodeInfo(DecisionBoundaryVector lhs_bounds, DecisionBoundaryVector* rhs_bounds)
+        : lhs_bounds(std::move(lhs_bounds)), rhs_bounds(rhs_bounds) {}
 };
 
 }  // namespace algos::hymd::lattice

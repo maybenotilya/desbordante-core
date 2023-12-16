@@ -106,7 +106,7 @@ void HyMD::RegisterResults() {
         std::vector<lattice::MdLatticeNodeInfo> mds = lattice_->GetLevel(level);
         for (auto const& md : mds) {
             for (model::Index rhs_index = 0; rhs_index < column_match_number; ++rhs_index) {
-                model::md::DecisionBoundary const rhs_sim = md.rhs_sims->operator[](rhs_index);
+                model::md::DecisionBoundary const rhs_sim = md.rhs_bounds->operator[](rhs_index);
                 if (rhs_sim == 0.0) continue;
                 std::vector<model::md::ColumnMatch> column_matches;
                 for (model::Index column_match_index = 0; column_match_index < column_match_number;
@@ -118,8 +118,8 @@ void HyMD::RegisterResults() {
                             std::get<2>(column_matches_option_[column_match_index])->GetName());
                 }
                 std::vector<model::md::LhsColumnSimilarityClassifier> lhs;
-                for (model::Index lhs_index = 0; lhs_index < md.lhs_sims.size(); ++lhs_index) {
-                    model::md::DecisionBoundary const lhs_sim = md.lhs_sims[lhs_index];
+                for (model::Index lhs_index = 0; lhs_index < md.lhs_bounds.size(); ++lhs_index) {
+                    model::md::DecisionBoundary const lhs_sim = md.lhs_bounds[lhs_index];
                     lhs.emplace_back(similarity_data_->GetPreviousDecisionBound(lhs_sim, lhs_index),
                                      lhs_index, lhs_sim);
                 }

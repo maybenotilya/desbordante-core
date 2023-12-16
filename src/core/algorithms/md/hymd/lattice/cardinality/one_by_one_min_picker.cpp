@@ -10,15 +10,15 @@ void OneByOnePicker::NewBatch(std::size_t elements) {
     currently_picked_.reserve(elements);
 }
 
-void OneByOnePicker::AddGeneralizations(MdLatticeNodeInfo& md,
+void OneByOnePicker::AddGeneralizations(MdLatticeNodeInfo& node_info,
                                         boost::dynamic_bitset<>& considered_indices) {
-    DecisionBoundaryVector const& lhs_sims_cur = md.lhs_sims;
-    auto cur_end = lhs_sims_cur.end();
+    DecisionBoundaryVector const& lhs_bounds_cur = node_info.lhs_bounds;
+    auto cur_end = lhs_bounds_cur.end();
     for (ValidationInfo& prev_info : currently_picked_) {
-        DecisionBoundaryVector const& prev = prev_info.info->lhs_sims;
-        boost::dynamic_bitset<>& prev_indices = prev_info.rhs_indices;
-        for (auto cur_it = lhs_sims_cur.begin(), prev_it = prev.begin(); cur_it != cur_end;
-             ++cur_it, ++prev_it) {
+        DecisionBoundaryVector const& lhs_bounds_prev = prev_info.node_info->lhs_bounds;
+        boost::dynamic_bitset<>& indices_prev = prev_info.rhs_indices;
+        for (auto cur_it = lhs_bounds_cur.begin(), prev_it = lhs_bounds_prev.begin();
+             cur_it != cur_end; ++cur_it, ++prev_it) {
             model::md::DecisionBoundary const cur_bound = *cur_it;
             model::md::DecisionBoundary const prev_bound = *prev_it;
             if (cur_bound < prev_bound) {
@@ -29,7 +29,7 @@ void OneByOnePicker::AddGeneralizations(MdLatticeNodeInfo& md,
                         goto incomparable;
                     }
                 }
-                prev_indices -= considered_indices;
+                indices_prev -= considered_indices;
             } else if (cur_bound > prev_bound) {
                 for (++cur_it, ++prev_it; cur_it != cur_end; ++cur_it, ++prev_it) {
                     model::md::DecisionBoundary const cur_bound = *cur_it;
@@ -38,14 +38,14 @@ void OneByOnePicker::AddGeneralizations(MdLatticeNodeInfo& md,
                         goto incomparable;
                     }
                 }
-                considered_indices -= prev_indices;
+                considered_indices -= indices_prev;
                 if (considered_indices.none()) return;
             }
         }
     incomparable:;
     }
     assert(!considered_indices.none());
-    currently_picked_.emplace_back(&md, std::move(considered_indices));
+    currently_picked_.emplace_back(&node_info, std::move(considered_indices));
 }
 
 std::vector<ValidationInfo> OneByOnePicker::GetAll() {

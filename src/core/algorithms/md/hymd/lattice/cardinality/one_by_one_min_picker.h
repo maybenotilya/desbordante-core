@@ -19,7 +19,8 @@ public:
     static constexpr bool kNeedsEmptyRemoval = true;
 
     void NewBatch(std::size_t elements);
-    void AddGeneralizations(MdLatticeNodeInfo& md, boost::dynamic_bitset<>& considered_indices);
+    void AddGeneralizations(MdLatticeNodeInfo& node_info,
+                            boost::dynamic_bitset<>& considered_indices);
     std::vector<ValidationInfo> GetAll();
 };
 

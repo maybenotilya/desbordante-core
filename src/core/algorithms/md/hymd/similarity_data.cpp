@@ -282,8 +282,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                                                           lattice::ValidationInfo& info,
                                                           size_t min_support) const {
     using model::Index, model::md::DecisionBoundary;
-    DecisionBoundaryVector const& lhs_sims = info.info->lhs_sims;
-    DecisionBoundaryVector& rhs_sims = *info.info->rhs_sims;
+    DecisionBoundaryVector const& lhs_sims = info.node_info->lhs_bounds;
+    DecisionBoundaryVector& rhs_sims = *info.node_info->rhs_bounds;
     // After a call to this method, info.rhs_indices must not be used
     boost::dynamic_bitset<>& indices_bitset = info.rhs_indices;
     size_t support = 0;

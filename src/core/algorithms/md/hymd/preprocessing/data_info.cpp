@@ -1,10 +1,10 @@
 #include "algorithms/md/hymd/preprocessing/data_info.h"
 
-#include <cassert>
+#include <cstddef>
 
 namespace algos::hymd::preprocessing {
 
-DataInfo::DataInfo(std::unique_ptr<std::byte[]> data, size_t elements, size_t type_size,
+DataInfo::DataInfo(std::unique_ptr<std::byte[]> data, std::size_t elements, std::size_t type_size,
                    std::unordered_set<ValueIdentifier> nulls,
                    std::unordered_set<ValueIdentifier> empty)
     : data_(std::move(data)),
@@ -15,10 +15,9 @@ DataInfo::DataInfo(std::unique_ptr<std::byte[]> data, size_t elements, size_t ty
 
 std::shared_ptr<DataInfo> DataInfo::MakeFrom(indexes::KeyedPositionListIndex const& pli,
                                              model::Type const& type) {
-    size_t const value_number = pli.GetClusters().size();
-    size_t const type_size = type.GetSize();
+    std::size_t const value_number = pli.GetClusters().size();
+    std::size_t const type_size = type.GetSize();
     auto data = std::unique_ptr<std::byte[]>(type.Allocate(value_number));
-    std::byte* initial = data.get();
     std::unordered_set<ValueIdentifier> nulls;
     std::unordered_set<ValueIdentifier> empty;
     for (auto const& [string, value_id] : pli.GetMapping()) {
@@ -30,8 +29,7 @@ std::shared_ptr<DataInfo> DataInfo::MakeFrom(indexes::KeyedPositionListIndex con
             nulls.insert(value_id);
             continue;
         }
-        std::byte* d = initial + value_id * type_size;
-        type.ValueFromStr(d, string);
+        type.ValueFromStr(&data[value_id * type_size], string);
     }
     return std::make_shared<DataInfo>(std::move(data), value_number, type_size, std::move(nulls),
                                       std::move(empty));

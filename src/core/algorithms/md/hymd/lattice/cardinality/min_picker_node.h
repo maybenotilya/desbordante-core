@@ -22,14 +22,16 @@ private:
     ValidationInfo* task_info_ = nullptr;
     LatticeChildArray<MinPickerNode> children_;
 
-    void AddUnchecked(ValidationInfo* info, model::Index this_node_index);
+    void AddUnchecked(ValidationInfo* validation_info, model::Index this_node_index);
 
 public:
-    void ExcludeGeneralizationRhs(MdLatticeNodeInfo const& md, model::Index this_node_index,
+    void ExcludeGeneralizationRhs(MdLatticeNodeInfo const& lattice_node_info,
+                                  model::Index this_node_index,
                                   boost::dynamic_bitset<>& considered_indices);
-    void RemoveSpecializations(MdLatticeNodeInfo const& md, model::Index this_node_index,
-                               boost::dynamic_bitset<> const& indices);
-    void Add(ValidationInfo* info, model::Index this_node_index);
+    void RemoveSpecializations(MdLatticeNodeInfo const& lattice_node_info,
+                               model::Index this_node_index,
+                               boost::dynamic_bitset<> const& picked_indices);
+    void Add(ValidationInfo* validation_info, model::Index this_node_index);
     void GetAll(std::vector<ValidationInfo>& collected);
 };
 

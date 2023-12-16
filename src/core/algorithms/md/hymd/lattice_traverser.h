@@ -9,16 +9,20 @@
 namespace algos::hymd {
 
 class LatticeTraverser {
+private:
     SimilarityData* similarity_data_;
 
     lattice::FullLattice* lattice_;
-    Recommendations recommendations;
+    Recommendations recommendations_;
 
     size_t min_support_;
 
     std::unique_ptr<lattice::LevelGetter> const level_getter_;
 
     bool prune_nondisjoint_ = true;
+
+    void LowerAndSpecialize(SimilarityData::ValidationResult& validation_result,
+                            lattice::ValidationInfo& validation_info);
 
 public:
     LatticeTraverser(SimilarityData* similarity_data, lattice::FullLattice* lattice,
@@ -31,7 +35,7 @@ public:
     bool TraverseLattice(bool traverse_all);
 
     Recommendations TakeRecommendations() {
-        return std::move(recommendations);
+        return std::move(recommendations_);
     }
 };
 

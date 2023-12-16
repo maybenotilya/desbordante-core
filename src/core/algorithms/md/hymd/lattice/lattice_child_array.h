@@ -8,8 +8,8 @@
 
 namespace algos::hymd::lattice {
 template <typename NodeType>
-using ThresholdMap = std::map<model::md::DecisionBoundary, NodeType>;
+using BoundaryMap = std::map<model::md::DecisionBoundary, NodeType>;
 
 template <typename NodeType>
-using LatticeChildArray = std::unordered_map<model::Index, ThresholdMap<NodeType>>;
+using LatticeChildArray = std::unordered_map<model::Index, BoundaryMap<NodeType>>;
 }  // namespace algos::hymd::lattice
