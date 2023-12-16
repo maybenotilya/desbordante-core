@@ -9,6 +9,7 @@
 #include "algorithms/md/hymd/table_identifiers.h"
 
 namespace algos::hymd::indexes {
-using SimInfo = std::map<preprocessing::Similarity, std::unordered_set<RecordIdentifier>>;
-using SimilarityIndex = std::unordered_map<ValueIdentifier, SimInfo>;
+using MatchingRecsMapping =
+        std::map<preprocessing::Similarity, std::unordered_set<RecordIdentifier>>;
+using SimilarityIndex = std::unordered_map<ValueIdentifier, MatchingRecsMapping>;
 }  // namespace algos::hymd::indexes

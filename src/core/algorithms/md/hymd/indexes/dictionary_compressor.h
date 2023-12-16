@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -16,10 +17,10 @@ class DictionaryCompressor {
 private:
     std::vector<KeyedPositionListIndex> plis_;
     std::vector<CompressedRecord> records_;
-    size_t records_processed_ = 0;
+    std::size_t records_processed_ = 0;
 
 public:
-    explicit DictionaryCompressor(size_t attribute_num);
+    explicit DictionaryCompressor(std::size_t attribute_num);
     void AddRecord(std::vector<std::string> record);
     [[nodiscard]] KeyedPositionListIndex const& GetPli(model::Index column_index) const {
         return plis_[column_index];
@@ -27,7 +28,7 @@ public:
     [[nodiscard]] std::vector<CompressedRecord> const& GetRecords() const {
         return records_;
     }
-    [[nodiscard]] size_t GetNumberOfRecords() const {
+    [[nodiscard]] std::size_t GetNumberOfRecords() const {
         return records_processed_;
     }
 

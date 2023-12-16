@@ -20,7 +20,7 @@ struct SimTaskData {
     std::size_t valid_records_number = 0;
 
     indexes::SimilarityMatrixRow sim_matrix_row;
-    indexes::SimInfo sim_info;
+    indexes::MatchingRecsMapping matching_recs_mapping;
 };
 
 std::size_t GetLevenshteinBufferSize(auto const& right_string) {
@@ -102,7 +102,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
             }
 
             if (data.sim_value_id_vec.empty()) return;
-            auto& rec_set = data.sim_info[1.0];
+            auto& rec_set = data.matching_recs_mapping[1.0];
             rec_set.reserve(data.valid_records_number);
             for (ValueIdentifier value_id_right : collection) {
                 data.sim_matrix_row[value_id_right] = 1.0;
@@ -158,7 +158,8 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
                 data.row_decision_bounds.push_back(similarity);
             }
 
-            // TODO: move to decision bound indices to turn some logarithmic-time std::map searches to constant-time
+            // TODO: move to decision bound indices to turn some logarithmic-time std::map searches
+            // to constant-time
             if (data.sim_value_id_vec.empty()) {
                 assert(data.row_decision_bounds.empty());
                 assert(data.valid_records_number == 0);
@@ -176,7 +177,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
                 data.sim_matrix_row[value_id_right] = similarity;
                 auto val_rec_end = valid_records.end();
                 if (similarity != previous_similarity) {
-                    auto& prev_rec_set = data.sim_info[previous_similarity];
+                    auto& prev_rec_set = data.matching_recs_mapping[previous_similarity];
                     prev_rec_set.reserve(val_rec_end - val_rec_begin);
                     prev_rec_set.insert(val_rec_begin, val_rec_end);
                     previous_similarity = similarity;
@@ -184,7 +185,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
                 auto const& records = clusters_right[value_id_right];
                 valid_records.insert(val_rec_end, records.begin(), records.end());
             }
-            auto& last_rec_set = data.sim_info[previous_similarity];
+            auto& last_rec_set = data.matching_recs_mapping[previous_similarity];
             last_rec_set.reserve(data.valid_records_number);
             last_rec_set.insert(val_rec_begin, valid_records.end());
         }
@@ -199,7 +200,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
     for (ValueIdentifier left_value_id = 0; left_value_id < data_left_size; ++left_value_id) {
         SimTaskData& task = task_info[left_value_id];
         if (task.row_decision_bounds.empty()) continue;
-        similarity_index[left_value_id] = std::move(task.sim_info);
+        similarity_index[left_value_id] = std::move(task.matching_recs_mapping);
         similarity_matrix[left_value_id] = std::move(task.sim_matrix_row);
         decision_bounds.insert(decision_bounds.end(), task.row_decision_bounds.begin(),
                                task.row_decision_bounds.end());

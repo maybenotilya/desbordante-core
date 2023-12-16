@@ -39,7 +39,7 @@ struct hash<algos::hymd::Recommendation> {
         if constexpr (kUseJavaHash) {
             auto hash_arr = [](auto const& arr) {
                 int32_t hash = 1;
-                for (algos::hymd::ValueIdentifier value_id : arr) {
+                for (ValueIdentifier value_id : arr) {
                     hash = 31 * hash + (value_id ^ value_id >> 32);
                 }
                 return hash;
