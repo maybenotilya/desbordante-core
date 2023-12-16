@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "algorithms/md/hymd/indexes/column_similarity_info.h"
+#include "algorithms/md/hymd/utility/java_hash.h"
 #include "util/intersect_sorted_sequences.h"
 #include "util/py_tuple_hash.h"
 
@@ -13,11 +14,7 @@ struct hash<std::vector<algos::hymd::ValueIdentifier>> {
         using algos::hymd::ValueIdentifier;
         constexpr bool kUseJavaHash = true;
         if constexpr (kUseJavaHash) {
-            int32_t hash = 1;
-            for (algos::hymd::ValueIdentifier value_id : p) {
-                hash = 31 * hash + (value_id ^ value_id >> 32);
-            }
-            return hash;
+            return utility::HashIterable(p);
         } else {
             auto hasher = util::PyTupleHash<ValueIdentifier>(p.size());
             for (ValueIdentifier el : p) {

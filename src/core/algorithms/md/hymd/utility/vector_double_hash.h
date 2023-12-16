@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "algorithms/md/hymd/utility/java_hash.h"
 #include "util/py_tuple_hash.h"
 
 namespace std {
@@ -10,12 +11,8 @@ struct hash<std::vector<double>> {
     std::size_t operator()(std::vector<double> const& p) const noexcept {
         constexpr bool kUseJavaHash = true;
         if constexpr (kUseJavaHash) {
-            int32_t hash = 1;
-            for (double element : p) {
-                auto bits = std::bit_cast<int64_t>(element);
-                hash = 31 * hash + (bits ^ bits >> 32);
-            }
-            return hash;
+            return utility::HashIterable(
+                    p, [](double element) { return std::bit_cast<int64_t>(element); });
         } else {
             util::PyTupleHash<double> hasher{p.size()};
             for (double el : p) {

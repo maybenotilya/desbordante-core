@@ -6,6 +6,7 @@
 
 #include "algorithms/md/hymd/compressed_record.h"
 #include "algorithms/md/hymd/table_identifiers.h"
+#include "algorithms/md/hymd/utility/java_hash.h"
 #include "util/py_tuple_hash.h"
 
 namespace algos::hymd {
@@ -37,14 +38,8 @@ struct hash<algos::hymd::Recommendation> {
         CompressedRecord const& left_record = *p.left_record;
         CompressedRecord const& right_record = *p.right_record;
         if constexpr (kUseJavaHash) {
-            auto hash_arr = [](auto const& arr) {
-                int32_t hash = 1;
-                for (ValueIdentifier value_id : arr) {
-                    hash = 31 * hash + (value_id ^ value_id >> 32);
-                }
-                return hash;
-            };
-            return (59 + hash_arr(left_record)) * 59 + hash_arr(right_record);
+            auto values = {utility::HashIterable(left_record), utility::HashIterable(right_record)};
+            return utility::CombineHashes(values);
         } else {
             util::PyTupleHash<ValueIdentifier> hasher{left_record.size() * 2};
             for (ValueIdentifier v : left_record) {
