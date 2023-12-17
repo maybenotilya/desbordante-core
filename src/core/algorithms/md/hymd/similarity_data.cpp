@@ -75,19 +75,18 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         indexes::CompressedRecords* const compressed_records,
         std::vector<
                 std::tuple<std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>,
-                           model::Index, model::Index>> const column_matches_info,
-        std::size_t const min_support, lattice::FullLattice* const lattice) {
-    assert(column_match_col_indices.size() == similarity_measures.size());
-
+                           model::Index, model::Index>> const column_matches_info_initial,
+        std::size_t const min_support, lattice::FullLattice* const lattice,
+        bool prune_nondisjoint) {
     bool const one_table_given = compressed_records->OneTableGiven();
-    std::size_t const col_match_number = column_matches_info.size();
-    std::vector<ColumnMatchInfo> similarity_info;
-    similarity_info.reserve(col_match_number);
+    std::size_t const col_match_number = column_matches_info_initial.size();
+    std::vector<ColumnMatchInfo> column_matches_info;
+    column_matches_info.reserve(col_match_number);
     auto const& left_records = compressed_records->GetLeftRecords();
     auto const& right_records = compressed_records->GetRightRecords();
-    for (auto const& [measure, left_col_index, right_col_index] : column_matches_info) {
+    for (auto const& [measure, left_col_index, right_col_index] : column_matches_info_initial) {
         auto const& left_pli = left_records.GetPli(left_col_index);
-        // shared_ptr for caching
+        // TODO: cache DataInfo.
         std::shared_ptr<preprocessing::DataInfo const> data_info_left =
                 preprocessing::DataInfo::MakeFrom(left_pli, measure->GetArgType());
         std::shared_ptr<preprocessing::DataInfo const> data_info_right;
@@ -97,13 +96,13 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         } else {
             data_info_right = preprocessing::DataInfo::MakeFrom(right_pli, measure->GetArgType());
         }
-        similarity_info.emplace_back(
+        column_matches_info.emplace_back(
                 measure->MakeIndexes(std::move(data_info_left), std::move(data_info_right),
                                      right_pli.GetClusters()),
                 left_col_index, right_col_index);
     }
-    return std::make_unique<SimilarityData>(compressed_records, std::move(similarity_info),
-                                            min_support, lattice);
+    return std::make_unique<SimilarityData>(compressed_records, std::move(column_matches_info),
+                                            min_support, lattice, prune_nondisjoint);
 }
 
 bool SimilarityData::LowerForColumnMatch(
@@ -277,6 +276,7 @@ auto SimilarityData::ZeroLatticeRhsAndDo(std::vector<WorkingInfo>& working,
 }
 
 SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInfo& info) const {
+    // TODO: move to separate class.
     using model::Index, model::md::DecisionBoundary;
     DecisionBoundaryVector const& lhs_bounds = info.node_info->lhs_bounds;
     DecisionBoundaryVector& rhs_bounds = *info.node_info->rhs_bounds;
@@ -371,8 +371,10 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
     if (cardinality == 1) {
         Index const non_zero_index = non_zero_indices.front();
         // Never happens when disjointedness pruning is on.
-        if (indices_bitset.test_set(non_zero_index, false)) {
-            rhss_to_lower_info.emplace_back(non_zero_index, rhs_bounds[non_zero_index], 0.0);
+        if (!prune_nondisjoint_) {
+            if (indices_bitset.test_set(non_zero_index, false)) {
+                rhss_to_lower_info.emplace_back(non_zero_index, rhs_bounds[non_zero_index], 0.0);
+            }
         }
         prepare(indices_bitset);
         std::vector<indexes::PliCluster> const& clusters =

@@ -46,11 +46,10 @@ unsigned long long HyMD::ExecuteInternal() {
     std::vector<std::tuple<std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>,
                            model::Index, model::Index>>
             column_matches_info;
-    for (auto const& creator : column_matches_option_) {
-        column_matches_info.emplace_back(
-                creator->MakeMeasure(),
-                left_schema_->GetColumn(creator->GetLeftColumnName())->GetIndex(),
-                right_schema_->GetColumn(creator->GetRightColumnName())->GetIndex());
+    for (auto const& [left_column_name, right_column_name, creator] : column_matches_option_) {
+        column_matches_info.emplace_back(creator->MakeMeasure(),
+                                         left_schema_->GetColumn(left_column_name)->GetIndex(),
+                                         right_schema_->GetColumn(right_column_name)->GetIndex());
     }
     std::size_t const column_match_number = column_matches_info.size();
     assert(column_match_number != 0);
@@ -58,7 +57,7 @@ unsigned long long HyMD::ExecuteInternal() {
     lattice_ = std::make_unique<lattice::FullLattice>(column_match_number, [](...) { return 1; });
     similarity_data_ =
             SimilarityData::CreateFrom(compressed_records_.get(), std::move(column_matches_info),
-                                       min_support_, lattice_.get());
+                                       min_support_, lattice_.get(), prune_nondisjoint_);
     lattice_traverser_ = std::make_unique<LatticeTraverser>(
             similarity_data_.get(), lattice_.get(),
             std::make_unique<lattice::cardinality::MinPickingLevelGetter>(lattice_.get()));
@@ -91,9 +90,9 @@ void HyMD::RegisterResults() {
          ++column_match_index) {
         auto [left_col_index, right_col_index] =
                 similarity_data_->GetColMatchIndices(column_match_index);
-        column_matches.emplace_back(
-                left_col_index, right_col_index,
-                column_matches_option_[column_match_index]->GetSimilarityMeasureName());
+        column_matches.emplace_back(left_col_index, right_col_index,
+                                    std::get<2>(column_matches_option_[column_match_index])
+                                            ->GetSimilarityMeasureName());
     }
     for (auto const& md : lattice_->GetAll()) {
         for (model::Index rhs_index = 0; rhs_index < column_match_number; ++rhs_index) {

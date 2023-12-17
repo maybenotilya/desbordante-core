@@ -43,6 +43,7 @@ void RecordPairInferrer::ProcessSimVec(SimilarityVector const& sim) {
                 if (lattice_->HasGeneralization(lhs_sims, pair_rhs_bound, rhs_index)) break;
                 md_rhs_bound_ref = pair_rhs_bound;
             } while (false);
+            // TODO: move the below to another class.
             auto const add_lhs_specialized_md = [this, &lhs_sims, old_md_rhs_bound, rhs_index,
                                                  &sim](Index i, auto should_add) {
                 DecisionBoundary& lhs_sim = lhs_sims[i];

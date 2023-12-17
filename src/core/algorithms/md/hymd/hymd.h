@@ -37,8 +37,10 @@ private:
     std::unique_ptr<RecordPairInferrer> record_pair_inferrer_;
 
     std::size_t min_support_ = 0;
+    bool prune_nondisjoint_ = true;
 
-    std::vector<std::shared_ptr<SimilarityMeasureCreator>> column_matches_option_;
+    std::vector<std::tuple<std::string, std::string, std::shared_ptr<SimilarityMeasureCreator>>>
+            column_matches_option_;
 
     void ResetStateMd() final;
     void LoadDataInternal() final;

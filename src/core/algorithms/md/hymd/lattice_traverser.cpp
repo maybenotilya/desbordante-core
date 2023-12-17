@@ -14,6 +14,7 @@ void LatticeTraverser::LowerAndSpecialize(SimilarityData::ValidationResult& vali
     for (auto const& [index, _, actual_bound] : to_lower_info) {
         validation_info.node_info->rhs_bounds->operator[](index) = actual_bound;
     }
+    // TODO: move the below to another class.
     if (is_unsupported) {
         lattice_->MarkUnsupported(validation_info.node_info->lhs_bounds);
         return;

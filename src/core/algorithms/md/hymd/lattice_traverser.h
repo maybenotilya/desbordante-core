@@ -17,7 +17,7 @@ private:
 
     std::unique_ptr<lattice::LevelGetter> const level_getter_;
 
-    bool prune_nondisjoint_ = true;
+    bool const prune_nondisjoint_;
 
     void LowerAndSpecialize(SimilarityData::ValidationResult& validation_result,
                             lattice::ValidationInfo& validation_info);
@@ -27,7 +27,8 @@ public:
                      std::unique_ptr<lattice::LevelGetter> level_getter)
         : similarity_data_(similarity_data),
           lattice_(lattice),
-          level_getter_(std::move(level_getter)) {}
+          level_getter_(std::move(level_getter)),
+          prune_nondisjoint_(similarity_data_->ShouldPruneNondisjoint()) {}
 
     bool TraverseLattice(bool traverse_all);
 

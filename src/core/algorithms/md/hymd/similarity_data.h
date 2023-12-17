@@ -41,6 +41,7 @@ private:
 
     std::size_t const min_support_;
     lattice::FullLattice* const lattice_;
+    bool const prune_nondisjoint_;
 
     constexpr static bool kSortIndices = false;
 
@@ -90,12 +91,13 @@ public:
 
     SimilarityData(indexes::CompressedRecords* compressed_records,
                    std::vector<ColumnMatchInfo> column_matches_info, std::size_t min_support,
-                   lattice::FullLattice* lattice)
+                   lattice::FullLattice* lattice, bool prune_nondisjoint)
         : compressed_records_(compressed_records),
           column_matches_info_(std::move(column_matches_info)),
           single_table_(compressed_records_->OneTableGiven()),
           min_support_(min_support),
-          lattice_(lattice) {}
+          lattice_(lattice),
+          prune_nondisjoint_(prune_nondisjoint) {}
 
     static std::unique_ptr<SimilarityData> CreateFrom(
             indexes::CompressedRecords* compressed_records,
@@ -103,7 +105,11 @@ public:
                     std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>,
                     model::Index, model::Index>>
                     column_matches_info,
-            std::size_t min_support, lattice::FullLattice* lattice);
+            std::size_t min_support, lattice::FullLattice* lattice, bool prune_nondisjoint);
+
+    [[nodiscard]] bool ShouldPruneNondisjoint() const {
+        return prune_nondisjoint_;
+    }
 
     [[nodiscard]] std::size_t GetColumnMatchNumber() const {
         return column_matches_info_.size();
@@ -111,7 +117,7 @@ public:
 
     [[nodiscard]] std::pair<model::Index, model::Index> GetColMatchIndices(
             model::Index index) const {
-        auto info = column_matches_info_[index];
+        auto const& info = column_matches_info_[index];
         return {info.left_column_index, info.right_column_index};
     }
 

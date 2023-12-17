@@ -27,7 +27,7 @@ private:
 
     // std::size_t efficiency_reciprocal_ = 100;
 
-    bool const prune_nondisjoint_ = true;
+    bool const prune_nondisjoint_;
     bool const avoid_same_sim_vec_processing_ = true;
 
     void ProcessSimVec(SimilarityVector const& sim);
@@ -35,7 +35,9 @@ private:
 
 public:
     RecordPairInferrer(SimilarityData* similarity_data, lattice::FullLattice* lattice)
-        : similarity_data_(similarity_data), lattice_(lattice) {}
+        : similarity_data_(similarity_data),
+          lattice_(lattice),
+          prune_nondisjoint_(similarity_data_->ShouldPruneNondisjoint()) {}
 
     bool InferFromRecordPairs(Recommendations recommendations);
 };

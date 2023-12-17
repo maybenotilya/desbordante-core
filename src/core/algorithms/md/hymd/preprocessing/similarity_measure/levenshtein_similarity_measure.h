@@ -20,11 +20,9 @@ public:
         std::size_t const size_limit_;
 
     public:
-        Creator(std::string const left_column_name, std::string const right_column_name,
-                model::md::DecisionBoundary min_sim = 0.7, bool is_null_equal_null = true,
+        Creator(model::md::DecisionBoundary min_sim = 0.7, bool is_null_equal_null = true,
                 std::size_t size_limit = 0)
-            : SimilarityMeasureCreator(std::move(left_column_name), std::move(right_column_name),
-                                       kName),
+            : SimilarityMeasureCreator(kName),
               min_sim_(min_sim),
               is_null_equal_null_(is_null_equal_null),
               size_limit_(size_limit) {}
