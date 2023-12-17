@@ -157,6 +157,7 @@ void HyMD::RegisterResults() {
                                     std::get<2>(column_matches_option_[column_match_index])
                                             ->GetSimilarityMeasureName());
     }
+    std::vector<model::MD> mds;
     for (auto const& md : lattice_->GetAll()) {
         for (model::Index rhs_index = 0; rhs_index < column_match_number; ++rhs_index) {
             model::md::DecisionBoundary const rhs_bound = md.rhs_bounds->operator[](rhs_index);
@@ -168,9 +169,27 @@ void HyMD::RegisterResults() {
                                  lhs_index, lhs_bound);
             }
             model::md::ColumnSimilarityClassifier rhs{rhs_index, rhs_bound};
-            RegisterMd(
-                    {left_schema_.get(), right_schema_.get(), column_matches, std::move(lhs), rhs});
+            mds.emplace_back(left_schema_.get(), right_schema_.get(), column_matches,
+                             std::move(lhs), rhs);
         }
+    }
+    std::sort(mds.begin(), mds.end(), [](model::MD const& left, model::MD const& right){
+        auto const& lhs_left = left.GetLhsDecisionBounds();
+        auto const cardinality_left = std::count_if(lhs_left.begin(), lhs_left.end(),
+                                                    [](auto bound) { return bound != 0.0; });
+        auto const& lhs_right = right.GetLhsDecisionBounds();
+        auto const cardinality_right = std::count_if(lhs_right.begin(), lhs_right.end(),
+                                                     [](auto bound) { return bound != 0.0; });
+        if (cardinality_left < cardinality_right) {
+            return true;
+        } else if (cardinality_left > cardinality_right) {
+            return false;
+        } else {
+            return lhs_left < lhs_right;
+        }
+    });
+    for (model::MD const& md : mds) {
+        RegisterMd(md);
     }
 }
 
