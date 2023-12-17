@@ -8,7 +8,7 @@
 #include "algorithms/md/hymd/preprocessing/similarity.h"
 
 namespace algos::hymd::indexes {
-struct ColumnSimilarityInfo {
+struct ColumnMatchSimilarityInfo {
     std::vector<model::md::DecisionBoundary> lhs_bounds;
     preprocessing::Similarity lowest_similarity;
     indexes::SimilarityMatrix similarity_matrix;

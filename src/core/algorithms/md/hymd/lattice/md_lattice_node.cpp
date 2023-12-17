@@ -202,4 +202,21 @@ void MdLatticeNode::GetLevel(std::vector<MdLatticeNodeInfo>& collected,
     }
 }
 
+void MdLatticeNode::GetAll(std::vector<MdLatticeNodeInfo>& collected,
+                DecisionBoundaryVector& this_node_lhs_bounds) {
+    if (std::any_of(rhs_bounds_.begin(), rhs_bounds_.end(),
+                    [](model::md::DecisionBoundary bound) { return bound != 0.0; }))
+        collected.emplace_back(this_node_lhs_bounds, &rhs_bounds_);
+    for (auto& [index, boundary_mapping] : children_) {
+        assert(index < this_node_lhs_bounds.size());
+        model::md::DecisionBoundary& current_lhs_bound = this_node_lhs_bounds[index];
+        for (auto& [boundary, node] : boundary_mapping) {
+            assert(boundary > 0.0);
+            current_lhs_bound = boundary;
+            node.GetAll(collected, this_node_lhs_bounds);
+        }
+        current_lhs_bound = 0.0;
+    }
+}
+
 }  // namespace algos::hymd::lattice

@@ -72,7 +72,7 @@ unsigned LevenshteinDistance(auto const& l, auto const& r, unsigned* v0, unsigne
 
 namespace algos::hymd::preprocessing::similarity_measure {
 
-indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
+indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
         std::shared_ptr<DataInfo const> data_info_left,
         std::shared_ptr<DataInfo const> data_info_right,
         std::vector<indexes::PliCluster> const& clusters_right) const {
@@ -221,7 +221,7 @@ indexes::ColumnSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
 LevenshteinSimilarityMeasure::LevenshteinSimilarityMeasure(model::md::DecisionBoundary min_sim,
                                                            bool is_null_equal_null,
                                                            std::size_t size_limit)
-    : SimilarityMeasure("levenshtein_similarity", std::make_unique<model::StringType>(),
+    : SimilarityMeasure(std::make_unique<model::StringType>(),
                         std::make_unique<model::DoubleType>()),
       is_null_equal_null_(is_null_equal_null),
       min_sim_(min_sim),

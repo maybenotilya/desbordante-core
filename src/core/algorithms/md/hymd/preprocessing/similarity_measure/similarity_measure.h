@@ -16,7 +16,6 @@ namespace algos::hymd::preprocessing::similarity_measure {
 
 class SimilarityMeasure {
 private:
-    std::string const name_;
     std::unique_ptr<model::Type> const arg_type_;
     // Let R be a total order such that
     // \forall a in D \forall b in D (a R b -> sim_R(a) subseteq sim_R(b))
@@ -27,9 +26,9 @@ private:
     std::unique_ptr<model::INumericType> const ret_type_;
 
 public:
-    SimilarityMeasure(std::string name, std::unique_ptr<model::Type> arg_type,
+    SimilarityMeasure(std::unique_ptr<model::Type> arg_type,
                       std::unique_ptr<model::INumericType> ret_type)
-        : name_(std::move(name)), arg_type_(std::move(arg_type)), ret_type_(std::move(ret_type)) {}
+        : arg_type_(std::move(arg_type)), ret_type_(std::move(ret_type)) {}
 
     virtual ~SimilarityMeasure() = default;
 
@@ -41,11 +40,7 @@ public:
         return *arg_type_;
     }
 
-    [[nodiscard]] std::string const& GetName() const {
-        return name_;
-    }
-
-    [[nodiscard]] virtual indexes::ColumnSimilarityInfo MakeIndexes(
+    [[nodiscard]] virtual indexes::ColumnMatchSimilarityInfo MakeIndexes(
             std::shared_ptr<DataInfo const> data_info_left,
             std::shared_ptr<DataInfo const> data_info_right,
             std::vector<indexes::PliCluster> const& clusters_right) const = 0;

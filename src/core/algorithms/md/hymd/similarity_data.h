@@ -20,6 +20,12 @@
 
 namespace algos::hymd {
 
+struct ColumnMatchInfo {
+    indexes::ColumnMatchSimilarityInfo similarity_info;
+    model::Index left_column_index;
+    model::Index right_column_index;
+};
+
 class SimilarityData {
 private:
     struct WorkingInfo;
@@ -29,9 +35,7 @@ private:
 
     indexes::CompressedRecords* compressed_records_;
 
-    std::vector<std::pair<model::Index, model::Index>> column_match_col_indices_;
-
-    std::vector<indexes::ColumnSimilarityInfo> similarity_info_;
+    std::vector<ColumnMatchInfo> column_matches_info_;
 
     bool const single_table_;
 
@@ -41,7 +45,7 @@ private:
     constexpr static bool kSortIndices = false;
 
     [[nodiscard]] model::Index GetLeftPliIndex(model::Index const column_match_index) const {
-        return column_match_col_indices_[column_match_index].first;
+        return column_matches_info_[column_match_index].left_column_index;
     }
 
     indexes::DictionaryCompressor const& GetLeftCompressor() const {
@@ -85,30 +89,30 @@ public:
     };
 
     SimilarityData(indexes::CompressedRecords* compressed_records,
-                   std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
-                   std::vector<indexes::ColumnSimilarityInfo> similarity_info,
-                   std::size_t min_support, lattice::FullLattice* lattice)
+                   std::vector<ColumnMatchInfo> column_matches_info, std::size_t min_support,
+                   lattice::FullLattice* lattice)
         : compressed_records_(compressed_records),
-          column_match_col_indices_(std::move(column_match_col_indices)),
-          similarity_info_(std::move(similarity_info)),
+          column_matches_info_(std::move(column_matches_info)),
           single_table_(compressed_records_->OneTableGiven()),
           min_support_(min_support),
           lattice_(lattice) {}
 
     static std::unique_ptr<SimilarityData> CreateFrom(
             indexes::CompressedRecords* compressed_records,
-            std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
-            std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> const&
-                    sim_measures,
+            std::vector<std::tuple<
+                    std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>,
+                    model::Index, model::Index>>
+                    column_matches_info,
             std::size_t min_support, lattice::FullLattice* lattice);
 
     [[nodiscard]] std::size_t GetColumnMatchNumber() const {
-        return column_match_col_indices_.size();
+        return column_matches_info_.size();
     }
 
     [[nodiscard]] std::pair<model::Index, model::Index> GetColMatchIndices(
             model::Index index) const {
-        return column_match_col_indices_[index];
+        auto info = column_matches_info_[index];
+        return {info.left_column_index, info.right_column_index};
     }
 
     [[nodiscard]] std::size_t GetLeftSize() const {

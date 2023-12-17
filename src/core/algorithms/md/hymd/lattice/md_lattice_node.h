@@ -42,6 +42,8 @@ public:
     void FindViolated(std::vector<MdLatticeNodeInfo>& found,
                       DecisionBoundaryVector& this_node_lhs_bounds,
                       SimilarityVector const& similarity_vector, model::Index this_node_index);
+    void GetAll(std::vector<MdLatticeNodeInfo>& collected,
+                DecisionBoundaryVector& this_node_lhs_bounds);
 
     explicit MdLatticeNode(std::size_t attributes_num) : rhs_bounds_(attributes_num) {}
     explicit MdLatticeNode(DecisionBoundaryVector rhs) : rhs_bounds_(std::move(rhs)) {}

@@ -44,6 +44,14 @@ public:
         return mds;
     }
 
+    std::vector<MdLatticeNodeInfo> GetAll() {
+        std::vector<MdLatticeNodeInfo> mds = md_lattice_.GetAll();
+        util::EraseIfReplace(mds, [this](MdLatticeNodeInfo const& node_info) {
+            return support_lattice_.IsUnsupported(node_info.lhs_bounds);
+        });
+        return mds;
+    }
+
     std::vector<model::md::DecisionBoundary> GetRhsInterestingnessBounds(
             DecisionBoundaryVector const& lhs_bounds,
             std::vector<model::Index> const& indices) const {

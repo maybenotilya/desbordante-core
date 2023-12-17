@@ -41,6 +41,7 @@ public:
     void AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
                       model::md::DecisionBoundary rhs_bound, model::Index rhs_index);
     std::vector<MdLatticeNodeInfo> FindViolated(SimilarityVector const& similarity_vector);
+    std::vector<MdLatticeNodeInfo> GetAll();
 
     explicit MdLattice(std::size_t column_matches_size, SingleLevelFunc single_level_func);
 };

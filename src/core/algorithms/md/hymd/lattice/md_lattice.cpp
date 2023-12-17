@@ -60,4 +60,11 @@ std::vector<MdLatticeNodeInfo> MdLattice::GetLevel(std::size_t level) {
     return collected;
 }
 
+std::vector<MdLatticeNodeInfo> MdLattice::GetAll() {
+    std::vector<MdLatticeNodeInfo> collected;
+    DecisionBoundaryVector current_lhs(column_matches_size_, 0.0);
+    root_.GetAll(collected, current_lhs);
+    return collected;
+}
+
 }  // namespace algos::hymd::lattice

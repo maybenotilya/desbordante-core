@@ -72,40 +72,38 @@ struct SimilarityData::WorkingInfo {
 };
 
 std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
-        indexes::CompressedRecords* compressed_records,
-        std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
-        std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> const&
-                similarity_measures,
-        std::size_t const min_support, lattice::FullLattice* lattice) {
+        indexes::CompressedRecords* const compressed_records,
+        std::vector<
+                std::tuple<std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>,
+                           model::Index, model::Index>> const column_matches_info,
+        std::size_t const min_support, lattice::FullLattice* const lattice) {
     assert(column_match_col_indices.size() == similarity_measures.size());
 
     bool const one_table_given = compressed_records->OneTableGiven();
-    std::size_t const col_match_number = column_match_col_indices.size();
-    std::vector<indexes::ColumnSimilarityInfo> similarity_info;
+    std::size_t const col_match_number = column_matches_info.size();
+    std::vector<ColumnMatchInfo> similarity_info;
     similarity_info.reserve(col_match_number);
     auto const& left_records = compressed_records->GetLeftRecords();
     auto const& right_records = compressed_records->GetRightRecords();
-    for (model::Index column_match_index = 0; column_match_index < col_match_number;
-         ++column_match_index) {
-        auto [left_col_index, right_col_index] = column_match_col_indices[column_match_index];
-        preprocessing::similarity_measure::SimilarityMeasure const& measure =
-                *similarity_measures[column_match_index];
+    for (auto const& [measure, left_col_index, right_col_index] : column_matches_info) {
         auto const& left_pli = left_records.GetPli(left_col_index);
         // shared_ptr for caching
         std::shared_ptr<preprocessing::DataInfo const> data_info_left =
-                preprocessing::DataInfo::MakeFrom(left_pli, measure.GetArgType());
+                preprocessing::DataInfo::MakeFrom(left_pli, measure->GetArgType());
         std::shared_ptr<preprocessing::DataInfo const> data_info_right;
         auto const& right_pli = right_records.GetPli(right_col_index);
         if (one_table_given && left_col_index == right_col_index) {
             data_info_right = data_info_left;
         } else {
-            data_info_right = preprocessing::DataInfo::MakeFrom(right_pli, measure.GetArgType());
+            data_info_right = preprocessing::DataInfo::MakeFrom(right_pli, measure->GetArgType());
         }
-        similarity_info.push_back(measure.MakeIndexes(
-                std::move(data_info_left), std::move(data_info_right), right_pli.GetClusters()));
+        similarity_info.emplace_back(
+                measure->MakeIndexes(std::move(data_info_left), std::move(data_info_right),
+                                     right_pli.GetClusters()),
+                left_col_index, right_col_index);
     }
-    return std::make_unique<SimilarityData>(compressed_records, std::move(column_match_col_indices),
-                                            std::move(similarity_info), min_support, lattice);
+    return std::make_unique<SimilarityData>(compressed_records, std::move(similarity_info),
+                                            min_support, lattice);
 }
 
 bool SimilarityData::LowerForColumnMatch(
@@ -186,7 +184,7 @@ std::unordered_set<SimilarityVector> SimilarityData::GetSimVecs(
     similarity_matrix_row_ptrs.reserve(col_match_number);
     for (model::Index col_match_idx = 0; col_match_idx < col_match_number; ++col_match_idx) {
         indexes::SimilarityMatrix const& col_match_matrix =
-                similarity_info_[col_match_idx].similarity_matrix;
+                column_matches_info_[col_match_idx].similarity_info.similarity_matrix;
         auto it = col_match_matrix.find(left_record[col_match_idx]);
         if (it == col_match_matrix.end()) continue;
         similarity_matrix_row_ptrs.emplace_back(&it->second, col_match_idx);
@@ -219,7 +217,8 @@ SimilarityVector SimilarityData::GetSimilarityVector(CompressedRecord const& lef
     SimilarityVector similarities;
     similarities.reserve(col_match_number);
     for (model::Index i = 0; i < col_match_number; ++i) {
-        indexes::SimilarityMatrix const& similarity_matrix = similarity_info_[i].similarity_matrix;
+        indexes::SimilarityMatrix const& similarity_matrix =
+                column_matches_info_[i].similarity_info.similarity_matrix;
         auto row_it = similarity_matrix.find(left_record[i]);
         if (row_it == similarity_matrix.end()) {
             similarities.push_back(0.0);
@@ -240,7 +239,7 @@ std::unordered_set<RecordIdentifier> const* SimilarityData::GetSimilarRecords(
         ValueIdentifier value_id, model::md::DecisionBoundary lhs_bound,
         model::Index column_match_index) const {
     indexes::SimilarityIndex const& similarity_index =
-            similarity_info_[column_match_index].similarity_index;
+            column_matches_info_[column_match_index].similarity_info.similarity_index;
     auto val_index_it = similarity_index.find(value_id);
     if (val_index_it == similarity_index.end()) return nullptr;
     auto const& val_index = val_index_it->second;
@@ -252,7 +251,7 @@ std::unordered_set<RecordIdentifier> const* SimilarityData::GetSimilarRecords(
 [[nodiscard]] std::optional<model::md::DecisionBoundary> SimilarityData::SpecializeOneLhs(
         model::Index col_match_index, model::md::DecisionBoundary lhs_bound) const {
     std::vector<model::md::DecisionBoundary> const& decision_bounds =
-            similarity_info_[col_match_index].lhs_bounds;
+            column_matches_info_[col_match_index].similarity_info.lhs_bounds;
     auto end_bounds = decision_bounds.end();
     auto upper = std::upper_bound(decision_bounds.begin(), end_bounds, lhs_bound);
     if (upper == end_bounds) {
@@ -291,7 +290,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
         for (Index index = indices_bitset.find_first(); index != boost::dynamic_bitset<>::npos;
              index = indices_bitset.find_next(index)) {
             DecisionBoundary const old_bound = rhs_bounds[index];
-            DecisionBoundary const new_bound = similarity_info_[index].lowest_similarity;
+            DecisionBoundary const new_bound =
+                    column_matches_info_[index].similarity_info.lowest_similarity;
             if (old_bound == new_bound) [[unlikely]]
                 continue;
             rhss_to_lower_info.emplace_back(index, old_bound, new_bound);
@@ -315,8 +315,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
         if constexpr (kSortIndices) {
             // TODO: investigate best order.
             std::sort(indices.begin(), indices.end(), [this](Index ind1, Index ind2) {
-                return similarity_info_[ind1].lhs_bounds.size() <
-                       similarity_info_[ind2].lhs_bounds.size();
+                return column_matches_info_[ind1].similarity_info.lhs_bounds.size() <
+                       column_matches_info_[ind2].similarity_info.lhs_bounds.size();
             });
         }
         recommendations.reserve(working_size);
@@ -325,7 +325,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
             recommendations.emplace_back();
             working.emplace_back(rhs_bounds[index], index, recommendations.back(),
                                  GetLeftValueNum(index), right_records,
-                                 similarity_info_[index].similarity_matrix);
+                                 column_matches_info_[index].similarity_info.similarity_matrix);
         }
         std::vector<DecisionBoundary> const gen_max_rhs =
                 ZeroLatticeRhsAndDo(working, rhs_bounds, [this, &lhs_bounds, &indices]() {
@@ -477,7 +477,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
 std::optional<model::md::DecisionBoundary> SimilarityData::GetPreviousDecisionBound(
         model::md::DecisionBoundary const lhs_bound, model::Index const column_match_index) const {
     std::vector<model::md::DecisionBoundary> const& bounds =
-            similarity_info_[column_match_index].lhs_bounds;
+            column_matches_info_[column_match_index].similarity_info.lhs_bounds;
     auto it = std::lower_bound(bounds.begin(), bounds.end(), lhs_bound);
     if (it == bounds.begin()) return std::nullopt;
     return *--it;
