@@ -2,8 +2,10 @@
 
 #include "algorithms/md/column_match.h"
 #include "algorithms/md/column_similarity_classifier.h"
+#include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/lhs_column_similarity_classifier.h"
 #include "model/table/relational_schema.h"
+#include "model/index.h"
 
 namespace model {
 
@@ -23,8 +25,10 @@ public:
        std::vector<md::ColumnMatch> column_matches,
        std::vector<md::LhsColumnSimilarityClassifier> lhs, md::ColumnSimilarityClassifier rhs);
 
-    [[nodiscard]] std::string ToStringFull() const noexcept;
-    [[nodiscard]] std::string ToStringShort() const noexcept;
+    [[nodiscard]] std::string ToStringFull() const;
+    [[nodiscard]] std::string ToStringShort() const;
+    [[nodiscard]] std::vector<md::DecisionBoundary> GetLhsDecisionBounds() const;
+    [[nodiscard]] std::pair<Index, md::DecisionBoundary> GetRhs() const noexcept;
 };
 
 }  // namespace model

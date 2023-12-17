@@ -13,7 +13,7 @@ MD::MD(RelationalSchema const* left_schema, const RelationalSchema* right_schema
       lhs_(std::move(lhs)),
       rhs_(rhs) {}
 
-std::string MD::ToStringFull() const noexcept {
+std::string MD::ToStringFull() const {
     std::stringstream ss;
     ss << "[";
     for (auto const& classifier : lhs_) {
@@ -43,12 +43,12 @@ std::string MD::ToStringFull() const noexcept {
     return ss.str();
 }
 
-std::string MD::ToStringShort() const noexcept {
+std::string MD::ToStringShort() const {
     std::stringstream ss;
     ss << "[";
     for (auto const& classifier : lhs_) {
         model::md::DecisionBoundary const decision_boundary = classifier.GetDecisionBoundary();
-        if (decision_boundary == 0.0) {
+        if (decision_boundary != 0.0) {
             ss << decision_boundary;
         }
         ss << ",";
@@ -57,6 +57,19 @@ std::string MD::ToStringShort() const noexcept {
     ss << "]->";
     ss << rhs_.GetColumnMatchIndex() << "@" << rhs_.GetDecisionBoundary();
     return ss.str();
+}
+
+std::vector<md::DecisionBoundary> MD::GetLhsDecisionBounds() const {
+    std::vector<md::DecisionBoundary> decision_bounds;
+    decision_bounds.reserve(lhs_.size());
+    std::transform(
+            lhs_.begin(), lhs_.end(), std::back_inserter(decision_bounds),
+            [](md::LhsColumnSimilarityClassifier const& lhs) { return lhs.GetDecisionBoundary(); });
+    return decision_bounds;
+}
+
+std::pair<Index, md::DecisionBoundary> MD::GetRhs() const noexcept {
+    return {rhs_.GetColumnMatchIndex(), rhs_.GetDecisionBoundary()};
 }
 
 }  // namespace model
