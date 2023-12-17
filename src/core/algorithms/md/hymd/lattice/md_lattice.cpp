@@ -5,6 +5,7 @@
 
 namespace algos::hymd::lattice {
 
+// TODO: remove recursion
 MdLattice::MdLattice(std::size_t column_matches_size, SingleLevelFunc single_level_func)
     : root_(DecisionBoundaryVector(column_matches_size, 1.0)),
       column_matches_size_(column_matches_size),
@@ -16,6 +17,10 @@ std::size_t MdLattice::GetMaxLevel() const {
 
 void MdLattice::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
                              model::md::DecisionBoundary const rhs_bound, model::Index rhs_index) {
+    // TODO: use info about where the LHS was specialized from to reduce generalization checks.
+    // When an MD is inferred from, it is not a specialization of any other MD in the lattice, so
+    // its LHS is not a specialization of any other. The only LHSs we have to check after a
+    // specialization are those that are generalizations of the new LHS but not the old one.
     bool succeded = root_.AddIfMinimal(lhs_bounds, rhs_bound, rhs_index, 0);
     if (!succeded) return;
     std::size_t level = 0;

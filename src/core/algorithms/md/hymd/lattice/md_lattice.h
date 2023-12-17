@@ -22,7 +22,7 @@ private:
     MdLatticeNode root_;
     std::size_t const column_matches_size_;
     // Is there a way to define a level in such a way that one cannot use each decision boundary
-    // independently to determine an MD's level and the lattice traversal algorithms works?
+    // independently to determine an MD's level but the lattice traversal algorithms still works?
     SingleLevelFunc const get_single_level_;
 
 public:

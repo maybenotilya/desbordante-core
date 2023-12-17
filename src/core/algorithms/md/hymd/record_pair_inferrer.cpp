@@ -90,6 +90,7 @@ bool RecordPairInferrer::InferFromRecordPairs(Recommendations recommendations) {
         return false;
     };
     if (process_collection(recommendations, [&](Recommendation& rec) {
+            // TODO: parallelize similarity vector calculation
             return similarity_data_->GetSimilarityVector(*rec.left_record, *rec.right_record);
         })) {
         return false;

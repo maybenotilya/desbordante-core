@@ -156,6 +156,7 @@ void MdLatticeNode::RaiseInterestingnessBounds(
                 // pairs give an incorrect result, meaning the algorithm is incorrect.
                 // However, it is possible to stop decreasing when the bound's index in the list of
                 // natural decision boundaries is exactly one less than the RHS bound's index.
+                // TODO: abort traversal as above.
                 assert(this_node_bound != 1.0);
             }
         }

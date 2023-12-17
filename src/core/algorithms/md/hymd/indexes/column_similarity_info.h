@@ -13,5 +13,6 @@ struct ColumnMatchSimilarityInfo {
     preprocessing::Similarity lowest_similarity;
     indexes::SimilarityMatrix similarity_matrix;
     indexes::SimilarityIndex similarity_index;
+    // TODO: add slim similarity index
 };
 }  // namespace algos::hymd::indexes

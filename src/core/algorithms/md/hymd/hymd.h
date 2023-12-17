@@ -38,12 +38,23 @@ private:
 
     std::size_t min_support_ = 0;
     bool prune_nondisjoint_ = true;
+    // TODO: thread number limit
+    // TODO: different level definitions (cardinality currently used)
+    // TODO: comparing only some values during similarity calculation
+    // TODO: cardinality limit
+    // TODO: automatically calculating minimal support
+    // TODO: limit LHS bounds searched (currently only size limit is implemented)
+    // TODO: memory conservation mode (load only some columns)
 
     std::vector<std::tuple<std::string, std::string, std::shared_ptr<SimilarityMeasureCreator>>>
             column_matches_option_;
 
-    void ResetStateMd() final;
+    void RegisterOptions();
+
     void LoadDataInternal() final;
+
+    void MakeExecuteOptsAvailable() final;
+    void ResetStateMd() final;
     unsigned long long ExecuteInternal() final;
 
     void RegisterResults();

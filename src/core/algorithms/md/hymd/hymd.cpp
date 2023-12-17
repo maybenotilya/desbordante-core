@@ -4,12 +4,75 @@
 #include <cstddef>
 
 #include "algorithms/md/hymd/lattice/cardinality/min_picking_level_getter.h"
+#include "algorithms/md/hymd/preprocessing/similarity_measure/levenshtein_similarity_measure.h"
+#include "config/names_and_descriptions.h"
+#include "config/option_using.h"
 #include "model/index.h"
 #include "model/table/column.h"
 
 namespace algos::hymd {
 
-HyMD::HyMD() : MdAlgorithm({}) {}
+HyMD::HyMD() : MdAlgorithm({}) {
+    using namespace config::names;
+    RegisterOptions();
+    MakeOptionsAvailable({kLeftTable, kRightTable});
+}
+
+void HyMD::MakeExecuteOptsAvailable() {
+    using namespace config::names;
+    MakeOptionsAvailable({kMinSupport, kPruneNonDisjoint, kColumnMatches});
+}
+
+void HyMD::RegisterOptions() {
+    DESBORDANTE_OPTION_USING;
+
+    auto min_support_default = [this]() {
+        if (compressed_records_->OneTableGiven()) {
+            return compressed_records_->GetLeftRecords().GetRecords().size() + 1;
+        } else {
+            return std::size_t(1);
+        }
+    };
+
+    auto column_matches_default = [this]() {
+        std::vector<std::tuple<std::string, std::string, std::shared_ptr<SimilarityMeasureCreator>>>
+                column_matches_option;
+        if (compressed_records_->OneTableGiven()) {
+            std::size_t const num_columns = left_schema_->GetNumColumns();
+            for (model::Index i = 0; i < num_columns; ++i) {
+                std::string const column_name = left_schema_->GetColumn(i)->GetName();
+                column_matches_option.emplace_back(
+                        column_name, column_name,
+                        std::make_shared<preprocessing::similarity_measure::
+                                                 LevenshteinSimilarityMeasure::Creator>(0.7, true,
+                                                                                        0));
+            }
+        } else {
+            std::size_t const num_columns_left = left_schema_->GetNumColumns();
+            std::size_t const num_columns_right = left_schema_->GetNumColumns();
+            for (model::Index i = 0; i < num_columns_left; ++i) {
+                std::string const column_name_left = left_schema_->GetColumn(i)->GetName();
+                for (model::Index j = 0; j < num_columns_right; ++j) {
+                    std::string const column_name_right = right_schema_->GetColumn(i)->GetName();
+                    column_matches_option.emplace_back(
+                            column_name_left, column_name_right,
+                            std::make_shared<preprocessing::similarity_measure::
+                                                     LevenshteinSimilarityMeasure::Creator>(
+                                    0.7, true, 0));
+                }
+            }
+        }
+        return column_matches_option;
+    };
+
+    RegisterOption(Option{&left_table_, kLeftTable, kDLeftTable});
+    RegisterOption(Option{&right_table_, kRightTable, kDRightTable, config::InputTable{nullptr}});
+
+    RegisterOption(Option{&min_support_, kMinSupport, kDMinSupport, {min_support_default}});
+    RegisterOption(Option{&prune_nondisjoint_, kPruneNonDisjoint, kDPruneNonDisjoint, true});
+    RegisterOption(Option{
+            &column_matches_option_, kColumnMatches, kDColumnMatches, {column_matches_default}});
+}
 
 void HyMD::ResetStateMd() {
     similarity_data_.reset();

@@ -1,7 +1,6 @@
 #include "algorithms/md/hymd/similarity_data.h"
 
 #include <algorithm>
-#include <execution>
 
 #include "algorithms/md/hymd/indexes/column_similarity_info.h"
 #include "algorithms/md/hymd/utility/java_hash.h"
@@ -188,14 +187,15 @@ std::unordered_set<SimilarityVector> SimilarityData::GetSimVecs(
         if (it == col_match_matrix.end()) continue;
         similarity_matrix_row_ptrs.emplace_back(&it->second, col_match_idx);
     }
-    if (similarity_matrix_row_ptrs.empty()) return {SimilarityVector(0.0, col_match_number)};
+    if (similarity_matrix_row_ptrs.empty()) return {SimilarityVector(col_match_number, 0.0)};
     std::unordered_set<SimilarityVector> sim_vecs;
     auto const& right_records = GetRightCompressor().GetRecords();
     std::size_t const right_records_num = right_records.size();
     // for (RecordIdentifier right_record_id = 0;
     // Optimization not done in Metanome.
     RecordIdentifier const start_from = single_table_ ? left_record_id + 1 : 0;
-    SimilarityVector pair_sims(col_match_number);
+    // TODO: parallelize this
+    SimilarityVector pair_sims(col_match_number, 0.0);
     for (RecordIdentifier right_record_id = start_from; right_record_id < right_records_num;
          ++right_record_id) {
         CompressedRecord const& right_record = right_records[right_record_id];
