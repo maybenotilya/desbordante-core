@@ -13,7 +13,7 @@ MD::MD(RelationalSchema const* left_schema, const RelationalSchema* right_schema
       lhs_(std::move(lhs)),
       rhs_(rhs) {}
 
-std::string MD::ToString() const noexcept {
+std::string MD::ToStringFull() const noexcept {
     std::stringstream ss;
     ss << "[";
     for (auto const& classifier : lhs_) {
@@ -40,6 +40,22 @@ std::string MD::ToString() const noexcept {
        << right_schema_->GetName() << ":"
        << right_schema_->GetColumn(column_match.right_col_index)->GetName()
        << ")>=" << classifier.GetDecisionBoundary();
+    return ss.str();
+}
+
+std::string MD::ToStringShort() const noexcept {
+    std::stringstream ss;
+    ss << "[";
+    for (auto const& classifier : lhs_) {
+        model::md::DecisionBoundary const decision_boundary = classifier.GetDecisionBoundary();
+        if (decision_boundary == 0.0) {
+            ss << decision_boundary;
+        }
+        ss << ",";
+    }
+    ss.seekp(-1, std::stringstream::cur);
+    ss << "]->";
+    ss << rhs_.GetColumnMatchIndex() << "@" << rhs_.GetDecisionBoundary();
     return ss.str();
 }
 

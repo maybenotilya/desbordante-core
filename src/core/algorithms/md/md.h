@@ -23,7 +23,8 @@ public:
        std::vector<md::ColumnMatch> column_matches,
        std::vector<md::LhsColumnSimilarityClassifier> lhs, md::ColumnSimilarityClassifier rhs);
 
-    [[nodiscard]] std::string ToString() const noexcept;
+    [[nodiscard]] std::string ToStringFull() const noexcept;
+    [[nodiscard]] std::string ToStringShort() const noexcept;
 };
 
 }  // namespace model
