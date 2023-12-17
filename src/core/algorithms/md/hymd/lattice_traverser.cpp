@@ -71,7 +71,7 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
         boost::asio::thread_pool thread_pool;
         for (model::Index i = 0; i < mds_size; ++i) {
             boost::asio::post(thread_pool, [this, &result = results[i], &info = mds[i]]() {
-                result = similarity_data_->Validate(*lattice_, info);
+                result = similarity_data_->Validate(info);
             });
         }
         thread_pool.join();

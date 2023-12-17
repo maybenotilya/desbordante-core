@@ -75,7 +75,7 @@ unsigned long long HyMD::ExecuteInternal() {
     lattice_ = std::make_unique<lattice::FullLattice>(column_match_number, [](...) { return 1; });
     similarity_data_ = SimilarityData::CreateFrom(compressed_records_.get(),
                                                   std::move(column_match_col_indices), sim_measures,
-                                                  min_support_);
+                                                  min_support_, lattice_.get());
     lattice_traverser_ = std::make_unique<LatticeTraverser>(
             similarity_data_.get(), lattice_.get(),
             std::make_unique<lattice::cardinality::MinPickingLevelGetter>(lattice_.get()));

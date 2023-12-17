@@ -36,6 +36,7 @@ private:
     bool const single_table_;
 
     std::size_t const min_support_;
+    lattice::FullLattice* const lattice_;
 
     constexpr static bool kSortIndices = false;
 
@@ -86,19 +87,20 @@ public:
     SimilarityData(indexes::CompressedRecords* compressed_records,
                    std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
                    std::vector<indexes::ColumnSimilarityInfo> similarity_info,
-                   std::size_t min_support)
+                   std::size_t min_support, lattice::FullLattice* lattice)
         : compressed_records_(compressed_records),
           column_match_col_indices_(std::move(column_match_col_indices)),
           similarity_info_(std::move(similarity_info)),
           single_table_(compressed_records_->OneTableGiven()),
-          min_support_(min_support) {}
+          min_support_(min_support),
+          lattice_(lattice) {}
 
     static std::unique_ptr<SimilarityData> CreateFrom(
             indexes::CompressedRecords* compressed_records,
             std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
             std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> const&
                     sim_measures,
-            std::size_t min_support);
+            std::size_t min_support, lattice::FullLattice* lattice);
 
     [[nodiscard]] std::size_t GetColumnMatchNumber() const {
         return column_match_col_indices_.size();
@@ -121,8 +123,7 @@ public:
     [[nodiscard]] SimilarityVector GetSimilarityVector(CompressedRecord const& left_record,
                                                        CompressedRecord const& right_record) const;
 
-    [[nodiscard]] ValidationResult Validate(lattice::FullLattice& lattice,
-                                            lattice::ValidationInfo& validation_info) const;
+    [[nodiscard]] ValidationResult Validate(lattice::ValidationInfo& validation_info) const;
 
     [[nodiscard]] std::optional<model::md::DecisionBoundary> GetPreviousDecisionBound(
             model::md::DecisionBoundary lhs_bound, model::Index column_match_index) const;

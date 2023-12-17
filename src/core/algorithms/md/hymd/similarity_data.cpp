@@ -76,7 +76,7 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
         std::vector<std::pair<model::Index, model::Index>> column_match_col_indices,
         std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> const&
                 similarity_measures,
-        std::size_t const min_support) {
+        std::size_t const min_support, lattice::FullLattice* lattice) {
     assert(column_match_col_indices.size() == similarity_measures.size());
 
     bool const one_table_given = compressed_records->OneTableGiven();
@@ -105,7 +105,7 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
                 std::move(data_info_left), std::move(data_info_right), right_pli.GetClusters()));
     }
     return std::make_unique<SimilarityData>(compressed_records, std::move(column_match_col_indices),
-                                            std::move(similarity_info), min_support);
+                                            std::move(similarity_info), min_support, lattice);
 }
 
 bool SimilarityData::LowerForColumnMatch(
@@ -277,8 +277,7 @@ auto SimilarityData::ZeroLatticeRhsAndDo(std::vector<WorkingInfo>& working,
     return result;
 }
 
-SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& lattice,
-                                                          lattice::ValidationInfo& info) const {
+SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInfo& info) const {
     using model::Index, model::md::DecisionBoundary;
     DecisionBoundaryVector const& lhs_bounds = info.node_info->lhs_bounds;
     DecisionBoundaryVector& rhs_bounds = *info.node_info->rhs_bounds;
@@ -304,7 +303,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
     std::vector<WorkingInfo> working;
     std::size_t working_size;
     auto prepare = [this, &recommendations, &working, &rhs_bounds,
-                    &right_records = GetRightCompressor().GetRecords(), &lattice, &lhs_bounds,
+                    &right_records = GetRightCompressor().GetRecords(), &lhs_bounds,
                     &working_size](boost::dynamic_bitset<> const& indices_bitset) {
         working_size = indices_bitset.count();
         std::vector<Index> indices;
@@ -329,8 +328,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
                                  similarity_info_[index].similarity_matrix);
         }
         std::vector<DecisionBoundary> const gen_max_rhs =
-                ZeroLatticeRhsAndDo(working, rhs_bounds, [&lattice, &lhs_bounds, &indices]() {
-                    return lattice.GetRhsInterestingnessBounds(lhs_bounds, indices);
+                ZeroLatticeRhsAndDo(working, rhs_bounds, [this, &lhs_bounds, &indices]() {
+                    return lattice_->GetRhsInterestingnessBounds(lhs_bounds, indices);
                 });
         for (Index i = 0; i < working_size; ++i) {
             working[i].interestingness_boundary = gen_max_rhs[i];
@@ -345,7 +344,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         }
         return stops == working_size && support >= min_support_;
     };
-    auto make_all_invalid_result = [&]() -> ValidationResult {
+    auto make_all_invalid_result = [&]() {
         for (WorkingInfo const& working_info : working) {
             Index const index = working_info.index;
             DecisionBoundary const old_bound = working_info.old_bound;
@@ -354,9 +353,9 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             assert(new_bound == 0.0);
             rhss_to_lower_info.emplace_back(index, old_bound, 0.0);
         }
-        return {std::move(recommendations), std::move(rhss_to_lower_info), false};
+        return ValidationResult{std::move(recommendations), std::move(rhss_to_lower_info), false};
     };
-    auto make_out_of_clusters_result = [&]() -> ValidationResult {
+    auto make_out_of_clusters_result = [&]() {
         for (auto const& working_info : working) {
             Index const index = working_info.index;
             DecisionBoundary const old_bound = working_info.old_bound;
@@ -364,7 +363,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             if (new_bound == old_bound) continue;
             rhss_to_lower_info.emplace_back(index, old_bound, new_bound);
         }
-        return {std::move(recommendations), std::move(rhss_to_lower_info), support < min_support_};
+        return ValidationResult{std::move(recommendations), std::move(rhss_to_lower_info),
+                                support < min_support_};
     };
     // TODO: figure out a way to do a loop until (cluster, similar_records) pairs end generically
     //  without extra actions
@@ -415,6 +415,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
     value_ids.reserve(pli_mapping.size());
     auto pli_map_start = ++pli_mapping.begin();
     auto pli_map_end = pli_mapping.end();
+    std::vector<RecordIdentifier> similar_records;
     for (ValueIdentifier first_value_id = 0; first_value_id < first_pli_size; ++first_value_id) {
         indexes::PliCluster const& cluster = first_pli[first_value_id];
         // TODO: try adding a perfect hasher (use the number of values in each column, the first
@@ -452,7 +453,6 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
         matched_on_all:
             std::sort(rec_sets.begin(), rec_sets.end(),
                       [](RecSet const* p1, RecSet const* p2) { return p1->size() < p2->size(); });
-            std::vector<RecordIdentifier> similar_records;
             RecSet const& first = **rec_sets.begin();
             auto check_set_begin = ++rec_sets.begin();
             auto check_set_end = rec_sets.end();
@@ -468,6 +468,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::FullLattice& 
             if (lower_bounds(cluster, similar_records)) {
                 return make_all_invalid_result();
             }
+            similar_records.clear();
         }
     }
     return make_out_of_clusters_result();
