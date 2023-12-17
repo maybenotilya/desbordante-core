@@ -144,7 +144,7 @@ bool SimilarityData::LowerForColumnMatchNoCheck(
     for (auto const& [left_value_id, records_left] : grouped) {
         for (RecordIdentifier record_id_right : similar_records) {
             CompressedRecord const& right_record = working_info.right_records[record_id_right];
-            auto add_recommendations = [&]() {
+            auto add_recommendations = [&records_left, &right_record, &working_info]() {
                 for (CompressedRecord const* left_record_ptr : records_left) {
                     working_info.recommendations.emplace_back(left_record_ptr, &right_record);
                 }

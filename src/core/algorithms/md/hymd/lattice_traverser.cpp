@@ -21,7 +21,8 @@ void LatticeTraverser::LowerAndSpecialize(SimilarityData::ValidationResult& vali
     }
     DecisionBoundaryVector& lhs_bounds = validation_info.node_info->lhs_bounds;
     std::size_t const col_matches_num = lhs_bounds.size();
-    auto specialize_all_lhs = [&](auto handle_same_lhs_as_rhs) {
+    auto specialize_all_lhs = [this, &to_lower_info, col_matches_num,
+                               &lhs_bounds](auto handle_same_lhs_as_rhs) {
         for (Index lhs_spec_index = 0; lhs_spec_index < col_matches_num; ++lhs_spec_index) {
             DecisionBoundary& lhs_bound = lhs_bounds[lhs_spec_index];
             std::optional<DecisionBoundary> const specialized_lhs_bound =

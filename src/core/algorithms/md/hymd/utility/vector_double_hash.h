@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bit>
 #include <vector>
 
 #include "algorithms/md/hymd/utility/java_hash.h"
@@ -12,7 +13,7 @@ struct hash<std::vector<double>> {
         constexpr bool kUseJavaHash = true;
         if constexpr (kUseJavaHash) {
             return utility::HashIterable(
-                    p, [](double element) { return std::bit_cast<int64_t>(element); });
+                    p, [](double element) { return std::bit_cast<std::int64_t>(element); });
         } else {
             util::PyTupleHash<double> hasher{p.size()};
             for (double el : p) {

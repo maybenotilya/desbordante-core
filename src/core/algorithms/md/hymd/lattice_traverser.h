@@ -33,7 +33,9 @@ public:
     bool TraverseLattice(bool traverse_all);
 
     Recommendations TakeRecommendations() {
-        return std::move(recommendations_);
+        auto recommendations = std::move(recommendations_);
+        recommendations_.clear();
+        return recommendations;
     }
 };
 
