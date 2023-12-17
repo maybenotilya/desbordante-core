@@ -173,7 +173,7 @@ void HyMD::RegisterResults() {
                              std::move(lhs), rhs);
         }
     }
-    std::sort(mds.begin(), mds.end(), [](model::MD const& left, model::MD const& right){
+    std::sort(mds.begin(), mds.end(), [](model::MD const& left, model::MD const& right) {
         auto const& lhs_left = left.GetLhsDecisionBounds();
         auto const cardinality_left = std::count_if(lhs_left.begin(), lhs_left.end(),
                                                     [](auto bound) { return bound != 0.0; });

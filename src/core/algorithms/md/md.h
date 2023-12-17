@@ -4,8 +4,8 @@
 #include "algorithms/md/column_similarity_classifier.h"
 #include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/lhs_column_similarity_classifier.h"
-#include "model/table/relational_schema.h"
 #include "model/index.h"
+#include "model/table/relational_schema.h"
 
 namespace model {
 

@@ -204,7 +204,7 @@ void MdLatticeNode::GetLevel(std::vector<MdLatticeNodeInfo>& collected,
 }
 
 void MdLatticeNode::GetAll(std::vector<MdLatticeNodeInfo>& collected,
-                DecisionBoundaryVector& this_node_lhs_bounds) {
+                           DecisionBoundaryVector& this_node_lhs_bounds) {
     if (std::any_of(rhs_bounds_.begin(), rhs_bounds_.end(),
                     [](model::md::DecisionBoundary bound) { return bound != 0.0; }))
         collected.emplace_back(this_node_lhs_bounds, &rhs_bounds_);
