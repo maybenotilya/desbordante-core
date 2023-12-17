@@ -14,15 +14,15 @@ class PyTupleHash {
     std::int64_t len_;
 
 public:
-    PyTupleHash(size_t len) : len_(len) {}
+    PyTupleHash(std::size_t len) noexcept : len_(len) {}
 
-    [[nodiscard]] size_t GetResult() const noexcept {
+    [[nodiscard]] std::size_t GetResult() const noexcept {
         return res_;
     }
 
     void AddValue(T const& value) noexcept {
         --len_;
-        size_t hash = hasher(value);
+        std::size_t hash = hasher(value);
         res_ = (res_ ^ hash) * mult_;
         mult_ += 82520UL + len_ + len_;
     }

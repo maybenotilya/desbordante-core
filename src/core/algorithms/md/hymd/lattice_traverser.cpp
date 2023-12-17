@@ -10,8 +10,8 @@ namespace algos::hymd {
 void LatticeTraverser::LowerAndSpecialize(SimilarityData::ValidationResult& validation_result,
                                           lattice::ValidationInfo& validation_info) {
     using model::md::DecisionBoundary, model::Index;
-    auto const& [_, to_specialize, is_unsupported] = validation_result;
-    for (auto const& [index, _, actual_bound] : to_specialize) {
+    auto const& [_, to_lower_info, is_unsupported] = validation_result;
+    for (auto const& [index, _, actual_bound] : to_lower_info) {
         validation_info.node_info->rhs_bounds->operator[](index) = actual_bound;
     }
     if (is_unsupported) {
@@ -30,8 +30,8 @@ void LatticeTraverser::LowerAndSpecialize(SimilarityData::ValidationResult& vali
             if (lattice_->IsUnsupported(lhs_bounds)) {
                 continue;
             }
-            auto it = to_specialize.begin();
-            auto end = to_specialize.end();
+            auto it = to_lower_info.begin();
+            auto end = to_lower_info.end();
             for (; it != end; ++it) {
                 auto const& [rhs_index, old_rhs_bound, _] = *it;
                 if (rhs_index == lhs_spec_index) {
@@ -71,13 +71,13 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
         boost::asio::thread_pool thread_pool;
         for (model::Index i = 0; i < mds_size; ++i) {
             boost::asio::post(thread_pool, [this, &result = results[i], &info = mds[i]]() {
-                result = similarity_data_->Validate(*lattice_, info, min_support_);
+                result = similarity_data_->Validate(*lattice_, info);
             });
         }
         thread_pool.join();
         auto viol_future = std::async(std::launch::async, [this, &results]() {
             for (SimilarityData::ValidationResult& result : results) {
-                for (std::vector<Recommendation> const& rhs_violations : result.violations) {
+                for (std::vector<Recommendation> const& rhs_violations : result.recommendations) {
                     recommendations_.insert(rhs_violations.begin(), rhs_violations.end());
                 };
             }

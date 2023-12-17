@@ -62,7 +62,6 @@ void HyMD::LoadDataInternal() {
 
 unsigned long long HyMD::ExecuteInternal() {
     auto const start_time = std::chrono::system_clock::now();
-    // make column_match_col_indices_ here using column_matches_option_
     std::vector<std::pair<model::Index, model::Index>> column_match_col_indices;
     // make similarity measures here(?)
     std::vector<preprocessing::similarity_measure::SimilarityMeasure const*> sim_measures;
@@ -71,13 +70,14 @@ unsigned long long HyMD::ExecuteInternal() {
                                               right_schema_->GetColumn(right_col_name)->GetIndex());
         sim_measures.push_back(measure_ptr.get());
     }
-    similarity_data_ = SimilarityData::CreateFrom(
-            compressed_records_.get(), std::move(column_match_col_indices), sim_measures);
-    size_t const column_match_number = similarity_data_->GetColumnMatchNumber();
+    std::size_t const column_match_number = sim_measures.size();
     assert(column_match_number != 0);
     lattice_ = std::make_unique<lattice::FullLattice>(column_match_number, [](...) { return 1; });
+    similarity_data_ = SimilarityData::CreateFrom(compressed_records_.get(),
+                                                  std::move(column_match_col_indices), sim_measures,
+                                                  min_support_);
     lattice_traverser_ = std::make_unique<LatticeTraverser>(
-            similarity_data_.get(), lattice_.get(), min_support_,
+            similarity_data_.get(), lattice_.get(),
             std::make_unique<lattice::cardinality::MinPickingLevelGetter>(lattice_.get()));
     record_pair_inferrer_ =
             std::make_unique<RecordPairInferrer>(similarity_data_.get(), lattice_.get());

@@ -9,7 +9,7 @@
 
 namespace algos::hymd::indexes {
 struct ColumnSimilarityInfo {
-    std::vector<model::md::DecisionBoundary> natural_decision_boundaries;
+    std::vector<model::md::DecisionBoundary> lhs_bounds;
     preprocessing::Similarity lowest_similarity;
     indexes::SimilarityMatrix similarity_matrix;
     indexes::SimilarityIndex similarity_index;

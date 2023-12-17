@@ -15,8 +15,6 @@ private:
     lattice::FullLattice* lattice_;
     Recommendations recommendations_;
 
-    size_t min_support_;
-
     std::unique_ptr<lattice::LevelGetter> const level_getter_;
 
     bool prune_nondisjoint_ = true;
@@ -26,10 +24,9 @@ private:
 
 public:
     LatticeTraverser(SimilarityData* similarity_data, lattice::FullLattice* lattice,
-                     size_t min_support, std::unique_ptr<lattice::LevelGetter> level_getter)
+                     std::unique_ptr<lattice::LevelGetter> level_getter)
         : similarity_data_(similarity_data),
           lattice_(lattice),
-          min_support_(min_support),
           level_getter_(std::move(level_getter)) {}
 
     bool TraverseLattice(bool traverse_all);
