@@ -5,6 +5,7 @@
 
 #include <boost/asio.hpp>
 
+#include "algorithms/md/hymd/utility/make_unique_for_overwrite.h"
 #include "model/types/double_type.h"
 #include "model/types/string_type.h"
 #include "util/pick_m_highest_bias.h"
@@ -121,7 +122,9 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
             std::size_t const left_size = string_left.size();
 
             std::size_t const buf_size = GetLevenshteinBufferSize(string_left);
-            auto buf = std::make_unique_for_overwrite<unsigned[]>(buf_size * 2);
+            auto buf = /* TODO: replace with std::make_unique_for_overwrite when GCC in CI is
+                          upgraded */
+                    utility::MakeUniqueForOverwrite<unsigned[]>(buf_size * 2);
 
             auto get_similarity = [&string_left, left_size, &data_info_right, buf1 = buf.get(),
                                    buf2 = buf.get() + buf_size](ValueIdentifier value_id_right) {
