@@ -51,8 +51,9 @@ void LatticeTraverser::LowerAndSpecialize(SimilarityData::ValidationResult& vali
     if (prune_nondisjoint_) {
         specialize_all_lhs([](...) {});
     } else {
-        specialize_all_lhs([&](DecisionBoundary old_rhs_bound,
-                               DecisionBoundary specialized_lhs_bound, Index rhs_index) {
+        specialize_all_lhs([this, &lhs_bounds](DecisionBoundary old_rhs_bound,
+                                               DecisionBoundary specialized_lhs_bound,
+                                               Index rhs_index) {
             if (old_rhs_bound > specialized_lhs_bound) {
                 lattice_->AddIfMinimalAndNotUnsupported(lhs_bounds, old_rhs_bound, rhs_index);
             }
