@@ -5,6 +5,7 @@
 
 #include "algorithms/md/hymd/lattice/cardinality/min_picking_level_getter.h"
 #include "algorithms/md/hymd/preprocessing/similarity_measure/levenshtein_similarity_measure.h"
+#include "algorithms/md/hymd/utility/md_less.h"
 #include "config/names_and_descriptions.h"
 #include "config/option_using.h"
 #include "model/index.h"
@@ -142,10 +143,6 @@ unsigned long long HyMD::ExecuteInternal() {
 }
 
 void HyMD::RegisterResults() {
-    // TODO: sort by LHS cardinality first (i.e. number of nodes), then by boundary in each node,
-    // lexicographically:
-    // [0.0 0.0] [0.1 0.0] [0.4 0.0] [1.0 0.0] [0.0 0.3] [0.0 0.6] [0.0 1.0]
-    // [0.1 0.3] [0.1 0.6] [0.1 1.0] [0.4 0.3] [0.4 0.6] ...
     std::size_t const column_match_number = similarity_data_->GetColumnMatchNumber();
     std::vector<model::md::ColumnMatch> column_matches;
     column_matches.reserve(column_match_number);
@@ -173,21 +170,7 @@ void HyMD::RegisterResults() {
                              std::move(lhs), rhs);
         }
     }
-    std::sort(mds.begin(), mds.end(), [](model::MD const& left, model::MD const& right) {
-        auto const& lhs_left = left.GetLhsDecisionBounds();
-        auto const cardinality_left = std::count_if(lhs_left.begin(), lhs_left.end(),
-                                                    [](auto bound) { return bound != 0.0; });
-        auto const& lhs_right = right.GetLhsDecisionBounds();
-        auto const cardinality_right = std::count_if(lhs_right.begin(), lhs_right.end(),
-                                                     [](auto bound) { return bound != 0.0; });
-        if (cardinality_left < cardinality_right) {
-            return true;
-        } else if (cardinality_left > cardinality_right) {
-            return false;
-        } else {
-            return lhs_left < lhs_right;
-        }
-    });
+    std::sort(mds.begin(), mds.end(), utility::MdLess);
     for (model::MD const& md : mds) {
         RegisterMd(md);
     }

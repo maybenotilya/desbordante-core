@@ -38,8 +38,9 @@ struct hash<algos::hymd::Recommendation> {
         CompressedRecord const& left_record = *p.left_record;
         CompressedRecord const& right_record = *p.right_record;
         if constexpr (kUseJavaHash) {
-            auto values = {utility::HashIterable(left_record), utility::HashIterable(right_record)};
-            return utility::CombineHashes(values);
+            auto values = {algos::hymd::utility::HashIterable(left_record),
+                           algos::hymd::utility::HashIterable(right_record)};
+            return algos::hymd::utility::CombineHashes(values);
         } else {
             util::PyTupleHash<ValueIdentifier> hasher{left_record.size() * 2};
             for (ValueIdentifier v : left_record) {

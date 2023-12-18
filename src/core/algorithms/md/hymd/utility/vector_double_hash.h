@@ -13,9 +13,9 @@ struct hash<std::vector<double>> {
     std::size_t operator()(std::vector<double> const& p) const noexcept {
         constexpr bool kUseJavaHash = true;
         if constexpr (kUseJavaHash) {
-            return utility::HashIterable(p, [](double element) {
-                return /* TODO: replace with std::bit_cast when GCC in CI is upgraded */ utility::
-                        BitCast<std::int64_t>(element);
+            return algos::hymd::utility::HashIterable(p, [](double element) {
+                return /* TODO: replace with std::bit_cast when GCC in CI is upgraded */ algos::
+                        hymd::utility::BitCast<std::int64_t>(element);
             });
         } else {
             util::PyTupleHash<double> hasher{p.size()};

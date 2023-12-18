@@ -14,7 +14,7 @@ struct hash<std::vector<algos::hymd::ValueIdentifier>> {
         using algos::hymd::ValueIdentifier;
         constexpr bool kUseJavaHash = true;
         if constexpr (kUseJavaHash) {
-            return utility::HashIterable(p);
+            return algos::hymd::utility::HashIterable(p);
         } else {
             auto hasher = util::PyTupleHash<ValueIdentifier>(p.size());
             for (ValueIdentifier el : p) {
@@ -286,7 +286,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
     std::size_t const cardinality = non_zero_indices.size();
     std::vector<std::tuple<Index, DecisionBoundary, DecisionBoundary>> rhss_to_lower_info;
     rhss_to_lower_info.reserve(indices_bitset.count());
-    if (cardinality == 0) {
+    if (cardinality == 0) [[unlikely]] {
         for (Index index = indices_bitset.find_first(); index != boost::dynamic_bitset<>::npos;
              index = indices_bitset.find_next(index)) {
             DecisionBoundary const old_bound = rhs_bounds[index];

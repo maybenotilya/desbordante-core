@@ -3,7 +3,7 @@
 #include <cstring>
 #include <type_traits>
 
-namespace utility {
+namespace algos::hymd::utility {
 
 // https://en.cppreference.com/w/cpp/numeric/bit_cast
 template <class To, class From>
@@ -21,4 +21,4 @@ BitCast(const From& src) noexcept {
     return dst;
 }
 
-}  // namespace utility
+}  // namespace algos::hymd::utility

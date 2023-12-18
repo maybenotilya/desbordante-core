@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace utility {
+namespace algos::hymd::utility {
 template <typename Iterable>
 std::int32_t HashIterable(Iterable const& iterable) {
     return HashIterable(iterable, [](auto v) { return v; });
@@ -27,4 +27,4 @@ template <typename HashIterable>
     }
     return hash;
 }
-}  // namespace utility
+}  // namespace algos::hymd::utility
