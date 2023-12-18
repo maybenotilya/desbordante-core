@@ -13,12 +13,13 @@ void OneByOnePicker::NewBatch(std::size_t elements) {
 void OneByOnePicker::AddGeneralizations(MdLatticeNodeInfo& node_info,
                                         boost::dynamic_bitset<>& considered_indices) {
     DecisionBoundaryVector const& lhs_bounds_cur = node_info.lhs_bounds;
+    auto cur_begin = lhs_bounds_cur.begin();
     auto cur_end = lhs_bounds_cur.end();
     for (ValidationInfo& prev_info : currently_picked_) {
         DecisionBoundaryVector const& lhs_bounds_prev = prev_info.node_info->lhs_bounds;
         boost::dynamic_bitset<>& indices_prev = prev_info.rhs_indices;
-        for (auto cur_it = lhs_bounds_cur.begin(), prev_it = lhs_bounds_prev.begin();
-             cur_it != cur_end; ++cur_it, ++prev_it) {
+        for (auto cur_it = cur_begin, prev_it = lhs_bounds_prev.begin(); cur_it != cur_end;
+             ++cur_it, ++prev_it) {
             model::md::DecisionBoundary const cur_bound = *cur_it;
             model::md::DecisionBoundary const prev_bound = *prev_it;
             if (cur_bound < prev_bound) {
