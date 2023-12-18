@@ -10,10 +10,11 @@ namespace algos::hymd {
 void LatticeTraverser::LowerAndSpecialize(SimilarityData::ValidationResult& validation_result,
                                           lattice::ValidationInfo& validation_info) {
     using model::md::DecisionBoundary, model::Index;
-    auto const& [_, to_lower_info, is_unsupported] = validation_result;
+    auto const& to_lower_info = validation_result.rhss_to_lower_info;
     for (auto const& [index, _, actual_bound] : to_lower_info) {
         validation_info.node_info->rhs_bounds->operator[](index) = actual_bound;
     }
+    bool const is_unsupported = validation_result.is_unsupported;
     // TODO: move the below to another class.
     if (is_unsupported) {
         lattice_->MarkUnsupported(validation_info.node_info->lhs_bounds);
@@ -21,8 +22,8 @@ void LatticeTraverser::LowerAndSpecialize(SimilarityData::ValidationResult& vali
     }
     DecisionBoundaryVector& lhs_bounds = validation_info.node_info->lhs_bounds;
     std::size_t const col_matches_num = lhs_bounds.size();
-    auto specialize_all_lhs = [this, &to_lower_info, col_matches_num,
-                               &lhs_bounds](auto handle_same_lhs_as_rhs) {
+    auto specialize_all_lhs = [this, col_matches_num, &lhs_bounds, it_begin = to_lower_info.begin(),
+                               it_end = to_lower_info.end()](auto handle_same_lhs_as_rhs) {
         for (Index lhs_spec_index = 0; lhs_spec_index < col_matches_num; ++lhs_spec_index) {
             DecisionBoundary& lhs_bound = lhs_bounds[lhs_spec_index];
             std::optional<DecisionBoundary> const specialized_lhs_bound =
@@ -32,13 +33,11 @@ void LatticeTraverser::LowerAndSpecialize(SimilarityData::ValidationResult& vali
             if (lattice_->IsUnsupported(lhs_bounds)) {
                 continue;
             }
-            auto it = to_lower_info.begin();
-            auto end = to_lower_info.end();
-            for (; it != end; ++it) {
+            for (auto it = it_begin; it != it_end; ++it) {
                 auto const& [rhs_index, old_rhs_bound, _] = *it;
                 if (rhs_index == lhs_spec_index) {
                     handle_same_lhs_as_rhs(old_rhs_bound, *specialized_lhs_bound, rhs_index);
-                    for (++it; it != end; ++it) {
+                    for (++it; it != it_end; ++it) {
                         auto const& [rhs_index, old_rhs_bound, _] = *it;
                         lattice_->AddIfMinimal(lhs_bounds, old_rhs_bound, rhs_index);
                     }
