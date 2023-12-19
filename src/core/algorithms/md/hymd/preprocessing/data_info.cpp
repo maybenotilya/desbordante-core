@@ -4,14 +4,36 @@
 
 namespace algos::hymd::preprocessing {
 
-DataInfo::DataInfo(std::unique_ptr<std::byte[]> data, std::size_t elements, std::size_t type_size,
+auto DataInfo::MakeDataPtr(std::unique_ptr<std::byte[]> data, model::Type::Destructor destructor,
+                           std::size_t const elements, std::size_t const type_size,
+                           std::unordered_set<ValueIdentifier> const& nulls,
+                           std::unordered_set<ValueIdentifier> const& empty)
+        -> std::unique_ptr<std::byte[], DataDeleter> {
+    DataDeleter deleter = [destructor = std::move(destructor), elements, type_size, &nulls,
+                           &empty](std::byte* data) {
+        if (destructor) {
+            for (ValueIdentifier value_id = 0; value_id < elements; ++value_id) {
+                if (nulls.contains(value_id) || empty.contains(value_id)) continue;
+                destructor(data + value_id * type_size);
+            }
+        }
+        delete[] data;
+    };
+    std::unique_ptr<std::byte[], DataDeleter> ptr{nullptr, std::move(deleter)};
+    ptr.reset(data.release());
+    return ptr;
+}
+
+DataInfo::DataInfo(std::size_t elements, std::size_t type_size,
                    std::unordered_set<ValueIdentifier> nulls,
-                   std::unordered_set<ValueIdentifier> empty)
-    : data_(std::move(data)),
-      elements_(elements),
+                   std::unordered_set<ValueIdentifier> empty, model::Type::Destructor destructor,
+                   std::unique_ptr<std::byte[]> data)
+    : elements_(elements),
       type_size_(type_size),
       nulls_(std::move(nulls)),
-      empty_(std::move(empty)) {}
+      empty_(std::move(empty)),
+      data_(MakeDataPtr(std::move(data), std::move(destructor), elements_, type_size_, nulls_,
+                        empty_)) {}
 
 std::shared_ptr<DataInfo> DataInfo::MakeFrom(indexes::KeyedPositionListIndex const& pli,
                                              model::Type const& type) {
@@ -31,8 +53,8 @@ std::shared_ptr<DataInfo> DataInfo::MakeFrom(indexes::KeyedPositionListIndex con
         }
         type.ValueFromStr(&data[value_id * type_size], string);
     }
-    return std::make_shared<DataInfo>(std::move(data), value_number, type_size, std::move(nulls),
-                                      std::move(empty));
+    return std::make_shared<DataInfo>(value_number, type_size, std::move(nulls), std::move(empty),
+                                      type.GetDestructor(), std::move(data));
 }
 
 }  // namespace algos::hymd::preprocessing

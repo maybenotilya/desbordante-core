@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <unordered_set>
 
@@ -14,15 +15,24 @@ namespace algos::hymd::preprocessing {
 
 class DataInfo {
 private:
-    std::unique_ptr<std::byte[]> const data_;
+    using DataDeleter = std::function<void(std::byte*)>;
+
     std::size_t const elements_;
     std::size_t const type_size_;
     std::unordered_set<ValueIdentifier> const nulls_;
     std::unordered_set<ValueIdentifier> const empty_;
+    std::unique_ptr<std::byte[], DataDeleter> const data_;
+
+    static std::unique_ptr<std::byte[], DataDeleter> MakeDataPtr(
+            std::unique_ptr<std::byte[]> data, model::Type::Destructor destructor,
+            std::size_t const elements, std::size_t const type_size,
+            std::unordered_set<ValueIdentifier> const& nulls,
+            std::unordered_set<ValueIdentifier> const& empty);
 
 public:
-    DataInfo(std::unique_ptr<std::byte[]> data, std::size_t elements, std::size_t type_size,
-             std::unordered_set<ValueIdentifier> nulls, std::unordered_set<ValueIdentifier> empty);
+    DataInfo(std::size_t elements, std::size_t type_size, std::unordered_set<ValueIdentifier> nulls,
+             std::unordered_set<ValueIdentifier> empty, model::Type::Destructor destructor,
+             std::unique_ptr<std::byte[]> data);
 
     std::byte const* GetAt(ValueIdentifier const value_id) const {
         return &data_[value_id * type_size_];
