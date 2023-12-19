@@ -74,18 +74,18 @@ bool RecordPairInferrer::InferFromRecordPairs(Recommendations recommendations) {
 
     auto process_collection = [&](auto& collection, auto get_sim_vec) {
         while (!collection.empty()) {
-            SimilarityVector const sim =
-                    get_sim_vec(collection.extract(collection.begin()).value());
-            if (avoid_same_sim_vec_processing_) {
-                auto [_, not_seen] = checked_sim_vecs_.insert(sim);
-                if (!not_seen) continue;
-            }
-            ProcessSimVec(sim);
-            ++statistics.sim_vecs_processed;
             if (ShouldStopInferring(statistics)) {
                 // efficiency_reciprocal_ *= 2;
                 return true;
             }
+            SimilarityVector const sim =
+                    get_sim_vec(collection.extract(collection.begin()).value());
+            if (avoid_same_sim_vec_processing_) {
+                bool const not_seen_before = checked_sim_vecs_.insert(sim).second;
+                if (!not_seen_before) continue;
+            }
+            ProcessSimVec(sim);
+            ++statistics.sim_vecs_processed;
         }
         return false;
     };
