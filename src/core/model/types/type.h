@@ -125,13 +125,13 @@ public:
         return *reinterpret_cast<T*>(buf);
     }
 
-    virtual Destructor GetDestructor() const {
-        return nullptr;
-    }
-
     static bool IsOrdered(TypeId const& type_id) {
         return !(type_id == +TypeId::kEmpty || type_id == +TypeId::kNull ||
                  type_id == +TypeId::kUndefined || type_id == +TypeId::kMixed);
+    }
+
+    virtual Destructor GetDestructor() const {
+        return nullptr;
     }
 };
 

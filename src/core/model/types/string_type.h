@@ -91,7 +91,7 @@ public:
     }
 
     Destructor GetDestructor() const override {
-        return [](std::byte* string) { Destruct(string); };
+        return Destruct;
     }
 };
 

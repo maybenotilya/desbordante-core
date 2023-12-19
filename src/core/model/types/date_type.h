@@ -119,7 +119,7 @@ public:
     }
 
     [[nodiscard]] Destructor GetDestructor() const override {
-        return [](std::byte* date) { Destruct(date); };
+        return Destruct;
     }
 };
 
