@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <sstream>
 
@@ -12,6 +13,8 @@ private:
     TypeId type_id_;
 
 public:
+    using Destructor = std::function<void(std::byte*)>;
+
     explicit Type(TypeId const type_id) noexcept : type_id_(type_id) {}
 
     virtual ~Type() = default;
@@ -120,6 +123,10 @@ public:
     template <typename T>
     [[nodiscard]] static T& GetValue(std::byte* buf) {
         return *reinterpret_cast<T*>(buf);
+    }
+
+    virtual Destructor GetDestructor() const {
+        return nullptr;
     }
 
     static bool IsOrdered(TypeId const& type_id) {

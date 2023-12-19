@@ -117,6 +117,10 @@ public:
     [[nodiscard]] auto GetDeleater() const {
         return [this](std::byte const* v) { Free(v); };
     }
+
+    [[nodiscard]] Destructor GetDestructor() const override {
+        return [](std::byte* date) { Destruct(date); };
+    }
 };
 
 using DateTypeDeleter = decltype(std::declval<DateType>().GetDeleater());
