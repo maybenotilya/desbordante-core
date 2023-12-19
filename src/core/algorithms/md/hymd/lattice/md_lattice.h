@@ -29,6 +29,7 @@ public:
     std::size_t GetColMatchNumber() const {
         return column_matches_size_;
     }
+
     [[nodiscard]] bool HasGeneralization(DecisionBoundaryVector const& lhs_bounds,
                                          model::md::DecisionBoundary rhs_bound,
                                          model::Index rhs_index) const;

@@ -24,6 +24,7 @@ public:
     bool AreLevelsLeft() const {
         return cur_level_ <= lattice_->GetMaxLevel();
     }
+
     std::vector<ValidationInfo> GetCurrentMds() {
         lattice_level_info_ = lattice_->GetLevel(cur_level_);
         return GetCurrentMdsInternal(lattice_level_info_);
