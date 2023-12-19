@@ -22,12 +22,15 @@ private:
 public:
     explicit DictionaryCompressor(std::size_t attribute_num);
     void AddRecord(std::vector<std::string> record);
+
     [[nodiscard]] KeyedPositionListIndex const& GetPli(model::Index column_index) const {
         return plis_[column_index];
     };
+
     [[nodiscard]] std::vector<CompressedRecord> const& GetRecords() const {
         return records_;
     }
+
     [[nodiscard]] std::size_t GetNumberOfRecords() const {
         return records_processed_;
     }

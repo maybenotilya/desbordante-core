@@ -4,7 +4,7 @@
 
 namespace model {
 
-MD::MD(RelationalSchema const* left_schema, const RelationalSchema* right_schema,
+MD::MD(RelationalSchema const* left_schema, RelationalSchema const* right_schema,
        std::vector<md::ColumnMatch> column_matches,
        std::vector<md::LhsColumnSimilarityClassifier> lhs, md::ColumnSimilarityClassifier rhs)
     : left_schema_(left_schema),

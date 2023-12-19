@@ -64,7 +64,7 @@ protected:
 TEST_F(HyMDTest, DrunkAnimalsNormal) {
     using model::md::DecisionBoundary, model::Index, model::MD;
     using MdPair = std::pair<std::vector<DecisionBoundary>, std::pair<Index, DecisionBoundary>>;
-    const auto dataset_path = test_data_dir / "drunk_animals.csv";
+    auto const dataset_path = test_data_dir / "drunk_animals.csv";
     auto param_map = GetParamMap(dataset_path, ',', true);
     auto hymd = algos::CreateAndLoadAlgorithm<algos::hymd::HyMD>(param_map);
     std::vector<MdPair> expected = {
@@ -84,7 +84,7 @@ TEST_F(HyMDTest, DrunkAnimalsNormal) {
 
 TEST_F(HyMDTest, DrunkAnimalsNoLimits) {
     using model::md::DecisionBoundary, model::Index, model::MD, algos::hymd::utility::MdPair;
-    const auto dataset_path = test_data_dir / "drunk_animals.csv";
+    auto const dataset_path = test_data_dir / "drunk_animals.csv";
     auto param_map = GetParamMap(dataset_path, ',', true, 0, false, 0.0);
     auto hymd = algos::CreateAndLoadAlgorithm<algos::hymd::HyMD>(param_map);
     std::vector<MdPair> expected = {
@@ -119,7 +119,7 @@ TEST_F(HyMDTest, DrunkAnimalsNoLimits) {
 TEST_F(HyMDTest, AdultFDs) {
     using model::md::DecisionBoundary, model::Index, model::MD;
     using IndexPair = std::pair<Index, Index>;
-    const auto dataset_path = test_data_dir / "adult.csv";
+    auto const dataset_path = test_data_dir / "adult.csv";
     auto param_map = GetParamMap(dataset_path, ';', false);
     auto hymd = algos::CreateAndLoadAlgorithm<algos::hymd::HyMD>(param_map);
     algos::ConfigureFromMap(*hymd, param_map);
