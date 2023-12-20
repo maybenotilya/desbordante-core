@@ -13,7 +13,7 @@ struct RecordPairInferrer::Statistics {
     std::size_t sim_vecs_processed = 0;
 };
 
-bool RecordPairInferrer::ShouldStopInferring(Statistics const& statistics) const {
+bool RecordPairInferrer::ShouldStopInferring(Statistics const& statistics) const noexcept {
     return statistics.samplings_started >= 2 || statistics.sim_vecs_processed > 100;
     /*
     return records_checked >= 5 &&

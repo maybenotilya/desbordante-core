@@ -27,11 +27,11 @@ public:
         return plis_[column_index];
     };
 
-    [[nodiscard]] std::vector<CompressedRecord> const& GetRecords() const {
+    [[nodiscard]] std::vector<CompressedRecord> const& GetRecords() const noexcept {
         return records_;
     }
 
-    [[nodiscard]] std::size_t GetNumberOfRecords() const {
+    [[nodiscard]] std::size_t GetNumberOfRecords() const noexcept {
         return records_processed_;
     }
 

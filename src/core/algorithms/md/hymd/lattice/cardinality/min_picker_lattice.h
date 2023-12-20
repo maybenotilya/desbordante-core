@@ -23,7 +23,7 @@ public:
     void NewBatch(std::size_t max_elements);
     void AddGeneralizations(MdLatticeNodeInfo& lattice_node_info,
                             boost::dynamic_bitset<>& considered_indices);
-    std::vector<ValidationInfo> GetAll();
+    std::vector<ValidationInfo> GetAll() noexcept(kNeedsEmptyRemoval);
 };
 
 }  // namespace algos::hymd::lattice::cardinality

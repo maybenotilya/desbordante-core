@@ -24,14 +24,14 @@ struct SimTaskData {
     indexes::MatchingRecsMapping matching_recs_mapping;
 };
 
-std::size_t GetLevenshteinBufferSize(auto const& right_string) {
+std::size_t GetLevenshteinBufferSize(auto const& right_string) noexcept {
     return right_string.size() + 1;
 }
 
 /* An optimized version of the Levenshtein distance computation algorithm from
  * https://en.wikipedia.org/wiki/Levenshtein_distance, using preallocated buffers
  */
-unsigned LevenshteinDistance(auto const& l, auto const& r, unsigned* v0, unsigned* v1) {
+unsigned LevenshteinDistance(auto const& l, auto const& r, unsigned* v0, unsigned* v1) noexcept {
     std::size_t const r_size = r.size();
     assert(v0 < v1);
     assert(GetLevenshteinBufferSize(r) == std::size_t(v1 - v0));

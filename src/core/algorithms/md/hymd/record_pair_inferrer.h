@@ -31,10 +31,10 @@ private:
     bool const avoid_same_sim_vec_processing_ = true;
 
     void ProcessSimVec(SimilarityVector const& sim);
-    bool ShouldStopInferring(Statistics const& statistics) const;
+    bool ShouldStopInferring(Statistics const& statistics) const noexcept;
 
 public:
-    RecordPairInferrer(SimilarityData* similarity_data, lattice::FullLattice* lattice)
+    RecordPairInferrer(SimilarityData* similarity_data, lattice::FullLattice* lattice) noexcept
         : similarity_data_(similarity_data),
           lattice_(lattice),
           prune_nondisjoint_(similarity_data_->ShouldPruneNondisjoint()) {}

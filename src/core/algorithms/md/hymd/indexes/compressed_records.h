@@ -9,20 +9,20 @@ class CompressedRecords {
     std::shared_ptr<DictionaryCompressor const> const records_right_;
 
 public:
-    [[nodiscard]] bool OneTableGiven() const {
+    [[nodiscard]] bool OneTableGiven() const noexcept {
         return records_left_ == records_right_;
     }
 
-    [[nodiscard]] DictionaryCompressor const& GetLeftRecords() const {
+    [[nodiscard]] DictionaryCompressor const& GetLeftRecords() const noexcept {
         return *records_left_;
     }
 
-    [[nodiscard]] DictionaryCompressor const& GetRightRecords() const {
+    [[nodiscard]] DictionaryCompressor const& GetRightRecords() const noexcept {
         return *records_right_;
     }
 
     CompressedRecords(std::shared_ptr<DictionaryCompressor> records_left,
-                      std::shared_ptr<DictionaryCompressor> records_right)
+                      std::shared_ptr<DictionaryCompressor> records_right) noexcept
         : records_left_(std::move(records_left)), records_right_(std::move(records_right)) {}
 
     static std::unique_ptr<CompressedRecords> CreateFrom(model::IDatasetStream& left_table) {

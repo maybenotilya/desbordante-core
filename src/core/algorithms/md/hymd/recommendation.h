@@ -14,9 +14,6 @@ struct Recommendation {
     CompressedRecord const* left_record;
     CompressedRecord const* right_record;
 
-    Recommendation(CompressedRecord const* left_record, CompressedRecord const* right_record)
-        : left_record(left_record), right_record(right_record) {}
-
     friend bool operator==(Recommendation const& a, Recommendation const& b) {
         return *a.left_record == *b.left_record && *a.right_record == *b.right_record;
     }

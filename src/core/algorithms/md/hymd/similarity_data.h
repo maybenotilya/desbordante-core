@@ -49,11 +49,11 @@ private:
         return column_matches_info_[column_match_index].left_column_index;
     }
 
-    indexes::DictionaryCompressor const& GetLeftCompressor() const {
+    indexes::DictionaryCompressor const& GetLeftCompressor() const noexcept {
         return compressed_records_->GetLeftRecords();
     }
 
-    indexes::DictionaryCompressor const& GetRightCompressor() const {
+    indexes::DictionaryCompressor const& GetRightCompressor() const noexcept {
         return compressed_records_->GetRightRecords();
     }
 
@@ -76,7 +76,7 @@ private:
             ValueIdentifier value_id, model::md::DecisionBoundary lhs_bound,
             model::Index column_match_index) const;
 
-    [[nodiscard]] std::size_t GetRightSize() const {
+    [[nodiscard]] std::size_t GetRightSize() const noexcept {
         return GetRightCompressor().GetNumberOfRecords();
     }
 
@@ -91,7 +91,7 @@ public:
 
     SimilarityData(indexes::CompressedRecords* compressed_records,
                    std::vector<ColumnMatchInfo> column_matches_info, std::size_t min_support,
-                   lattice::FullLattice* lattice, bool prune_nondisjoint)
+                   lattice::FullLattice* lattice, bool prune_nondisjoint) noexcept
         : compressed_records_(compressed_records),
           column_matches_info_(std::move(column_matches_info)),
           single_table_(compressed_records_->OneTableGiven()),
@@ -107,11 +107,11 @@ public:
                     column_matches_info,
             std::size_t min_support, lattice::FullLattice* lattice, bool prune_nondisjoint);
 
-    [[nodiscard]] bool ShouldPruneNondisjoint() const {
+    [[nodiscard]] bool ShouldPruneNondisjoint() const noexcept {
         return prune_nondisjoint_;
     }
 
-    [[nodiscard]] std::size_t GetColumnMatchNumber() const {
+    [[nodiscard]] std::size_t GetColumnMatchNumber() const noexcept {
         return column_matches_info_.size();
     }
 
@@ -121,7 +121,7 @@ public:
         return {info.left_column_index, info.right_column_index};
     }
 
-    [[nodiscard]] std::size_t GetLeftSize() const {
+    [[nodiscard]] std::size_t GetLeftSize() const noexcept {
         return GetLeftCompressor().GetNumberOfRecords();
     }
 

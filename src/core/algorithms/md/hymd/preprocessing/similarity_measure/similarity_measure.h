@@ -27,16 +27,16 @@ private:
 
 public:
     SimilarityMeasure(std::unique_ptr<model::Type> arg_type,
-                      std::unique_ptr<model::INumericType> ret_type)
+                      std::unique_ptr<model::INumericType> ret_type) noexcept
         : arg_type_(std::move(arg_type)), ret_type_(std::move(ret_type)) {}
 
     virtual ~SimilarityMeasure() = default;
 
-    [[nodiscard]] model::TypeId GetArgTypeId() const {
+    [[nodiscard]] model::TypeId GetArgTypeId() const noexcept {
         return arg_type_->GetTypeId();
     }
 
-    [[nodiscard]] model::Type const& GetArgType() const {
+    [[nodiscard]] model::Type const& GetArgType() const noexcept {
         return *arg_type_;
     }
 

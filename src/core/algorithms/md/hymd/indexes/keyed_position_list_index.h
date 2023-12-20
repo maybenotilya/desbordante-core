@@ -21,12 +21,12 @@ private:
 public:
     ValueIdentifier AddNextValue(std::string value);
 
-    std::unordered_map<std::string, ValueIdentifier> const& GetMapping() const {
+    std::unordered_map<std::string, ValueIdentifier> const& GetMapping() const noexcept {
         assert(value_id_mapping_.size() == clusters_.size());
         return value_id_mapping_;
     }
 
-    std::vector<PliCluster> const& GetClusters() const {
+    std::vector<PliCluster> const& GetClusters() const noexcept {
         return clusters_;
     }
 };

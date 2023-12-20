@@ -26,7 +26,7 @@ private:
     SingleLevelFunc const get_single_level_;
 
 public:
-    std::size_t GetColMatchNumber() const {
+    std::size_t GetColMatchNumber() const noexcept {
         return column_matches_size_;
     }
 
@@ -34,7 +34,9 @@ public:
                                          model::md::DecisionBoundary rhs_bound,
                                          model::Index rhs_index) const;
 
-    [[nodiscard]] std::size_t GetMaxLevel() const;
+    [[nodiscard]] std::size_t GetMaxLevel() const noexcept {
+        return max_level_;
+    }
     std::vector<MdLatticeNodeInfo> GetLevel(std::size_t level);
     std::vector<model::md::DecisionBoundary> GetRhsInterestingnessBounds(
             DecisionBoundaryVector const& lhs_bounds,

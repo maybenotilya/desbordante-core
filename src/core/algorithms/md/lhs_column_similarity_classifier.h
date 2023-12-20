@@ -25,9 +25,10 @@ private:
 
 public:
     LhsColumnSimilarityClassifier(std::optional<DecisionBoundary> max_disproved_bound,
-                                  Index column_match_index, DecisionBoundary decision_boundary)
+                                  Index column_match_index,
+                                  DecisionBoundary decision_boundary) noexcept
         : ColumnSimilarityClassifier(column_match_index, decision_boundary),
-          max_disproved_bound_(max_disproved_bound) {}
+          max_disproved_bound_(std::move(max_disproved_bound)) {}
 
     [[nodiscard]] std::optional<DecisionBoundary> GetMaxDisprovedBound() const noexcept {
         return max_disproved_bound_;

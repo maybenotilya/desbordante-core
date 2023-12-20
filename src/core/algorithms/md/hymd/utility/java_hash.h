@@ -4,13 +4,13 @@
 
 namespace algos::hymd::utility {
 template <typename Iterable>
-std::int32_t HashIterable(Iterable const& iterable) {
+std::int32_t HashIterable(Iterable const& iterable) noexcept {
     return HashIterable(iterable, [](auto v) { return v; });
 }
 
 template <typename Iterable, typename Func>
 /* [[gnu::optimize("wrapv")]] */ std::int32_t HashIterable(Iterable const& iterable,
-                                                           Func transform) {
+                                                           Func transform) noexcept {
     std::int32_t hash = 1;
     for (auto element : iterable) {
         auto value = transform(element);
@@ -20,7 +20,8 @@ template <typename Iterable, typename Func>
 }
 
 template <typename HashIterable>
-/* [[gnu::optimize("wrapv")]] */ std::int32_t CombineHashes(HashIterable const& hash_iterable) {
+/* [[gnu::optimize("wrapv")]] */ std::int32_t CombineHashes(
+        HashIterable const& hash_iterable) noexcept {
     std::int32_t hash = 1;
     for (std::int32_t hash_part : hash_iterable) {
         hash = (hash * 59) + hash_part;

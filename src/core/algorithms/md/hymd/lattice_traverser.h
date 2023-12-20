@@ -24,7 +24,7 @@ private:
 
 public:
     LatticeTraverser(SimilarityData* similarity_data, lattice::FullLattice* lattice,
-                     std::unique_ptr<lattice::LevelGetter> level_getter)
+                     std::unique_ptr<lattice::LevelGetter> level_getter) noexcept
         : similarity_data_(similarity_data),
           lattice_(lattice),
           level_getter_(std::move(level_getter)),
@@ -32,7 +32,7 @@ public:
 
     bool TraverseLattice(bool traverse_all);
 
-    Recommendations TakeRecommendations() {
+    Recommendations TakeRecommendations() noexcept {
         auto recommendations = std::move(recommendations_);
         recommendations_.clear();
         return recommendations;

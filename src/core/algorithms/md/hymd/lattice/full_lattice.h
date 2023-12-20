@@ -21,7 +21,7 @@ private:
     SupportLattice support_lattice_;
 
 public:
-    std::size_t GetColMatchNumber() const {
+    std::size_t GetColMatchNumber() const noexcept {
         return md_lattice_.GetColMatchNumber();
     }
 

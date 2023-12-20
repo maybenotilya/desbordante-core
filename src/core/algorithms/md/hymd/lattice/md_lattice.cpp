@@ -11,10 +11,6 @@ MdLattice::MdLattice(std::size_t column_matches_size, SingleLevelFunc single_lev
       column_matches_size_(column_matches_size),
       get_single_level_(std::move(single_level_func)) {}
 
-std::size_t MdLattice::GetMaxLevel() const {
-    return max_level_;
-}
-
 void MdLattice::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
                              model::md::DecisionBoundary const rhs_bound, model::Index rhs_index) {
     // TODO: use info about where the LHS was specialized from to reduce generalization checks.

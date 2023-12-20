@@ -21,7 +21,7 @@ protected:
 public:
     LevelGetter(FullLattice* lattice) : lattice_(lattice) {}
 
-    bool AreLevelsLeft() const {
+    bool AreLevelsLeft() const noexcept {
         return cur_level_ <= lattice_->GetMaxLevel();
     }
 

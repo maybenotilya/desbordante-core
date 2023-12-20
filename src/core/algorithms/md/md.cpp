@@ -6,7 +6,8 @@ namespace model {
 
 MD::MD(RelationalSchema const* left_schema, RelationalSchema const* right_schema,
        std::vector<md::ColumnMatch> column_matches,
-       std::vector<md::LhsColumnSimilarityClassifier> lhs, md::ColumnSimilarityClassifier rhs)
+       std::vector<md::LhsColumnSimilarityClassifier> lhs,
+       md::ColumnSimilarityClassifier rhs) noexcept
     : left_schema_(left_schema),
       right_schema_(right_schema),
       column_matches_(std::move(column_matches)),

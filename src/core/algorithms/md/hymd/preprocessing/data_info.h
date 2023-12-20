@@ -34,19 +34,19 @@ public:
              std::unordered_set<ValueIdentifier> empty, model::Type::Destructor destructor,
              std::unique_ptr<std::byte[]> data);
 
-    std::byte const* GetAt(ValueIdentifier const value_id) const {
+    std::byte const* GetAt(ValueIdentifier const value_id) const noexcept {
         return &data_[value_id * type_size_];
     }
 
-    std::size_t GetElementNumber() const {
+    std::size_t GetElementNumber() const noexcept {
         return elements_;
     }
 
-    std::unordered_set<ValueIdentifier> const& GetNulls() const {
+    std::unordered_set<ValueIdentifier> const& GetNulls() const noexcept {
         return nulls_;
     }
 
-    std::unordered_set<ValueIdentifier> const& GetEmpty() const {
+    std::unordered_set<ValueIdentifier> const& GetEmpty() const noexcept {
         return empty_;
     }
 

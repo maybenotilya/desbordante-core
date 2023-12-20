@@ -13,7 +13,8 @@ private:
     DecisionBoundary decision_boundary_;
 
 public:
-    ColumnSimilarityClassifier(Index column_match_index, DecisionBoundary decision_boundary)
+    ColumnSimilarityClassifier(Index column_match_index,
+                               DecisionBoundary decision_boundary) noexcept
         : column_match_index_(column_match_index), decision_boundary_(decision_boundary) {}
 
     [[nodiscard]] Index GetColumnMatchIndex() const noexcept {

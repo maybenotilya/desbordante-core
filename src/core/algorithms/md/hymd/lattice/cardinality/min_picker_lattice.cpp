@@ -20,7 +20,7 @@ void MinPickerLattice::AddGeneralizations(MdLatticeNodeInfo& lattice_node_info,
     root_.Add(&added_ref, 0);
 }
 
-std::vector<ValidationInfo> MinPickerLattice::GetAll() {
+std::vector<ValidationInfo> MinPickerLattice::GetAll() noexcept(kNeedsEmptyRemoval) {
     if constexpr (kNeedsEmptyRemoval) {
         // TODO: investigate different orders.
         return std::move(info_);

@@ -23,7 +23,8 @@ private:
 public:
     MD(RelationalSchema const *left_schema, RelationalSchema const *right_schema,
        std::vector<md::ColumnMatch> column_matches,
-       std::vector<md::LhsColumnSimilarityClassifier> lhs, md::ColumnSimilarityClassifier rhs);
+       std::vector<md::LhsColumnSimilarityClassifier> lhs,
+       md::ColumnSimilarityClassifier rhs) noexcept;
 
     [[nodiscard]] std::string ToStringFull() const;
     [[nodiscard]] std::string ToStringShort() const;
