@@ -4,7 +4,6 @@
 
 #include "algorithms/md/hymd/indexes/column_similarity_info.h"
 #include "algorithms/md/hymd/utility/java_hash.h"
-#include "util/intersect_sorted_sequences.h"
 #include "util/py_tuple_hash.h"
 
 namespace std {
