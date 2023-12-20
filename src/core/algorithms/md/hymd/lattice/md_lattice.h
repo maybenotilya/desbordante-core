@@ -37,6 +37,7 @@ public:
     [[nodiscard]] std::size_t GetMaxLevel() const noexcept {
         return max_level_;
     }
+
     std::vector<MdLatticeNodeInfo> GetLevel(std::size_t level);
     std::vector<model::md::DecisionBoundary> GetRhsInterestingnessBounds(
             DecisionBoundaryVector const& lhs_bounds,
