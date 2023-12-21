@@ -142,8 +142,6 @@ TEST_F(HyMDTest, AdultFDs) {
             found_mds_string.seekp(-1, std::stringstream::cur);
             FAIL() << "No FD-like MD found (left = " << left << ", right = " << right
                    << "). Found MDs: " << found_mds_string.str();
-        } else {
-            SUCCEED();
         }
     }
 }
