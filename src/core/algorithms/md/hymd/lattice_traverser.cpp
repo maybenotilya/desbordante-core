@@ -54,7 +54,7 @@ void LatticeTraverser::LowerAndSpecialize(SimilarityData::ValidationResult& vali
                                                DecisionBoundary specialized_lhs_bound,
                                                Index rhs_index) {
             if (old_rhs_bound > specialized_lhs_bound) {
-                lattice_->AddIfMinimalAndNotUnsupported(lhs_bounds, old_rhs_bound, rhs_index);
+                lattice_->AddIfMinimal(lhs_bounds, old_rhs_bound, rhs_index);
             }
         });
     }
