@@ -1,13 +1,12 @@
 #pragma once
 
-#include <cassert>
 #include <vector>
 
 namespace util {
 template <typename T>
 std::vector<T> PickMHighestBias(std::vector<T> const& initial, std::size_t const size_limit) {
     std::size_t const initial_size = initial.size();
-    assert(initial_size > size_limit);
+    if (initial_size <= size_limit) return initial;
     std::vector<T> elements;
     elements.reserve(size_limit);
     std::size_t const add_index = initial_size / size_limit;

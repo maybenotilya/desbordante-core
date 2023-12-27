@@ -213,7 +213,7 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
     decision_bounds.erase(std::unique(decision_bounds.begin(), decision_bounds.end()),
                           decision_bounds.end());
     std::size_t const dec_bound_size = decision_bounds.size();
-    if (size_limit_ == 0 || dec_bound_size <= size_limit_) {
+    if (size_limit_ == 0) {
         return {std::move(decision_bounds), lowest, std::move(similarity_matrix),
                 std::move(similarity_index)};
     }
