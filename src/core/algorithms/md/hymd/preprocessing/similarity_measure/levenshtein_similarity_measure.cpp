@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <numeric>
+#include <set>
 
 #include <boost/asio.hpp>
 
@@ -77,7 +78,7 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
         std::shared_ptr<DataInfo const> data_info_left,
         std::shared_ptr<DataInfo const> data_info_right,
         std::vector<indexes::PliCluster> const& clusters_right) const {
-    std::vector<model::md::DecisionBoundary> decision_bounds;
+    std::set<model::md::DecisionBoundary> decision_bounds_set;
     indexes::SimilarityMatrix similarity_matrix;
     indexes::SimilarityIndex similarity_index;
     std::size_t const data_left_size = data_info_left->GetElementNumber();
@@ -200,19 +201,16 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
                 pool, [left_value_id, &process_value_id]() { process_value_id(left_value_id); });
     }
     pool.join();
-    for (ValueIdentifier left_value_id = 0; left_value_id < data_left_size; ++left_value_id) {
-        SimTaskData& task = task_info[left_value_id];
+    for (SimTaskData& task : task_info) {
         if (task.row_decision_bounds.empty()) continue;
-        similarity_index[left_value_id] = std::move(task.matching_recs_mapping);
-        similarity_matrix[left_value_id] = std::move(task.sim_matrix_row);
-        decision_bounds.insert(decision_bounds.end(), task.row_decision_bounds.begin(),
-                               task.row_decision_bounds.end());
+        similarity_index.push_back(std::move(task.matching_recs_mapping));
+        similarity_matrix.push_back(std::move(task.sim_matrix_row));
+        decision_bounds_set.insert(task.row_decision_bounds.begin(),
+                                   task.row_decision_bounds.end());
         if (task.row_lowest < lowest) lowest = task.row_lowest;
     }
-    std::sort(decision_bounds.begin(), decision_bounds.end());
-    decision_bounds.erase(std::unique(decision_bounds.begin(), decision_bounds.end()),
-                          decision_bounds.end());
-    std::size_t const dec_bound_size = decision_bounds.size();
+    std::vector<model::md::DecisionBoundary> decision_bounds{decision_bounds_set.begin(),
+                                                             decision_bounds_set.end()};
     if (size_limit_ == 0) {
         return {std::move(decision_bounds), lowest, std::move(similarity_matrix),
                 std::move(similarity_index)};

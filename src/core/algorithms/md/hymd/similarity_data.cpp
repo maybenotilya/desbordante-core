@@ -148,19 +148,16 @@ bool SimilarityData::LowerForColumnMatchNoCheck(
                     working_info.recommendations.emplace_back(left_record_ptr, &right_record);
                 }
             };
-            auto it_left = similarity_matrix.find(left_value_id);
-            if (it_left == similarity_matrix.end()) {
-            not_in_similarity_matrix:
+            auto const& row = similarity_matrix[left_value_id];
+            ValueIdentifier const right_value_id = right_record[col_match_index];
+            auto it_right = row.find(right_value_id);
+            if (it_right == row.end()) {
                 add_recommendations();
             rhs_not_valid:
                 current_rhs_bound = 0.0;
                 if (working_info.EnoughRecommendations()) return true;
                 continue;
             }
-            auto const& row = it_left->second;
-            ValueIdentifier const right_value_id = right_record[col_match_index];
-            auto it_right = row.find(right_value_id);
-            if (it_right == row.end()) goto not_in_similarity_matrix;
 
             preprocessing::Similarity const record_similarity = it_right->second;
             if (record_similarity < working_info.old_bound) add_recommendations();
@@ -176,35 +173,30 @@ std::unordered_set<SimilarityVector> SimilarityData::GetSimVecs(
     // TODO: use the "slim" sim index to fill those instead of lookups in similarity matrices
     std::size_t const col_match_number = GetColumnMatchNumber();
     CompressedRecord const& left_record = GetLeftCompressor().GetRecords()[left_record_id];
-    std::vector<std::pair<indexes::SimilarityMatrixRow const*, model::Index>>
-            similarity_matrix_row_ptrs;
+    std::vector<indexes::SimilarityMatrixRow const*> similarity_matrix_row_ptrs;
     similarity_matrix_row_ptrs.reserve(col_match_number);
     for (model::Index col_match_idx = 0; col_match_idx < col_match_number; ++col_match_idx) {
         indexes::SimilarityMatrix const& col_match_matrix =
                 column_matches_info_[col_match_idx].similarity_info.similarity_matrix;
-        auto it = col_match_matrix.find(left_record[col_match_idx]);
-        if (it == col_match_matrix.end()) continue;
-        similarity_matrix_row_ptrs.emplace_back(&it->second, col_match_idx);
+        similarity_matrix_row_ptrs.push_back(&col_match_matrix[left_record[col_match_idx]]);
     }
-    if (similarity_matrix_row_ptrs.empty()) return {SimilarityVector(col_match_number, 0.0)};
     std::unordered_set<SimilarityVector> sim_vecs;
     auto const& right_records = GetRightCompressor().GetRecords();
     std::size_t const right_records_num = right_records.size();
     // for (RecordIdentifier right_record_id = 0;
-    // Optimization not done in Metanome.
+    // Optimization not performed in Metanome.
     RecordIdentifier const start_from = single_table_ ? left_record_id + 1 : 0;
     // TODO: parallelize this
     SimilarityVector pair_sims(col_match_number, 0.0);
     for (RecordIdentifier right_record_id = start_from; right_record_id < right_records_num;
          ++right_record_id) {
         CompressedRecord const& right_record = right_records[right_record_id];
-        for (auto [sim_matrix_row_ptr, col_match_index] : similarity_matrix_row_ptrs) {
+        for (model::Index col_match_index = 0; col_match_index < col_match_number; ++col_match_index) {
+            auto* sim_matrix_row_ptr = similarity_matrix_row_ptrs[col_match_index];
             auto it = sim_matrix_row_ptr->find(right_record[col_match_index]);
-            if (it == sim_matrix_row_ptr->end()) continue;
-            pair_sims[col_match_index] = it->second;
+            pair_sims[col_match_index] = it == sim_matrix_row_ptr->end() ? 0.0 : it->second;
         }
         sim_vecs.insert(pair_sims);
-        pair_sims.assign(col_match_number, 0.0);
     }
     return sim_vecs;
 }
@@ -217,12 +209,7 @@ SimilarityVector SimilarityData::GetSimilarityVector(CompressedRecord const& lef
     for (model::Index i = 0; i < col_match_number; ++i) {
         indexes::SimilarityMatrix const& similarity_matrix =
                 column_matches_info_[i].similarity_info.similarity_matrix;
-        auto row_it = similarity_matrix.find(left_record[i]);
-        if (row_it == similarity_matrix.end()) {
-            similarities.push_back(0.0);
-            continue;
-        }
-        indexes::SimilarityMatrixRow const& row = row_it->second;
+        indexes::SimilarityMatrixRow const& row = similarity_matrix[left_record[i]];
         auto sim_it = row.find(right_record[i]);
         if (sim_it == row.end()) {
             similarities.push_back(0.0);
@@ -238,9 +225,7 @@ std::unordered_set<RecordIdentifier> const* SimilarityData::GetSimilarRecords(
         model::Index column_match_index) const {
     indexes::SimilarityIndex const& similarity_index =
             column_matches_info_[column_match_index].similarity_info.similarity_index;
-    auto val_index_it = similarity_index.find(value_id);
-    if (val_index_it == similarity_index.end()) return nullptr;
-    auto const& val_index = val_index_it->second;
+    indexes::MatchingRecsMapping const& val_index = similarity_index[value_id];
     auto it = val_index.lower_bound(lhs_bound);
     if (it == val_index.end()) return nullptr;
     return &it->second;

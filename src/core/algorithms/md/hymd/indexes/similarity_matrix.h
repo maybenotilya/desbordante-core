@@ -7,5 +7,5 @@
 
 namespace algos::hymd::indexes {
 using SimilarityMatrixRow = std::unordered_map<ValueIdentifier, preprocessing::Similarity>;
-using SimilarityMatrix = std::unordered_map<ValueIdentifier, SimilarityMatrixRow>;
+using SimilarityMatrix = std::vector<SimilarityMatrixRow>;
 }  // namespace algos::hymd::indexes

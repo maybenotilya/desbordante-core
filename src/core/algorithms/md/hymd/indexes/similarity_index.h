@@ -11,5 +11,5 @@
 namespace algos::hymd::indexes {
 using MatchingRecsMapping =
         std::map<preprocessing::Similarity, std::unordered_set<RecordIdentifier>>;
-using SimilarityIndex = std::unordered_map<ValueIdentifier, MatchingRecsMapping>;
+using SimilarityIndex = std::vector<MatchingRecsMapping>;
 }  // namespace algos::hymd::indexes
