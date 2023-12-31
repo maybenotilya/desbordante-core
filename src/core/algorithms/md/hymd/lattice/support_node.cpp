@@ -6,6 +6,10 @@
 #include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/hymd/utility/get_first_non_zero_index.h"
 
+namespace {
+using BoundMap = algos::hymd::lattice::BoundaryMap<algos::hymd::lattice::SupportNode>;
+}  // namespace
+
 namespace algos::hymd::lattice {
 
 void SupportNode::MarkUnchecked(DecisionBoundaryVector const& lhs_bounds,
@@ -13,24 +17,33 @@ void SupportNode::MarkUnchecked(DecisionBoundaryVector const& lhs_bounds,
     assert(children_.empty());
     size_t const col_match_number = lhs_bounds.size();
     SupportNode* cur_node_ptr = this;
-    for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
-         cur_node_index != col_match_number;
-         cur_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, cur_node_index + 1)) {
-        cur_node_ptr = &cur_node_ptr->children_[cur_node_index]
-                                .try_emplace(lhs_bounds[cur_node_index])
+    for (model::Index next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
+         next_node_index != col_match_number;
+         next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index)) {
+        std::size_t const child_array_index = next_node_index - this_node_index;
+        std::size_t const next_child_array_size = col_match_number - next_node_index;
+        cur_node_ptr = &cur_node_ptr->children_[child_array_index]
+                                .emplace()
+                                .try_emplace(lhs_bounds[next_node_index], next_child_array_size)
                                 .first->second;
+        this_node_index = next_node_index + 1;
     }
     cur_node_ptr->is_unsupported_ = true;
 }
 
-bool SupportNode::IsUnsupported(DecisionBoundaryVector const& lhs_bounds) const {
+bool SupportNode::IsUnsupported(DecisionBoundaryVector const& lhs_bounds,
+                                model::Index this_node_index) const {
     if (is_unsupported_) return true;
-    for (auto const& [index, boundary_mapping] : children_) {
-        model::md::DecisionBoundary const generalization_boundary_limit = lhs_bounds[index];
-        for (auto const& [generalization_boundary, node] : boundary_mapping) {
-            assert(generalization_boundary > 0.0);
+    std::size_t const child_array_size = children_.size();
+    for (model::Index child_array_index = FindFirstNonEmptyIndex(children_, 0);
+         child_array_index != child_array_size;
+         child_array_index = FindFirstNonEmptyIndex(children_, child_array_index + 1)) {
+        model::Index const next_node_index = this_node_index + child_array_index;
+        model::md::DecisionBoundary const generalization_boundary_limit =
+                lhs_bounds[next_node_index];
+        for (auto const& [generalization_boundary, node] : *children_[child_array_index]) {
             if (generalization_boundary > generalization_boundary_limit) break;
-            if (node.IsUnsupported(lhs_bounds)) return true;
+            if (node.IsUnsupported(lhs_bounds, next_node_index + 1)) return true;
         }
     }
     return false;
@@ -46,15 +59,16 @@ void SupportNode::MarkUnsupported(DecisionBoundaryVector const& lhs_bounds,
         return;
     }
     assert(next_node_index < col_match_number);
-    model::md::DecisionBoundary const child_bound = lhs_bounds[next_node_index];
-    auto [it_arr, is_first] = children_.try_emplace(next_node_index);
-    BoundaryMap<SupportNode>& boundary_map = it_arr->second;
-    if (is_first) {
-        boundary_map.try_emplace(child_bound)
+    model::md::DecisionBoundary const next_bound = lhs_bounds[next_node_index];
+    model::Index const child_array_index = next_node_index - this_node_index;
+    std::size_t const next_child_array_size = col_match_number - next_node_index;
+    auto [boundary_map, is_first_arr] = TryEmplaceChild(children_, child_array_index);
+    if (is_first_arr) {
+        boundary_map.try_emplace(next_bound, next_child_array_size)
                 .first->second.MarkUnchecked(lhs_bounds, next_node_index + 1);
         return;
     }
-    auto [it_map, is_first_map] = boundary_map.try_emplace(child_bound);
+    auto [it_map, is_first_map] = boundary_map.try_emplace(next_bound, next_child_array_size);
     SupportNode& next_node = it_map->second;
     if (is_first_map) {
         next_node.MarkUnchecked(lhs_bounds, next_node_index + 1);
@@ -62,5 +76,7 @@ void SupportNode::MarkUnsupported(DecisionBoundaryVector const& lhs_bounds,
     }
     next_node.MarkUnsupported(lhs_bounds, next_node_index + 1);
 }
+
+SupportNode::SupportNode(std::size_t children_number) : children_(children_number) {}
 
 }  // namespace algos::hymd::lattice

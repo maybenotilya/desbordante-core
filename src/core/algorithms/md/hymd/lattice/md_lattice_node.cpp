@@ -2,25 +2,36 @@
 
 #include <algorithm>
 #include <cassert>
+#include <optional>
 
 #include "algorithms/md/hymd/utility/get_first_non_zero_index.h"
+
+namespace {
+using BoundMap = algos::hymd::lattice::BoundaryMap<algos::hymd::lattice::MdLatticeNode>;
+using OptionalChild = std::optional<BoundMap>;
+}  // namespace
 
 namespace algos::hymd::lattice {
 
 void MdLatticeNode::AddUnchecked(DecisionBoundaryVector const& lhs_bounds,
                                  model::md::DecisionBoundary rhs_bound,
-                                 model::Index const rhs_index, model::Index const this_node_index) {
+                                 model::Index const rhs_index, model::Index this_node_index) {
     assert(children_.empty());
     assert(std::all_of(rhs_bounds_.begin(), rhs_bounds_.end(),
                        [](model::md::DecisionBoundary const bound) { return bound == 0.0; }));
     std::size_t const col_match_number = rhs_bounds_.size();
     MdLatticeNode* cur_node_ptr = this;
-    for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
-         cur_node_index != col_match_number;
-         cur_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, cur_node_index + 1)) {
-        cur_node_ptr = &cur_node_ptr->children_.try_emplace(cur_node_index)
-                                .first->second.emplace(lhs_bounds[cur_node_index], col_match_number)
+    for (model::Index next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
+         next_node_index != col_match_number;
+         next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1)) {
+        std::size_t const child_array_index = next_node_index - this_node_index;
+        std::size_t const next_child_array_size = col_match_number - next_node_index;
+        cur_node_ptr = &cur_node_ptr->children_[child_array_index]
+                                .emplace()
+                                .try_emplace(lhs_bounds[next_node_index], col_match_number,
+                                             next_child_array_size)
                                 .first->second;
+        this_node_index = next_node_index + 1;
     }
     cur_node_ptr->rhs_bounds_[rhs_index] = rhs_bound;
 }
@@ -30,16 +41,15 @@ bool MdLatticeNode::HasGeneralization(DecisionBoundaryVector const& lhs_bounds,
                                       model::Index const rhs_index,
                                       model::Index const this_node_index) const {
     if (rhs_bounds_[rhs_index] >= rhs_bound) return true;
-    std::size_t const col_match_number = rhs_bounds_.size();
-    for (model::Index cur_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
-         cur_index != col_match_number;
-         cur_index = utility::GetFirstNonZeroIndex(lhs_bounds, cur_index + 1)) {
-        auto it = children_.find(cur_index);
-        if (it == children_.end()) continue;
-        model::md::DecisionBoundary const generalization_bound_limit = lhs_bounds[cur_index];
-        for (auto const& [generalization_bound, node] : it->second) {
+    std::size_t const child_array_size = children_.size();
+    for (model::Index child_array_index = FindFirstNonEmptyIndex(children_, 0);
+         child_array_index != child_array_size;
+         child_array_index = FindFirstNonEmptyIndex(children_, child_array_index + 1)) {
+        model::Index const next_node_index = this_node_index + child_array_index;
+        model::md::DecisionBoundary const generalization_bound_limit = lhs_bounds[next_node_index];
+        for (auto const& [generalization_bound, node] : *children_[child_array_index]) {
             if (generalization_bound > generalization_bound_limit) break;
-            if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index, cur_index + 1))
+            if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1))
                 return true;
         }
     }
@@ -66,28 +76,30 @@ bool MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
         return true;
     }
     {
-        auto children_end = children_.end();
-        for (model::Index child_node_index =
+        for (model::Index fol_next_node_index =
                      utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1);
-             child_node_index != col_match_number;
-             child_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, child_node_index + 1)) {
-            auto it = children_.find(child_node_index);
-            if (it == children_end) continue;
+             fol_next_node_index != col_match_number;
+             fol_next_node_index =
+                     utility::GetFirstNonZeroIndex(lhs_bounds, fol_next_node_index + 1)) {
+            std::size_t const child_array_index = fol_next_node_index - this_node_index;
+            OptionalChild& optional_child = children_[child_array_index];
+            if (!optional_child.has_value()) continue;
             model::md::DecisionBoundary const generalization_bound_limit =
-                    lhs_bounds[child_node_index];
-            for (auto const& [generalization_bound, node] : it->second) {
+                    lhs_bounds[fol_next_node_index];
+            for (auto const& [generalization_bound, node] : *optional_child) {
                 if (generalization_bound > generalization_bound_limit) break;
-                if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index, child_node_index + 1))
+                if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index,
+                                           fol_next_node_index + 1))
                     return false;
             }
         }
     }
-    auto [it_arr, is_first_arr] = children_.try_emplace(next_node_index);
-    BoundaryMap<MdLatticeNode>& boundary_mapping = it_arr->second;
-    model::md::DecisionBoundary const next_lhs_generalization_bound_limit =
-            lhs_bounds[next_node_index];
+    model::Index const child_array_index = next_node_index - this_node_index;
+    auto [boundary_mapping, is_first_arr] = TryEmplaceChild(children_, child_array_index);
+    model::md::DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
+    std::size_t const next_child_array_size = col_match_number - next_node_index;
     if (is_first_arr) [[unlikely]] {
-        boundary_mapping.emplace(next_lhs_generalization_bound_limit, col_match_number)
+        boundary_mapping.try_emplace(next_lhs_bound, col_match_number, next_child_array_size)
                 .first->second.AddUnchecked(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
         return true;
     }
@@ -95,17 +107,19 @@ bool MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
     auto end = boundary_mapping.end();
     for (; it != end; ++it) {
         auto& [generalization_bound, node] = *it;
-        if (generalization_bound > next_lhs_generalization_bound_limit) {
+        if (generalization_bound > next_lhs_bound) {
             break;
         }
-        if (generalization_bound == next_lhs_generalization_bound_limit) {
+        if (generalization_bound == next_lhs_bound) {
             return node.AddIfMinimal(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
         }
         if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1)) {
             return false;
         }
     }
-    boundary_mapping.emplace_hint(it, next_lhs_generalization_bound_limit, col_match_number)
+    boundary_mapping
+            .emplace_hint(it, std::piecewise_construct, std::forward_as_tuple(next_lhs_bound),
+                          std::forward_as_tuple(col_match_number, next_child_array_size))
             ->second.AddUnchecked(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
     return true;
 }
@@ -126,14 +140,17 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
             }
         }
     }
-    for (auto& [index, boundary_mapping] : children_) {
-        model::md::DecisionBoundary& cur_lhs_bound = this_node_lhs_bounds[index];
-        model::md::DecisionBoundary const sim_vec_sim = similarity_vector[index];
-        assert(index < similarity_vector.size());
-        for (auto& [generalization_bound, node] : boundary_mapping) {
+    std::size_t const child_array_size = children_.size();
+    for (model::Index child_array_index = FindFirstNonEmptyIndex(children_, 0);
+         child_array_index != child_array_size;
+         child_array_index = FindFirstNonEmptyIndex(children_, child_array_index + 1)) {
+        model::Index const next_node_index = this_node_index + child_array_index;
+        model::md::DecisionBoundary& cur_lhs_bound = this_node_lhs_bounds[next_node_index];
+        model::md::DecisionBoundary const sim_vec_sim = similarity_vector[next_node_index];
+        for (auto& [generalization_bound, node] : *children_[child_array_index]) {
             if (generalization_bound > sim_vec_sim) break;
             cur_lhs_bound = generalization_bound;
-            node.FindViolated(found, this_node_lhs_bounds, similarity_vector, index + 1);
+            node.FindViolated(found, this_node_lhs_bounds, similarity_vector, next_node_index + 1);
         }
         cur_lhs_bound = 0.0;
     }
@@ -162,25 +179,25 @@ void MdLatticeNode::RaiseInterestingnessBounds(
         }
     }
 
-    auto child_array_end = children_.end();
     std::size_t const col_match_number = lhs_bounds.size();
-    for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
-         cur_node_index != col_match_number;
-         cur_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, cur_node_index + 1)) {
-        auto it = children_.find(cur_node_index);
-        if (it == child_array_end) continue;
-        model::md::DecisionBoundary const generalization_bound_limit = lhs_bounds[cur_node_index];
-        for (auto const& [generalization_bound, node] : it->second) {
+    for (model::Index next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
+         next_node_index != col_match_number;
+         next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1)) {
+        model::Index const child_array_index = next_node_index - this_node_index;
+        OptionalChild const& optional_child = children_[child_array_index];
+        if (!optional_child.has_value()) continue;
+        model::md::DecisionBoundary const generalization_bound_limit = lhs_bounds[next_node_index];
+        for (auto const& [generalization_bound, node] : *optional_child) {
             if (generalization_bound > generalization_bound_limit) break;
             node.RaiseInterestingnessBounds(lhs_bounds, cur_interestingness_bounds,
-                                            cur_node_index + 1, indices);
+                                            next_node_index + 1, indices);
         }
     }
 }
 
 void MdLatticeNode::GetLevel(std::vector<MdLatticeNodeInfo>& collected,
                              DecisionBoundaryVector& this_node_lhs_bounds,
-                             [[maybe_unused]] model::Index this_node_index, std::size_t level_left,
+                             model::Index this_node_index, std::size_t level_left,
                              SingleLevelFunc const& single_level_func) {
     if (level_left == 0) {
         if (std::any_of(rhs_bounds_.begin(), rhs_bounds_.end(),
@@ -188,35 +205,41 @@ void MdLatticeNode::GetLevel(std::vector<MdLatticeNodeInfo>& collected,
             collected.emplace_back(this_node_lhs_bounds, &rhs_bounds_);
         return;
     }
-    for (auto& [index, boundary_mapping] : children_) {
-        assert(index < this_node_lhs_bounds.size());
-        model::md::DecisionBoundary& current_lhs_bound = this_node_lhs_bounds[index];
-        for (auto& [boundary, node] : boundary_mapping) {
+    std::size_t const child_array_size = children_.size();
+    for (model::Index child_array_index = FindFirstNonEmptyIndex(children_, 0);
+         child_array_index != child_array_size;
+         child_array_index = FindFirstNonEmptyIndex(children_, child_array_index + 1)) {
+        model::Index const next_node_index = this_node_index + child_array_index;
+        model::md::DecisionBoundary& next_lhs_bound = this_node_lhs_bounds[next_node_index];
+        for (auto& [boundary, node] : *children_[child_array_index]) {
             assert(boundary > 0.0);
-            std::size_t single = single_level_func(index, boundary);
+            std::size_t single = single_level_func(next_node_index, boundary);
             if (single > level_left) break;
-            current_lhs_bound = boundary;
-            node.GetLevel(collected, this_node_lhs_bounds, index + 1, level_left - single,
+            next_lhs_bound = boundary;
+            node.GetLevel(collected, this_node_lhs_bounds, next_node_index + 1, level_left - single,
                           single_level_func);
         }
-        current_lhs_bound = 0.0;
+        next_lhs_bound = 0.0;
     }
 }
 
 void MdLatticeNode::GetAll(std::vector<MdLatticeNodeInfo>& collected,
-                           DecisionBoundaryVector& this_node_lhs_bounds) {
+                           DecisionBoundaryVector& this_node_lhs_bounds,
+                           model::Index this_node_index) {
     if (std::any_of(rhs_bounds_.begin(), rhs_bounds_.end(),
                     [](model::md::DecisionBoundary bound) { return bound != 0.0; }))
         collected.emplace_back(this_node_lhs_bounds, &rhs_bounds_);
-    for (auto& [index, boundary_mapping] : children_) {
-        assert(index < this_node_lhs_bounds.size());
-        model::md::DecisionBoundary& current_lhs_bound = this_node_lhs_bounds[index];
-        for (auto& [boundary, node] : boundary_mapping) {
-            assert(boundary > 0.0);
-            current_lhs_bound = boundary;
-            node.GetAll(collected, this_node_lhs_bounds);
+    std::size_t const child_array_size = children_.size();
+    for (model::Index child_array_index = FindFirstNonEmptyIndex(children_, 0);
+         child_array_index != child_array_size;
+         child_array_index = FindFirstNonEmptyIndex(children_, child_array_index + 1)) {
+        model::Index const next_node_index = this_node_index + child_array_index;
+        model::md::DecisionBoundary& next_lhs_bound = this_node_lhs_bounds[next_node_index];
+        for (auto& [boundary, node] : *children_[child_array_index]) {
+            next_lhs_bound = boundary;
+            node.GetAll(collected, this_node_lhs_bounds, next_node_index + 1);
         }
-        current_lhs_bound = 0.0;
+        next_lhs_bound = 0.0;
     }
 }
 

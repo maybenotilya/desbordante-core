@@ -12,6 +12,8 @@ private:
 public:
     void MarkUnsupported(DecisionBoundaryVector const& lhs_bounds);
     bool IsUnsupported(DecisionBoundaryVector const& lhs_bounds);
+
+    SupportLattice(std::size_t column_matches_size) : root_(column_matches_size) {}
 };
 
 }  // namespace algos::hymd::lattice

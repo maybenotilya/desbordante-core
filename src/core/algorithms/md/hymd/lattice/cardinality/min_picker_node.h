@@ -32,7 +32,10 @@ public:
                                model::Index this_node_index,
                                boost::dynamic_bitset<> const& picked_indices);
     void Add(ValidationInfo* validation_info, model::Index this_node_index);
-    void GetAll(std::vector<ValidationInfo>& collected);
+    void GetAll(std::vector<ValidationInfo>& collected, model::Index this_node_index);
+    void Clear();
+
+    MinPickerNode(std::size_t children_number);
 };
 
 }  // namespace algos::hymd::lattice::cardinality

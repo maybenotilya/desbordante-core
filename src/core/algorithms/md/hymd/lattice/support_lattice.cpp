@@ -3,7 +3,7 @@
 namespace algos::hymd::lattice {
 
 bool SupportLattice::IsUnsupported(DecisionBoundaryVector const& lhs_bounds) {
-    return root_.IsUnsupported(lhs_bounds);
+    return root_.IsUnsupported(lhs_bounds, 0);
 }
 
 void SupportLattice::MarkUnsupported(DecisionBoundaryVector const& lhs_bounds) {

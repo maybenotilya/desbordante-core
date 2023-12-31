@@ -24,6 +24,8 @@ public:
     void AddGeneralizations(MdLatticeNodeInfo& lattice_node_info,
                             boost::dynamic_bitset<>& considered_indices);
     std::vector<ValidationInfo> GetAll() noexcept(kNeedsEmptyRemoval);
+
+    MinPickerLattice(std::size_t col_matches_num) : root_(col_matches_num) {}
 };
 
 }  // namespace algos::hymd::lattice::cardinality

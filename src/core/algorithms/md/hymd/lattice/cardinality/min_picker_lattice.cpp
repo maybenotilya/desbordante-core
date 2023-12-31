@@ -7,7 +7,7 @@ namespace algos::hymd::lattice::cardinality {
 void MinPickerLattice::NewBatch(std::size_t max_elements) {
     info_.clear();
     info_.reserve(max_elements);
-    root_ = MinPickerNode();
+    root_.Clear();
 }
 
 void MinPickerLattice::AddGeneralizations(MdLatticeNodeInfo& lattice_node_info,
@@ -28,7 +28,7 @@ std::vector<ValidationInfo> MinPickerLattice::GetAll() noexcept(kNeedsEmptyRemov
     } else {
         std::vector<ValidationInfo> collected;
         collected.reserve(info_.size());
-        root_.GetAll(collected);
+        root_.GetAll(collected, 0);
         return collected;
     }
 }

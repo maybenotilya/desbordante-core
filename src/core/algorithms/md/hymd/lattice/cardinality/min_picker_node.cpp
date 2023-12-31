@@ -2,10 +2,16 @@
 
 #include <algorithm>
 #include <cassert>
+#include <optional>
 
 #include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/hymd/decision_boundary_vector.h"
 #include "algorithms/md/hymd/utility/get_first_non_zero_index.h"
+
+namespace {
+using BoundMap = algos::hymd::lattice::BoundaryMap<algos::hymd::lattice::cardinality::MinPickerNode>;
+using OptionalChild = std::optional<BoundMap>;
+}  // namespace
 
 namespace algos::hymd::lattice::cardinality {
 
@@ -14,12 +20,15 @@ void MinPickerNode::AddUnchecked(ValidationInfo* validation_info, model::Index t
     DecisionBoundaryVector const& lhs_bounds = validation_info->node_info->lhs_bounds;
     size_t const col_match_number = lhs_bounds.size();
     MinPickerNode* cur_node_ptr = this;
-    for (model::Index cur_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
-         cur_node_index != col_match_number;
-         cur_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, cur_node_index + 1)) {
-        cur_node_ptr = &cur_node_ptr->children_.try_emplace(cur_node_index)
-                                .first->second.try_emplace(lhs_bounds[cur_node_index])
+    for (model::Index next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
+         next_node_index != col_match_number;
+         next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1)) {
+        std::size_t const child_array_index = next_node_index - this_node_index;
+        std::size_t const next_child_array_size = col_match_number - next_node_index;
+        cur_node_ptr = &cur_node_ptr->children_[child_array_index].emplace()
+                                .try_emplace(lhs_bounds[next_node_index], next_child_array_size)
                                 .first->second;
+        this_node_index = next_node_index + 1;
     }
     cur_node_ptr->task_info_ = validation_info;
 }
@@ -27,30 +36,30 @@ void MinPickerNode::AddUnchecked(ValidationInfo* validation_info, model::Index t
 void MinPickerNode::Add(ValidationInfo* validation_info, model::Index this_node_index) {
     DecisionBoundaryVector const& lhs_bounds = validation_info->node_info->lhs_bounds;
     assert(this_node_index <= lhs_bounds.size());
-    model::Index const first_non_zero_index =
-            utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
+    model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
     std::size_t const col_match_number = lhs_bounds.size();
-    if (first_non_zero_index == col_match_number) {
+    if (next_node_index == col_match_number) {
         assert(task_info_ == nullptr);
         task_info_ = validation_info;
         return;
     }
-    assert(first_non_zero_index < col_match_number);
-    model::md::DecisionBoundary const child_lhs_bound = lhs_bounds[first_non_zero_index];
-    auto [it_arr, is_first_arr] = children_.try_emplace(first_non_zero_index);
-    BoundaryMap<MinPickerNode>& threshold_map = it_arr->second;
+    assert(next_node_index < col_match_number);
+    model::md::DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
+    model::Index const child_array_index = next_node_index - this_node_index;
+    std::size_t const next_child_array_size = col_match_number - next_node_index;
+    auto [threshold_map, is_first_arr] = TryEmplaceChild(children_, child_array_index);
     if (is_first_arr) {
-        threshold_map.try_emplace(child_lhs_bound)
-                .first->second.AddUnchecked(validation_info, first_non_zero_index + 1);
+        threshold_map.try_emplace(next_lhs_bound, next_child_array_size)
+                .first->second.AddUnchecked(validation_info, next_node_index + 1);
         return;
     }
-    auto [it_map, is_first_map] = threshold_map.try_emplace(child_lhs_bound);
+    auto [it_map, is_first_map] = threshold_map.try_emplace(next_lhs_bound, next_child_array_size);
     MinPickerNode& next_node = it_map->second;
     if (is_first_map) {
-        next_node.AddUnchecked(validation_info, first_non_zero_index + 1);
+        next_node.AddUnchecked(validation_info, next_node_index + 1);
         return;
     }
-    next_node.Add(validation_info, first_non_zero_index + 1);
+    next_node.Add(validation_info, next_node_index + 1);
 }
 
 void MinPickerNode::ExcludeGeneralizationRhs(MdLatticeNodeInfo const& lattice_node_info,
@@ -63,10 +72,11 @@ void MinPickerNode::ExcludeGeneralizationRhs(MdLatticeNodeInfo const& lattice_no
     }
     DecisionBoundaryVector const& lhs_bounds = lattice_node_info.lhs_bounds;
     model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
-    auto it = children_.find(next_node_index);
-    if (it == children_.end()) return;
+    model::Index const child_array_index = next_node_index - this_node_index;
+    OptionalChild& optional_child = children_[child_array_index];
+    if (!optional_child.has_value()) return;
     assert(next_node_index < lhs_bounds.size());
-    BoundaryMap<MinPickerNode>& threshold_mapping = it->second;
+    BoundaryMap<MinPickerNode>& threshold_mapping = *optional_child;
     model::md::DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
     for (auto& [threshold, node] : threshold_mapping) {
         assert(threshold > 0.0);
@@ -91,10 +101,11 @@ void MinPickerNode::RemoveSpecializations(MdLatticeNodeInfo const& lattice_node_
         }
         return;
     }
-    auto it = children_.find(next_node_index);
-    if (it == children_.end()) return;
+    model::Index const child_array_index = next_node_index - this_node_index;
+    OptionalChild& optional_child = children_[child_array_index];
+    if (!optional_child.has_value()) return;
     model::md::DecisionBoundary const next_node_bound = lhs_bounds[next_node_index];
-    BoundaryMap<MinPickerNode>& threshold_mapping = it->second;
+    BoundaryMap<MinPickerNode>& threshold_mapping = *optional_child;
     auto mapping_end = threshold_mapping.end();
     for (auto it_map = threshold_mapping.lower_bound(next_node_bound); it_map != mapping_end;
          ++it_map) {
@@ -103,15 +114,26 @@ void MinPickerNode::RemoveSpecializations(MdLatticeNodeInfo const& lattice_node_
     }
 }
 
-void MinPickerNode::GetAll(std::vector<ValidationInfo>& collected) {
+void MinPickerNode::GetAll(std::vector<ValidationInfo>& collected, model::Index this_node_index) {
     if (task_info_ != nullptr) {
         collected.push_back(std::move(*task_info_));
     }
-    for (auto& [index, threshold_mapping] : children_) {
-        for (auto& [threshold, node] : threshold_mapping) {
-            node.GetAll(collected);
+    std::size_t const child_array_size = children_.size();
+    for (model::Index child_array_index = FindFirstNonEmptyIndex(children_, 0);
+         child_array_index != child_array_size;
+         child_array_index = FindFirstNonEmptyIndex(children_, child_array_index + 1)) {
+        model::Index const next_node_index = this_node_index + child_array_index;
+        for (auto& [boundary, node] : *children_[child_array_index]) {
+            node.GetAll(collected, next_node_index + 1);
         }
     }
 }
+
+void MinPickerNode::Clear() {
+    task_info_ = nullptr;
+    children_.assign(children_.size(), std::nullopt);
+}
+
+MinPickerNode::MinPickerNode(std::size_t children_number) : children_(children_number) {}
 
 }  // namespace algos::hymd::lattice::cardinality
