@@ -354,6 +354,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
     //  without extra actions
     if (cardinality == 1) {
         Index const non_zero_index = non_zero_indices.front();
+        DecisionBoundary const decision_boundary = lhs_bounds[non_zero_index];
         // Never happens when disjointedness pruning is on.
         if (!prune_nondisjoint_) {
             if (indices_bitset.test_set(non_zero_index, false)) {
@@ -366,7 +367,7 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
         std::size_t const clusters_size = clusters.size();
         for (ValueIdentifier value_id = 0; value_id < clusters_size; ++value_id) {
             std::unordered_set<RecordIdentifier> const* similar_records_ptr =
-                    GetSimilarRecords(value_id, lhs_bounds[non_zero_index], non_zero_index);
+                    GetSimilarRecords(value_id, decision_boundary, non_zero_index);
             if (similar_records_ptr == nullptr) continue;
             std::unordered_set<RecordIdentifier> const& similar_records = *similar_records_ptr;
             std::vector<RecordIdentifier> const& cluster = clusters[value_id];

@@ -21,10 +21,6 @@ private:
     SupportLattice support_lattice_;
 
 public:
-    std::size_t GetColMatchNumber() const noexcept {
-        return md_lattice_.GetColMatchNumber();
-    }
-
     [[nodiscard]] bool HasGeneralization(DecisionBoundaryVector const& lhs_bounds,
                                          model::md::DecisionBoundary const rhs_bound,
                                          model::Index const rhs_index) const {
