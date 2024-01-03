@@ -62,7 +62,7 @@ struct SimilarityData::WorkingInfo {
                 std::vector<Recommendation>& violations, std::size_t col_match_values,
                 std::vector<CompressedRecord> const& right_records,
                 indexes::SimilarityMatrix const& similarity_matrix, model::Index const left_index,
-    model::Index const right_index)
+                model::Index const right_index)
         : recommendations(violations),
           old_bound(old_bound),
           index(col_match_index),
