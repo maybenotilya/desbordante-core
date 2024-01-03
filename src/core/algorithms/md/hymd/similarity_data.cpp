@@ -47,6 +47,8 @@ struct SimilarityData::WorkingInfo {
     model::md::DecisionBoundary interestingness_boundary;
     std::vector<CompressedRecord> const& right_records;
     indexes::SimilarityMatrix const& similarity_matrix;
+    model::Index const left_index;
+    model::Index const right_index;
 
     bool EnoughRecommendations() const {
         return recommendations.size() >= 20;
@@ -56,17 +58,18 @@ struct SimilarityData::WorkingInfo {
         return current_bound == 0.0 && EnoughRecommendations();
     }
 
-    WorkingInfo(model::md::DecisionBoundary old_bound, model::Index index,
+    WorkingInfo(model::md::DecisionBoundary old_bound, model::Index col_match_index,
                 std::vector<Recommendation>& violations, std::size_t col_match_values,
                 std::vector<CompressedRecord> const& right_records,
-                indexes::SimilarityMatrix const& similarity_matrix)
+                indexes::SimilarityMatrix const& similarity_matrix, model::Index const left_index,
+    model::Index const right_index)
         : recommendations(violations),
           old_bound(old_bound),
-          index(index),
+          index(col_match_index),
           current_bound(old_bound),
           col_match_values(col_match_values),
           right_records(right_records),
-          similarity_matrix(similarity_matrix) {}
+          similarity_matrix(similarity_matrix), left_index(left_index), right_index(right_index) {}
 };
 
 std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
@@ -134,9 +137,8 @@ bool SimilarityData::LowerForColumnMatchNoCheck(
 
     std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped(
             std::min(matched_records.size(), working_info.col_match_values));
-    model::Index const col_match_index = working_info.index;
     for (CompressedRecord const* left_record_ptr : matched_records) {
-        grouped[left_record_ptr->operator[](col_match_index)].push_back(left_record_ptr);
+        grouped[left_record_ptr->operator[](working_info.left_index)].push_back(left_record_ptr);
     }
     model::md::DecisionBoundary& current_rhs_bound = working_info.current_bound;
     indexes::SimilarityMatrix const& similarity_matrix = working_info.similarity_matrix;
@@ -149,7 +151,7 @@ bool SimilarityData::LowerForColumnMatchNoCheck(
                 }
             };
             auto const& row = similarity_matrix[left_value_id];
-            ValueIdentifier const right_value_id = right_record[col_match_index];
+            ValueIdentifier const right_value_id = right_record[working_info.right_index];
             auto it_right = row.find(right_value_id);
             if (it_right == row.end()) {
                 add_recommendations();
@@ -159,9 +161,9 @@ bool SimilarityData::LowerForColumnMatchNoCheck(
                 continue;
             }
 
-            preprocessing::Similarity const record_similarity = it_right->second;
-            if (record_similarity < working_info.old_bound) add_recommendations();
-            if (record_similarity < current_rhs_bound) current_rhs_bound = record_similarity;
+            preprocessing::Similarity const pair_similarity = it_right->second;
+            if (pair_similarity < working_info.old_bound) add_recommendations();
+            if (pair_similarity < current_rhs_bound) current_rhs_bound = pair_similarity;
             if (current_rhs_bound <= working_info.interestingness_boundary) goto rhs_not_valid;
         }
     }
@@ -171,33 +173,24 @@ bool SimilarityData::LowerForColumnMatchNoCheck(
 std::unordered_set<SimilarityVector> SimilarityData::GetSimVecs(
         RecordIdentifier const left_record_id) const {
     // TODO: use the "slim" sim index to fill those instead of lookups in similarity matrices
-    std::size_t const col_match_number = GetColumnMatchNumber();
     CompressedRecord const& left_record = GetLeftCompressor().GetRecords()[left_record_id];
-    std::vector<indexes::SimilarityMatrixRow const*> similarity_matrix_row_ptrs;
-    similarity_matrix_row_ptrs.reserve(col_match_number);
-    for (model::Index col_match_idx = 0; col_match_idx < col_match_number; ++col_match_idx) {
-        indexes::SimilarityMatrix const& col_match_matrix =
-                column_matches_info_[col_match_idx].similarity_info.similarity_matrix;
-        similarity_matrix_row_ptrs.push_back(&col_match_matrix[left_record[col_match_idx]]);
-    }
     std::unordered_set<SimilarityVector> sim_vecs;
-    auto const& right_records = GetRightCompressor().GetRecords();
-    std::size_t const right_records_num = right_records.size();
-    // for (RecordIdentifier right_record_id = 0;
     // Optimization not performed in Metanome.
     RecordIdentifier const start_from = single_table_ ? left_record_id + 1 : 0;
+    SimilarityVector pair_sims;
+    pair_sims.reserve(GetColumnMatchNumber());
+    std::vector<CompressedRecord> const& right_records = GetRightCompressor().GetRecords();
     // TODO: parallelize this
-    SimilarityVector pair_sims(col_match_number, 0.0);
-    for (RecordIdentifier right_record_id = start_from; right_record_id < right_records_num;
-         ++right_record_id) {
-        CompressedRecord const& right_record = right_records[right_record_id];
-        for (model::Index col_match_index = 0; col_match_index < col_match_number; ++col_match_index) {
-            auto* sim_matrix_row_ptr = similarity_matrix_row_ptrs[col_match_index];
-            auto it = sim_matrix_row_ptr->find(right_record[col_match_index]);
-            pair_sims[col_match_index] = it == sim_matrix_row_ptr->end() ? 0.0 : it->second;
+    std::for_each(right_records.begin() + start_from, right_records.end(), [&](auto const& record) {
+        for (auto const& [sim_info, left_col_index, right_col_index] : column_matches_info_) {
+            indexes::SimilarityMatrixRow const& sim_matrix_row =
+                    sim_info.similarity_matrix[left_record[left_col_index]];
+            auto it = sim_matrix_row.find(record[right_col_index]);
+            pair_sims.push_back(it == sim_matrix_row.end() ? 0.0 : it->second);
         }
         sim_vecs.insert(pair_sims);
-    }
+        pair_sims.clear();
+    });
     return sim_vecs;
 }
 
@@ -206,16 +199,10 @@ SimilarityVector SimilarityData::GetSimilarityVector(CompressedRecord const& lef
     std::size_t const col_match_number = GetColumnMatchNumber();
     SimilarityVector similarities;
     similarities.reserve(col_match_number);
-    for (model::Index i = 0; i < col_match_number; ++i) {
-        indexes::SimilarityMatrix const& similarity_matrix =
-                column_matches_info_[i].similarity_info.similarity_matrix;
-        indexes::SimilarityMatrixRow const& row = similarity_matrix[left_record[i]];
-        auto sim_it = row.find(right_record[i]);
-        if (sim_it == row.end()) {
-            similarities.push_back(0.0);
-            continue;
-        }
-        similarities.push_back(sim_it->second);
+    for (auto const& [sim_info, left_col_index, right_col_index] : column_matches_info_) {
+        indexes::SimilarityMatrixRow const& row = sim_info.similarity_matrix[left_record[left_col_index]];
+        auto sim_it = row.find(right_record[right_col_index]);
+        similarities.push_back(sim_it == row.end() ? 0.0 : sim_it->second);
     }
     return similarities;
 }
@@ -307,9 +294,10 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
         working.reserve(working_size);
         for (Index index : indices) {
             recommendations.emplace_back();
+            auto const& [sim_info, left_index, right_index] = column_matches_info_[index];
             working.emplace_back(rhs_bounds[index], index, recommendations.back(),
                                  GetLeftValueNum(index), right_records,
-                                 column_matches_info_[index].similarity_info.similarity_matrix);
+                                 sim_info.similarity_matrix, left_index, right_index);
         }
         std::vector<DecisionBoundary> const gen_max_rhs =
                 ZeroLatticeRhsAndDo(working, rhs_bounds, [this, &lhs_bounds, &indices]() {
