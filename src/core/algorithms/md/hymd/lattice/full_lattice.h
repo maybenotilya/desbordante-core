@@ -82,7 +82,8 @@ public:
     }
 
     FullLattice(std::size_t column_matches_size, SingleLevelFunc single_level_func)
-        : md_lattice_(column_matches_size, std::move(single_level_func)), support_lattice_(column_matches_size) {}
+        : md_lattice_(column_matches_size, std::move(single_level_func)),
+          support_lattice_(column_matches_size) {}
 };
 
 }  // namespace algos::hymd::lattice

@@ -69,7 +69,9 @@ struct SimilarityData::WorkingInfo {
           current_bound(old_bound),
           col_match_values(col_match_values),
           right_records(right_records),
-          similarity_matrix(similarity_matrix), left_index(left_index), right_index(right_index) {}
+          similarity_matrix(similarity_matrix),
+          left_index(left_index),
+          right_index(right_index) {}
 };
 
 std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
@@ -200,7 +202,8 @@ SimilarityVector SimilarityData::GetSimilarityVector(CompressedRecord const& lef
     SimilarityVector similarities;
     similarities.reserve(col_match_number);
     for (auto const& [sim_info, left_col_index, right_col_index] : column_matches_info_) {
-        indexes::SimilarityMatrixRow const& row = sim_info.similarity_matrix[left_record[left_col_index]];
+        indexes::SimilarityMatrixRow const& row =
+                sim_info.similarity_matrix[left_record[left_col_index]];
         auto sim_it = row.find(right_record[right_col_index]);
         similarities.push_back(sim_it == row.end() ? 0.0 : sim_it->second);
     }
@@ -296,8 +299,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
             recommendations.emplace_back();
             auto const& [sim_info, left_index, right_index] = column_matches_info_[index];
             working.emplace_back(rhs_bounds[index], index, recommendations.back(),
-                                 GetLeftValueNum(index), right_records,
-                                 sim_info.similarity_matrix, left_index, right_index);
+                                 GetLeftValueNum(index), right_records, sim_info.similarity_matrix,
+                                 left_index, right_index);
         }
         std::vector<DecisionBoundary> const gen_max_rhs =
                 ZeroLatticeRhsAndDo(working, rhs_bounds, [this, &lhs_bounds, &indices]() {

@@ -14,7 +14,8 @@ class SupportNode {
     void MarkUnchecked(DecisionBoundaryVector const& lhs_bounds, model::Index this_node_index);
 
 public:
-    bool IsUnsupported(DecisionBoundaryVector const& lhs_bounds, model::Index this_node_index) const;
+    bool IsUnsupported(DecisionBoundaryVector const& lhs_bounds,
+                       model::Index this_node_index) const;
     void MarkUnsupported(DecisionBoundaryVector const& lhs_bounds, model::Index this_node_index);
 
     SupportNode(std::size_t children_number);

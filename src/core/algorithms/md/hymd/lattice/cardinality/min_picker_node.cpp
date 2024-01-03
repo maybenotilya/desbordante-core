@@ -9,7 +9,8 @@
 #include "algorithms/md/hymd/utility/get_first_non_zero_index.h"
 
 namespace {
-using BoundMap = algos::hymd::lattice::BoundaryMap<algos::hymd::lattice::cardinality::MinPickerNode>;
+using BoundMap =
+        algos::hymd::lattice::BoundaryMap<algos::hymd::lattice::cardinality::MinPickerNode>;
 using OptionalChild = std::optional<BoundMap>;
 }  // namespace
 
@@ -25,7 +26,8 @@ void MinPickerNode::AddUnchecked(ValidationInfo* validation_info, model::Index t
          next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1)) {
         std::size_t const child_array_index = next_node_index - this_node_index;
         std::size_t const next_child_array_size = col_match_number - next_node_index;
-        cur_node_ptr = &cur_node_ptr->children_[child_array_index].emplace()
+        cur_node_ptr = &cur_node_ptr->children_[child_array_index]
+                                .emplace()
                                 .try_emplace(lhs_bounds[next_node_index], next_child_array_size)
                                 .first->second;
         this_node_index = next_node_index + 1;
