@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <unordered_map>
 
 #include "algorithms/md/hymd/preprocessing/similarity.h"

@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <map>
 #include <optional>
-#include <unordered_map>
+#include <vector>
 
 #include "algorithms/md/decision_boundary.h"
 #include "model/index.h"
@@ -16,8 +16,8 @@ template <typename NodeType>
 using LatticeChildArray = std::vector<std::optional<BoundaryMap<NodeType>>>;
 
 template <typename NodeType>
-std::size_t FindFirstNonEmptyIndex(LatticeChildArray<NodeType> const& child_array,
-                                   model::Index index) {
+model::Index FindFirstNonEmptyIndex(LatticeChildArray<NodeType> const& child_array,
+                                    model::Index index) {
     for (std::size_t const array_size = child_array.size(); index < array_size; ++index) {
         if (child_array[index].has_value()) return index;
     }
