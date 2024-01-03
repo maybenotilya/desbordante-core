@@ -32,11 +32,19 @@ std::size_t GetLevenshteinBufferSize(auto const& right_string) noexcept {
 /* An optimized version of the Levenshtein distance computation algorithm from
  * https://en.wikipedia.org/wiki/Levenshtein_distance, using preallocated buffers
  */
-unsigned LevenshteinDistance(auto const& l, auto const& r, unsigned* v0, unsigned* v1) noexcept {
-    std::size_t const r_size = r.size();
+unsigned LevenshteinDistance(auto const* l_ptr, auto const* r_ptr, unsigned* v0,
+                             unsigned* v1) noexcept {
+    std::size_t r_size = r_ptr->size();
     assert(v0 < v1);
-    assert(GetLevenshteinBufferSize(r) == std::size_t(v1 - v0));
-    std::size_t l_size = l.size();
+    assert(GetLevenshteinBufferSize(*r_ptr) == std::size_t(v1 - v0));
+    std::size_t l_size = l_ptr->size();
+    if (r_size > l_size) {
+        std::swap(l_ptr, r_ptr);
+        std::swap(l_size, r_size);
+    }
+
+    auto const& l = *l_ptr;
+    auto const& r = *r_ptr;
 
     std::iota(v0, v0 + r_size + 1, 0);
 
@@ -139,10 +147,11 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
                 std::size_t const max_dist = std::max(left_size, string_right.size());
                 // Left has to be second since that's what the function uses to determine the buffer
                 // size it needs
-                Similarity value = static_cast<Similarity>(
-                                           max_dist - LevenshteinDistance(string_right, string_left,
-                                                                          buf1, buf2)) /
-                                   static_cast<Similarity>(max_dist);
+                Similarity value =
+                        static_cast<Similarity>(max_dist - LevenshteinDistance(&string_right,
+                                                                               &string_left, buf1,
+                                                                               buf2)) /
+                        static_cast<Similarity>(max_dist);
                 return value;
             };
 
