@@ -14,7 +14,7 @@ namespace algos::hymd::lattice {
 
 void SupportNode::MarkUnchecked(DecisionBoundaryVector const& lhs_bounds,
                                 model::Index this_node_index) {
-    assert(children_.empty());
+    assert(IsEmpty(children_));
     size_t const col_match_number = lhs_bounds.size();
     SupportNode* cur_node_ptr = this;
     for (model::Index next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);

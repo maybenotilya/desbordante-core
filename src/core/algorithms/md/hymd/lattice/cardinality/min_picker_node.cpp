@@ -17,7 +17,7 @@ using OptionalChild = std::optional<BoundMap>;
 namespace algos::hymd::lattice::cardinality {
 
 void MinPickerNode::AddUnchecked(ValidationInfo* validation_info, model::Index this_node_index) {
-    assert(children_.empty());
+    assert(IsEmpty(children_));
     DecisionBoundaryVector const& lhs_bounds = validation_info->node_info->lhs_bounds;
     size_t const col_match_number = lhs_bounds.size();
     MinPickerNode* cur_node_ptr = this;

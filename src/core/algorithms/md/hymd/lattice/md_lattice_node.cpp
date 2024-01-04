@@ -16,9 +16,7 @@ namespace algos::hymd::lattice {
 void MdLatticeNode::AddUnchecked(DecisionBoundaryVector const& lhs_bounds,
                                  model::md::DecisionBoundary rhs_bound,
                                  model::Index const rhs_index, model::Index this_node_index) {
-    assert(std::all_of(children_.begin(), children_.end(), [](OptionalChild const& optional_child) {
-        return !optional_child.has_value();
-    }));
+    assert(IsEmpty(children_));
     assert(std::all_of(rhs_bounds_.begin(), rhs_bounds_.end(),
                        [](model::md::DecisionBoundary const bound) { return bound == 0.0; }));
     std::size_t const col_match_number = rhs_bounds_.size();

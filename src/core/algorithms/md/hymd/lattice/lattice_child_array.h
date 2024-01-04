@@ -33,4 +33,10 @@ std::pair<BoundaryMap<NodeType>&, bool> TryEmplaceChild(LatticeChildArray<NodeTy
     }
     return {optional_child.emplace(std::forward<Args>(args)...), true};
 }
+
+template <typename NodeType>
+bool IsEmpty(LatticeChildArray<NodeType>& child_array) {
+    return std::all_of(child_array.begin(), child_array.end(),
+                       [](auto const& optional_child) { return !optional_child.has_value(); });
+}
 }  // namespace algos::hymd::lattice
