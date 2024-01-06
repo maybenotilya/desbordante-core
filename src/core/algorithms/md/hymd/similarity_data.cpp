@@ -59,11 +59,11 @@ struct SimilarityData::WorkingInfo {
     }
 
     WorkingInfo(model::md::DecisionBoundary old_bound, model::Index col_match_index,
-                std::vector<Recommendation>& violations, std::size_t col_match_values,
+                std::vector<Recommendation>& recommendations, std::size_t col_match_values,
                 std::vector<CompressedRecord> const& right_records,
                 indexes::SimilarityMatrix const& similarity_matrix, model::Index const left_index,
                 model::Index const right_index)
-        : recommendations(violations),
+        : recommendations(recommendations),
           old_bound(old_bound),
           index(col_match_index),
           current_bound(old_bound),
@@ -272,14 +272,14 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
         }
         return {{}, std::move(rhss_to_lower_info), GetLeftSize() * GetRightSize() < min_support_};
     }
-    std::size_t support = 0;
-    std::vector<std::vector<Recommendation>> recommendations;
-    std::vector<WorkingInfo> working;
-    std::size_t working_size;
-    auto prepare = [this, &recommendations, &working, &rhs_bounds,
-                    &right_records = GetRightCompressor().GetRecords(), &lhs_bounds,
-                    &working_size](boost::dynamic_bitset<> const& indices_bitset) {
-        working_size = indices_bitset.count();
+    auto process_set_pairs =
+            [&, &right_records = GetRightCompressor().GetRecords()](
+                    auto* const& cluster, auto* const& similar_records, auto get_next,
+                    boost::dynamic_bitset<> const& indices_bitset) -> ValidationResult {
+        std::size_t const working_size = indices_bitset.count();
+        std::size_t support = 0;
+        std::vector<std::vector<Recommendation>> recommendations;
+        std::vector<WorkingInfo> working;
         std::vector<Index> indices;
         indices.reserve(working_size);
         for (Index index = indices_bitset.find_first(); index != boost::dynamic_bitset<>::npos;
@@ -309,66 +309,62 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
         for (Index i = 0; i < working_size; ++i) {
             working[i].interestingness_boundary = gen_max_rhs[i];
         }
-    };
-    auto lower_bounds = [&](auto const& cluster, auto const& similar_records) {
-        support += cluster.size() * similar_records.size();
-        std::size_t stops = 0;
-        for (WorkingInfo& working_info : working) {
-            bool const should_stop = LowerForColumnMatch(working_info, cluster, similar_records);
-            if (should_stop) ++stops;
+        while (get_next()) {
+            support += cluster->size() * similar_records->size();
+            std::size_t stops = 0;
+            for (WorkingInfo& working_info : working) {
+                bool const should_stop =
+                        LowerForColumnMatch(working_info, *cluster, *similar_records);
+                if (should_stop) ++stops;
+            }
+            if (stops == working_size && support >= min_support_) {
+                for (WorkingInfo const& working_info : working) {
+                    Index const index = working_info.index;
+                    DecisionBoundary const old_bound = working_info.old_bound;
+                    DecisionBoundary const new_bound = working_info.current_bound;
+                    assert(old_bound != 0.0);
+                    assert(new_bound == 0.0);
+                    rhss_to_lower_info.emplace_back(index, old_bound, 0.0);
+                }
+                return {std::move(recommendations), std::move(rhss_to_lower_info), false};
+            }
         }
-        return stops == working_size && support >= min_support_;
-    };
-    auto make_all_invalid_result = [&]() {
         for (WorkingInfo const& working_info : working) {
-            Index const index = working_info.index;
-            DecisionBoundary const old_bound = working_info.old_bound;
-            DecisionBoundary const new_bound = working_info.current_bound;
-            assert(old_bound != 0.0);
-            assert(new_bound == 0.0);
-            rhss_to_lower_info.emplace_back(index, old_bound, 0.0);
-        }
-        return ValidationResult{std::move(recommendations), std::move(rhss_to_lower_info), false};
-    };
-    auto make_out_of_clusters_result = [&]() {
-        for (auto const& working_info : working) {
             Index const index = working_info.index;
             DecisionBoundary const old_bound = working_info.old_bound;
             DecisionBoundary const new_bound = working_info.current_bound;
             if (new_bound == old_bound) continue;
             rhss_to_lower_info.emplace_back(index, old_bound, new_bound);
         }
-        return ValidationResult{std::move(recommendations), std::move(rhss_to_lower_info),
-                                support < min_support_};
+        return {std::move(recommendations), std::move(rhss_to_lower_info), support < min_support_};
     };
-    // TODO: figure out a way to do a loop until (cluster, similar_records) pairs end generically
-    //  without extra actions
     if (cardinality == 1) {
         Index const non_zero_index = non_zero_indices.front();
-        DecisionBoundary const decision_boundary = lhs_bounds[non_zero_index];
         // Never happens when disjointedness pruning is on.
         if (!prune_nondisjoint_) {
             if (indices_bitset.test_set(non_zero_index, false)) {
                 rhss_to_lower_info.emplace_back(non_zero_index, rhs_bounds[non_zero_index], 0.0);
             }
         }
-        prepare(indices_bitset);
         std::vector<indexes::PliCluster> const& clusters =
                 GetLeftCompressor().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
-        std::size_t const clusters_size = clusters.size();
-        for (ValueIdentifier value_id = 0; value_id < clusters_size; ++value_id) {
-            std::unordered_set<RecordIdentifier> const* similar_records_ptr =
-                    GetSimilarRecords(value_id, decision_boundary, non_zero_index);
-            if (similar_records_ptr == nullptr) continue;
-            std::unordered_set<RecordIdentifier> const& similar_records = *similar_records_ptr;
-            std::vector<RecordIdentifier> const& cluster = clusters[value_id];
-            if (lower_bounds(cluster, similar_records)) {
-                return make_all_invalid_result();
+        std::unordered_set<RecordIdentifier> const* similar_records_ptr = nullptr;
+        std::vector<RecordIdentifier> const* cluster_ptr = nullptr;
+        DecisionBoundary const decision_boundary = lhs_bounds[non_zero_index];
+        auto next_pair = [&, value_id = ValueIdentifier(-1),
+                          clusters_size = clusters.size()]() mutable {
+            for (++value_id; value_id != clusters_size; ++value_id) {
+                similar_records_ptr =
+                        GetSimilarRecords(value_id, decision_boundary, non_zero_index);
+                if (similar_records_ptr != nullptr) {
+                    cluster_ptr = &clusters[value_id];
+                    return true;
+                }
             }
-        }
-        return make_out_of_clusters_result();
+            return false;
+        };
+        return process_set_pairs(cluster_ptr, similar_records_ptr, next_pair, indices_bitset);
     }
-    prepare(indices_bitset);
     std::map<Index, std::vector<Index>> pli_mapping;
     for (Index col_match_index : non_zero_indices) {
         pli_mapping[GetLeftPliIndex(col_match_index)].push_back(col_match_index);
@@ -391,18 +387,26 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
     std::size_t const first_pli_size = first_pli.size();
     std::vector<ValueIdentifier> value_ids;
     value_ids.reserve(pli_mapping.size());
-    auto pli_map_start = ++pli_mapping.begin();
-    auto pli_map_end = pli_mapping.end();
     std::vector<RecordIdentifier> similar_records;
-    for (ValueIdentifier first_value_id = 0; first_value_id < first_pli_size; ++first_value_id) {
-        indexes::PliCluster const& cluster = first_pli[first_value_id];
-        // TODO: try adding a perfect hasher (use the number of values in each column, the first
-        //  value can be ignored)
-        // TODO: investigate why this constructor seems to be the fastest on adult.csv
-        //  (glibc 2.38)
-        std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>>
-                grouped{0};
-        {
+    std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>> grouped;
+    using indexes::RecSet;
+    std::vector<CompressedRecord const*> const* cluster_ptr;
+    auto next_pair = [&, end_it = grouped.end(), gr_it = grouped.begin(),
+                      first_value_id = ValueIdentifier(-1),
+                      rec_sets =
+                              [&]() {
+                                  std::vector<RecSet const*> rec_sets;
+                                  rec_sets.reserve(cardinality);
+                                  return rec_sets;
+                              }(),
+                      pli_map_start = ++pli_mapping.begin(),
+                      pli_map_end = pli_mapping.end()]() mutable {
+        auto try_get_next = [&]() {
+            if (++first_value_id == first_pli_size) {
+                return false;
+            }
+            grouped.clear();
+            indexes::PliCluster const& cluster = first_pli[first_value_id];
             value_ids.push_back(first_value_id);
             for (RecordIdentifier record_id : cluster) {
                 std::vector<ValueIdentifier> const& record = left_records[record_id];
@@ -413,43 +417,47 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
                 value_ids.erase(++value_ids.begin(), value_ids.end());
             }
             value_ids.clear();
-        }
-        for (auto const& [val_ids, cluster] : grouped) {
-            using RecSet = std::unordered_set<RecordIdentifier>;
-            std::vector<RecSet const*> rec_sets;
-            rec_sets.reserve(cardinality);
-            for (auto [column_match_index, value_ids_index] : col_match_val_idx_vec) {
-                std::unordered_set<RecordIdentifier> const* similar_records_ptr =
-                        GetSimilarRecords(val_ids[value_ids_index], lhs_bounds[column_match_index],
-                                          column_match_index);
-                if (similar_records_ptr == nullptr) goto no_similar_records;
-                rec_sets.push_back(similar_records_ptr);
-            }
-            goto matched_on_all;
-        no_similar_records:
-            continue;
-        matched_on_all:
-            std::sort(rec_sets.begin(), rec_sets.end(),
-                      [](RecSet const* p1, RecSet const* p2) { return p1->size() < p2->size(); });
-            RecSet const& first = **rec_sets.begin();
-            auto check_set_begin = ++rec_sets.begin();
-            auto check_set_end = rec_sets.end();
-            for (RecordIdentifier rec : first) {
-                if (std::none_of(check_set_begin, check_set_end, [rec](auto const*& rec_set_ptr) {
-                        RecSet const& rec_set = *rec_set_ptr;
-                        return rec_set.find(rec) == rec_set.end();
-                    })) {
-                    similar_records.push_back(rec);
+            gr_it = grouped.begin();
+            end_it = grouped.end();
+            return true;
+        };
+        similar_records.clear();
+        do {
+            for (; gr_it != end_it; ++gr_it) {
+                rec_sets.clear();
+                auto const& [val_ids, cluster] = *gr_it;
+                for (auto [column_match_index, value_ids_index] : col_match_val_idx_vec) {
+                    std::unordered_set<RecordIdentifier> const* similar_records_ptr =
+                            GetSimilarRecords(val_ids[value_ids_index],
+                                              lhs_bounds[column_match_index], column_match_index);
+                    if (similar_records_ptr == nullptr) goto no_similar_records;
+                    rec_sets.push_back(similar_records_ptr);
                 }
+                goto matched_on_all;
+            no_similar_records:
+                continue;
+            matched_on_all:
+                std::sort(rec_sets.begin(), rec_sets.end(), [](RecSet const* p1, RecSet const* p2) {
+                    return p1->size() < p2->size();
+                });
+                RecSet const& first = **rec_sets.begin();
+                auto check_set_begin = ++rec_sets.begin();
+                auto check_set_end = rec_sets.end();
+                for (RecordIdentifier rec : first) {
+                    if (std::all_of(check_set_begin, check_set_end, [rec](auto const& rec_set_ptr) {
+                            return rec_set_ptr->contains(rec);
+                        })) {
+                        similar_records.push_back(rec);
+                    }
+                }
+                if (similar_records.empty()) continue;
+                cluster_ptr = &cluster;
+                return true;
             }
-            if (similar_records.empty()) continue;
-            if (lower_bounds(cluster, similar_records)) {
-                return make_all_invalid_result();
-            }
-            similar_records.clear();
-        }
-    }
-    return make_out_of_clusters_result();
+        } while (try_get_next());
+        return false;
+    };
+    return process_set_pairs(cluster_ptr, &similar_records, next_pair, indices_bitset);
 }
 
 std::optional<model::md::DecisionBoundary> SimilarityData::GetPreviousDecisionBound(

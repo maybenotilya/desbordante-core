@@ -9,7 +9,7 @@
 #include "algorithms/md/hymd/table_identifiers.h"
 
 namespace algos::hymd::indexes {
-using MatchingRecsMapping =
-        std::map<preprocessing::Similarity, std::unordered_set<RecordIdentifier>>;
+using RecSet = std::unordered_set<RecordIdentifier>;
+using MatchingRecsMapping = std::map<preprocessing::Similarity, RecSet>;
 using SimilarityIndex = std::vector<MatchingRecsMapping>;
 }  // namespace algos::hymd::indexes
