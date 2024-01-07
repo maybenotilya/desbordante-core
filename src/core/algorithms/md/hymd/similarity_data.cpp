@@ -365,32 +365,41 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
         };
         return process_set_pairs(cluster_ptr, similar_records_ptr, next_pair, indices_bitset);
     }
+
+    std::vector<std::pair<Index, Index>> col_match_val_idx_vec;
+    col_match_val_idx_vec.reserve(cardinality);
+
     std::map<Index, std::vector<Index>> pli_mapping;
     for (Index col_match_index : non_zero_indices) {
         pli_mapping[GetLeftPliIndex(col_match_index)].push_back(col_match_index);
     }
-    std::vector<std::pair<Index, Index>> col_match_val_idx_vec;
-    col_match_val_idx_vec.reserve(cardinality);
+    auto const& left_compressor = GetLeftCompressor();
+    auto map_it = pli_mapping.begin();
+    auto const& [pli_idx, col_match_idxs] = *map_it;
+    std::vector<indexes::PliCluster> const& first_pli =
+            left_compressor.GetPli(pli_idx).GetClusters();
+    for (Index const col_match_idx : col_match_idxs) {
+        col_match_val_idx_vec.emplace_back(col_match_idx, 0);
+    }
+    std::size_t const plis_involved = pli_mapping.size();
+    std::vector<Index> non_first_indices;
+    non_first_indices.reserve(plis_involved - 1);
     {
-        Index value_ids_index = 0;
-        for (auto const& [pli_idx, col_match_idxs] : pli_mapping) {
+        Index value_ids_index = 1;
+        auto map_end = pli_mapping.end();
+        for (++map_it; map_it != map_end; ++map_it, ++value_ids_index) {
+            auto const& [pli_idx, col_match_idxs] = *map_it;
+            non_first_indices.push_back(pli_idx);
             for (Index const col_match_idx : col_match_idxs) {
                 col_match_val_idx_vec.emplace_back(col_match_idx, value_ids_index);
             }
-            ++value_ids_index;
         }
     }
-    auto const& left_compressor = GetLeftCompressor();
-    auto const& left_records = left_compressor.GetRecords();
-    std::vector<indexes::PliCluster> const& first_pli =
-            left_compressor.GetPli(pli_mapping.begin()->first).GetClusters();
-    std::size_t const first_pli_size = first_pli.size();
-    std::vector<ValueIdentifier> value_ids;
-    value_ids.reserve(pli_mapping.size());
+
     std::vector<RecordIdentifier> similar_records;
+    std::vector<CompressedRecord const*> const* cluster_ptr;
     std::unordered_map<std::vector<ValueIdentifier>, std::vector<CompressedRecord const*>> grouped;
     using indexes::RecSet;
-    std::vector<CompressedRecord const*> const* cluster_ptr;
     auto next_pair = [&, end_it = grouped.end(), gr_it = grouped.begin(),
                       first_value_id = ValueIdentifier(-1),
                       rec_sets =
@@ -399,8 +408,16 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
                                   rec_sets.reserve(cardinality);
                                   return rec_sets;
                               }(),
-                      pli_map_start = ++pli_mapping.begin(),
-                      pli_map_end = pli_mapping.end()]() mutable {
+                      non_first_start = non_first_indices.begin(),
+                      non_first_end = non_first_indices.end(),
+                      &left_records = left_compressor.GetRecords(),
+                      first_pli_size = first_pli.size(),
+                      value_ids =
+                              [&]() {
+                                  std::vector<ValueIdentifier> value_ids;
+                                  value_ids.reserve(plis_involved);
+                                  return value_ids;
+                              }()]() mutable {
         auto try_get_next = [&]() {
             if (++first_value_id == first_pli_size) {
                 return false;
@@ -410,8 +427,8 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
             value_ids.push_back(first_value_id);
             for (RecordIdentifier record_id : cluster) {
                 std::vector<ValueIdentifier> const& record = left_records[record_id];
-                for (auto it_map = pli_map_start; it_map != pli_map_end; ++it_map) {
-                    value_ids.push_back(record[it_map->first]);
+                for (auto ind_it = non_first_start; ind_it != non_first_end; ++ind_it) {
+                    value_ids.push_back(record[*ind_it]);
                 }
                 grouped[value_ids].push_back(&record);
                 value_ids.erase(++value_ids.begin(), value_ids.end());
@@ -423,9 +440,10 @@ SimilarityData::ValidationResult SimilarityData::Validate(lattice::ValidationInf
         };
         similar_records.clear();
         do {
-            for (; gr_it != end_it; ++gr_it) {
-                rec_sets.clear();
+            while (gr_it != end_it) {
                 auto const& [val_ids, cluster] = *gr_it;
+                rec_sets.clear();
+                ++gr_it;
                 for (auto [column_match_index, value_ids_index] : col_match_val_idx_vec) {
                     std::unordered_set<RecordIdentifier> const* similar_records_ptr =
                             GetSimilarRecords(val_ids[value_ids_index],
