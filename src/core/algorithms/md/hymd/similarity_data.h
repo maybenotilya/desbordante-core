@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "algorithms/md/decision_boundary.h"
+#include "algorithms/md/hymd/column_match_info.h"
 #include "algorithms/md/hymd/decision_boundary_vector.h"
-#include "algorithms/md/hymd/indexes/column_similarity_info.h"
 #include "algorithms/md/hymd/indexes/compressed_records.h"
 #include "algorithms/md/hymd/indexes/pli_cluster.h"
 #include "algorithms/md/hymd/indexes/similarity_index.h"
@@ -20,12 +20,6 @@
 
 namespace algos::hymd {
 
-struct ColumnMatchInfo {
-    indexes::ColumnMatchSimilarityInfo similarity_info;
-    model::Index left_column_index;
-    model::Index right_column_index;
-};
-
 class SimilarityData {
 private:
     struct WorkingInfo;
@@ -33,9 +27,9 @@ private:
     static auto ZeroLatticeRhsAndDo(std::vector<WorkingInfo>& working_info,
                                     DecisionBoundaryVector& lattice_rhs_bounds, Action action);
 
-    indexes::CompressedRecords* compressed_records_;
+    indexes::CompressedRecords const* const compressed_records_;
 
-    std::vector<ColumnMatchInfo> column_matches_info_;
+    std::vector<ColumnMatchInfo> const column_matches_info_;
 
     bool const single_table_;
 
@@ -115,10 +109,14 @@ public:
         return column_matches_info_.size();
     }
 
+    [[nodiscard]] std::vector<ColumnMatchInfo> const& GetColumnMatchesInfo() const noexcept {
+        return column_matches_info_;
+    }
+
     [[nodiscard]] std::pair<model::Index, model::Index> GetColMatchIndices(
             model::Index index) const {
-        auto const& info = column_matches_info_[index];
-        return {info.left_column_index, info.right_column_index};
+        auto const& [_, left_column_index, right_column_index] = column_matches_info_[index];
+        return {left_column_index, right_column_index};
     }
 
     [[nodiscard]] std::size_t GetLeftSize() const noexcept {
