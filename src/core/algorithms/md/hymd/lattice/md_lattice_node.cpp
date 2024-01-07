@@ -41,13 +41,15 @@ bool MdLatticeNode::HasGeneralization(DecisionBoundaryVector const& lhs_bounds,
                                       model::Index const rhs_index,
                                       model::Index const this_node_index) const {
     if (rhs_bounds_[rhs_index] >= rhs_bound) return true;
-    std::size_t const child_array_size = children_.size();
-    for (model::Index child_array_index = FindFirstNonEmptyIndex(children_, 0);
-         child_array_index != child_array_size;
-         child_array_index = FindFirstNonEmptyIndex(children_, child_array_index + 1)) {
-        model::Index const next_node_index = this_node_index + child_array_index;
+    std::size_t const col_match_number = rhs_bounds_.size();
+    for (model::Index next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
+         next_node_index != col_match_number;
+         next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1)) {
+        model::Index const child_array_index = next_node_index - this_node_index;
+        OptionalChild const& optional_child = children_[child_array_index];
+        if (!optional_child.has_value()) continue;
         model::md::DecisionBoundary const generalization_bound_limit = lhs_bounds[next_node_index];
-        for (auto const& [generalization_bound, node] : *children_[child_array_index]) {
+        for (auto const& [generalization_bound, node] : *optional_child) {
             if (generalization_bound > generalization_bound_limit) break;
             if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1))
                 return true;
