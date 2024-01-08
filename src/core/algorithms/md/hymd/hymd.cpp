@@ -4,7 +4,10 @@
 #include <cstddef>
 
 #include "algorithms/md/hymd/lattice/cardinality/min_picking_level_getter.h"
+#include "algorithms/md/hymd/lattice_traverser.h"
 #include "algorithms/md/hymd/preprocessing/similarity_measure/levenshtein_similarity_measure.h"
+#include "algorithms/md/hymd/record_pair_inferrer.h"
+#include "algorithms/md/hymd/similarity_data.h"
 #include "algorithms/md/hymd/utility/md_less.h"
 #include "config/names_and_descriptions.h"
 #include "config/option_using.h"
@@ -54,7 +57,7 @@ void HyMD::RegisterOptions() {
             for (model::Index i = 0; i < num_columns_left; ++i) {
                 std::string const column_name_left = left_schema_->GetColumn(i)->GetName();
                 for (model::Index j = 0; j < num_columns_right; ++j) {
-                    std::string const column_name_right = right_schema_->GetColumn(i)->GetName();
+                    std::string const column_name_right = right_schema_->GetColumn(j)->GetName();
                     column_matches_option.emplace_back(
                             column_name_left, column_name_right,
                             std::make_shared<preprocessing::similarity_measure::
@@ -76,10 +79,7 @@ void HyMD::RegisterOptions() {
 }
 
 void HyMD::ResetStateMd() {
-    similarity_data_.reset();
     lattice_.reset();
-    lattice_traverser_.reset();
-    record_pair_inferrer_.reset();
 }
 
 void HyMD::LoadDataInternal() {
@@ -118,21 +118,22 @@ unsigned long long HyMD::ExecuteInternal() {
     std::size_t const column_match_number = column_matches_info.size();
     assert(column_match_number != 0);
     // TODO: make infrastructure for depth level
-    lattice_ = std::make_unique<lattice::FullLattice>(column_match_number, [](...) { return 1; });
     similarity_data_ =
-            SimilarityData::CreateFrom(compressed_records_.get(), std::move(column_matches_info),
-                                       min_support_, lattice_.get(), prune_nondisjoint_);
-    lattice_traverser_ = std::make_unique<LatticeTraverser>(
-            similarity_data_.get(), lattice_.get(),
-            std::make_unique<lattice::cardinality::MinPickingLevelGetter>(lattice_.get()));
-    record_pair_inferrer_ =
-            std::make_unique<RecordPairInferrer>(similarity_data_.get(), lattice_.get());
+            SimilarityData::CreateFrom(compressed_records_.get(), std::move(column_matches_info));
+    lattice_ = std::make_unique<lattice::FullLattice>(column_match_number, [](...) { return 1; });
+    auto lattice_traverser = LatticeTraverser{
+            lattice_.get(), similarity_data_.get(),
+            std::make_unique<lattice::cardinality::MinPickingLevelGetter>(lattice_.get()),
+            Validator{compressed_records_.get(), similarity_data_->GetColumnMatchesInfo(),
+                      min_support_, lattice_.get(), prune_nondisjoint_},
+            prune_nondisjoint_};
+    auto record_pair_inferrer =
+            RecordPairInferrer{similarity_data_.get(), lattice_.get(), prune_nondisjoint_};
 
     bool done = false;
     do {
-        done = record_pair_inferrer_->InferFromRecordPairs(
-                lattice_traverser_->TakeRecommendations());
-        done = lattice_traverser_->TraverseLattice(done);
+        done = record_pair_inferrer.InferFromRecordPairs(lattice_traverser.TakeRecommendations());
+        done = lattice_traverser.TraverseLattice(done);
     } while (!done);
 
     RegisterResults();

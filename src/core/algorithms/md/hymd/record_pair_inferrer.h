@@ -15,9 +15,9 @@ class RecordPairInferrer {
 private:
     struct Statistics;
 
-    SimilarityData* similarity_data_;
+    SimilarityData* const similarity_data_;
 
-    lattice::FullLattice* lattice_;
+    lattice::FullLattice* const lattice_;
 
     // Metanome uses a linked list for some reason.
     std::unordered_set<SimilarityVector> sim_vecs_to_check_;
@@ -34,10 +34,11 @@ private:
     bool ShouldStopInferring(Statistics const& statistics) const noexcept;
 
 public:
-    RecordPairInferrer(SimilarityData* similarity_data, lattice::FullLattice* lattice) noexcept
+    RecordPairInferrer(SimilarityData* similarity_data, lattice::FullLattice* lattice,
+                       bool prune_nondisjoint) noexcept
         : similarity_data_(similarity_data),
           lattice_(lattice),
-          prune_nondisjoint_(similarity_data_->ShouldPruneNondisjoint()) {}
+          prune_nondisjoint_(prune_nondisjoint) {}
 
     bool InferFromRecordPairs(Recommendations recommendations);
 };

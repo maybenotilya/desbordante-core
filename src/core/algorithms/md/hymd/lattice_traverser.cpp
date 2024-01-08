@@ -7,7 +7,7 @@
 
 namespace algos::hymd {
 
-void LatticeTraverser::LowerAndSpecialize(SimilarityData::ValidationResult& validation_result,
+void LatticeTraverser::LowerAndSpecialize(Validator::Result& validation_result,
                                           lattice::ValidationInfo& validation_info) {
     using model::md::DecisionBoundary, model::Index;
     auto const& to_lower_info = validation_result.rhss_to_lower_info;
@@ -68,17 +68,17 @@ bool LatticeTraverser::TraverseLattice(bool traverse_all) {
         }
 
         std::size_t const mds_size = mds.size();
-        std::vector<SimilarityData::ValidationResult> results(mds_size);
+        std::vector<Validator::Result> results(mds_size);
         // TODO: add reusable thread pool
         boost::asio::thread_pool thread_pool;
         for (model::Index i = 0; i < mds_size; ++i) {
             boost::asio::post(thread_pool, [this, &result = results[i], &info = mds[i]]() {
-                result = similarity_data_->Validate(info);
+                result = validator_.Validate(info);
             });
         }
         thread_pool.join();
         auto viol_future = std::async(std::launch::async, [this, &results]() {
-            for (SimilarityData::ValidationResult& result : results) {
+            for (Validator::Result& result : results) {
                 for (std::vector<Recommendation> const& rhs_violations : result.recommendations) {
                     recommendations_.insert(rhs_violations.begin(), rhs_violations.end());
                 };
