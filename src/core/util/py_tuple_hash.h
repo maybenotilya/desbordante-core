@@ -10,7 +10,7 @@ template <typename T>
 class PyTupleHash {
     std::size_t res_ = 0x345678UL;
     std::size_t mult_ = 1000003UL;
-    std::hash<T> const hasher{};
+    std::hash<T> const hasher_{};
     std::int64_t len_;
 
 public:
@@ -22,7 +22,7 @@ public:
 
     void AddValue(T const& value) noexcept {
         --len_;
-        std::size_t hash = hasher(value);
+        std::size_t hash = hasher_(value);
         res_ = (res_ ^ hash) * mult_;
         mult_ += 82520UL + len_ + len_;
     }

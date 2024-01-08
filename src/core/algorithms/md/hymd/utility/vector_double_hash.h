@@ -1,6 +1,8 @@
 #pragma once
 
-#include <bit>
+//#include <bit>
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 #include "algorithms/md/hymd/utility/bit_cast.h"
