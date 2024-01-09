@@ -60,7 +60,7 @@ void LatticeTraverser::LowerAndSpecialize(Validator::Result& validation_result,
     }
 }
 
-bool LatticeTraverser::TraverseLattice(bool traverse_all) {
+bool LatticeTraverser::TraverseLattice(bool const traverse_all) {
     while (level_getter_->AreLevelsLeft()) {
         std::vector<lattice::ValidationInfo> mds = level_getter_->GetCurrentMds();
         if (mds.empty()) {
