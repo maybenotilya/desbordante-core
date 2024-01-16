@@ -2,6 +2,7 @@
 
 #include <boost/asio.hpp>
 
+#include "algorithms/md/hymd/invalidated_rhs.h"
 #include "algorithms/md/hymd/utility/set_for_scope.h"
 #include "model/index.h"
 
@@ -10,54 +11,25 @@ namespace algos::hymd {
 void LatticeTraverser::LowerAndSpecialize(Validator::Result& validation_result,
                                           lattice::ValidationInfo& validation_info) {
     using model::md::DecisionBoundary, model::Index;
-    auto const& to_lower_info = validation_result.rhss_to_lower_info;
-    for (auto const& [index, _, actual_bound] : to_lower_info) {
-        validation_info.node_info->rhs_bounds->operator[](index) = actual_bound;
-    }
+    DecisionBoundaryVector& lhs_bounds = validation_info.node_info->lhs_bounds;
+    DecisionBoundaryVector& rhs_bounds = *validation_info.node_info->rhs_bounds;
+
     bool const is_unsupported = validation_result.is_unsupported;
     // TODO: move the below to another class.
     if (is_unsupported) {
-        lattice_->MarkUnsupported(validation_info.node_info->lhs_bounds);
+        // Does practically nothing, just repeating what is in the article.
+        std::fill(rhs_bounds.begin(), rhs_bounds.end(), 0.0);
+        // TODO: specializations can be removed from the MD lattice. If not worth it, removing just
+        // this node and its children should be cheap. Though, destructors also take time.
+        lattice_->MarkUnsupported(lhs_bounds);
         return;
     }
-    DecisionBoundaryVector& lhs_bounds = validation_info.node_info->lhs_bounds;
-    std::size_t const col_matches_num = lhs_bounds.size();
-    auto specialize_all_lhs = [this, col_matches_num, &lhs_bounds, it_begin = to_lower_info.begin(),
-                               it_end = to_lower_info.end()](auto handle_same_lhs_as_rhs) {
-        for (Index lhs_spec_index = 0; lhs_spec_index < col_matches_num; ++lhs_spec_index) {
-            DecisionBoundary& lhs_bound = lhs_bounds[lhs_spec_index];
-            std::optional<DecisionBoundary> const specialized_lhs_bound =
-                    similarity_data_->SpecializeOneLhs(lhs_spec_index, lhs_bound);
-            if (!specialized_lhs_bound.has_value()) continue;
-            auto context = utility::SetForScope(lhs_bound, *specialized_lhs_bound);
-            if (lattice_->IsUnsupported(lhs_bounds)) {
-                continue;
-            }
-            for (auto it = it_begin; it != it_end; ++it) {
-                auto const& [rhs_index, old_rhs_bound, _] = *it;
-                if (rhs_index == lhs_spec_index) {
-                    handle_same_lhs_as_rhs(old_rhs_bound, *specialized_lhs_bound, rhs_index);
-                    for (++it; it != it_end; ++it) {
-                        auto const& [rhs_index, old_rhs_bound, _] = *it;
-                        lattice_->AddIfMinimal(lhs_bounds, old_rhs_bound, rhs_index);
-                    }
-                    break;
-                }
-                lattice_->AddIfMinimal(lhs_bounds, old_rhs_bound, rhs_index);
-            }
-        }
-    };
-    if (prune_nondisjoint_) {
-        specialize_all_lhs([](...) {});
-    } else {
-        specialize_all_lhs([this, &lhs_bounds](DecisionBoundary old_rhs_bound,
-                                               DecisionBoundary specialized_lhs_bound,
-                                               Index rhs_index) {
-            if (old_rhs_bound > specialized_lhs_bound) {
-                lattice_->AddIfMinimal(lhs_bounds, old_rhs_bound, rhs_index);
-            }
-        });
+
+    InvalidatedRhss const& invalidated = validation_result.invalidated;
+    for (auto const& [index, _, actual_bound] : invalidated) {
+        rhs_bounds[index] = actual_bound;
     }
+    specializer_->SpecializeInvalidated(lhs_bounds, invalidated);
 }
 
 bool LatticeTraverser::TraverseLattice(bool const traverse_all) {

@@ -8,6 +8,7 @@
 #include "algorithms/md/hymd/recommendation.h"
 #include "algorithms/md/hymd/similarity_data.h"
 #include "algorithms/md/hymd/similarity_vector.h"
+#include "algorithms/md/hymd/specializer.h"
 
 namespace algos::hymd {
 
@@ -16,8 +17,8 @@ private:
     struct Statistics;
 
     SimilarityData* const similarity_data_;
-
     lattice::FullLattice* const lattice_;
+    Specializer* const specializer_;
 
     // Metanome uses a linked list for some reason.
     std::unordered_set<SimilarityVector> sim_vecs_to_check_;
@@ -27,7 +28,6 @@ private:
 
     // std::size_t efficiency_reciprocal_ = 100;
 
-    bool const prune_nondisjoint_;
     bool const avoid_same_sim_vec_processing_ = true;
 
     void ProcessSimVec(SimilarityVector const& sim);
@@ -35,10 +35,8 @@ private:
 
 public:
     RecordPairInferrer(SimilarityData* similarity_data, lattice::FullLattice* lattice,
-                       bool prune_nondisjoint) noexcept
-        : similarity_data_(similarity_data),
-          lattice_(lattice),
-          prune_nondisjoint_(prune_nondisjoint) {}
+                       Specializer* specializer) noexcept
+        : similarity_data_(similarity_data), lattice_(lattice), specializer_(specializer) {}
 
     bool InferFromRecordPairs(Recommendations recommendations);
 };

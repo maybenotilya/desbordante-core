@@ -27,24 +27,12 @@ private:
 
     std::vector<ColumnMatchInfo> const column_matches_info_;
 
-    [[nodiscard]] model::Index GetLeftPliIndex(model::Index const column_match_index) const {
-        return column_matches_info_[column_match_index].left_column_index;
-    }
-
     indexes::DictionaryCompressor const& GetLeftCompressor() const noexcept {
         return compressed_records_->GetLeftRecords();
     }
 
     indexes::DictionaryCompressor const& GetRightCompressor() const noexcept {
         return compressed_records_->GetRightRecords();
-    }
-
-    std::size_t GetLeftValueNum(model::Index const col_match_index) const {
-        return GetLeftCompressor().GetPli(GetLeftPliIndex(col_match_index)).GetClusters().size();
-    }
-
-    [[nodiscard]] std::size_t GetRightSize() const noexcept {
-        return GetRightCompressor().GetNumberOfRecords();
     }
 
 public:
@@ -78,9 +66,6 @@ public:
     [[nodiscard]] std::size_t GetLeftSize() const noexcept {
         return GetLeftCompressor().GetNumberOfRecords();
     }
-
-    [[nodiscard]] std::optional<model::md::DecisionBoundary> SpecializeOneLhs(
-            model::Index col_match_index, model::md::DecisionBoundary lhs_bound) const;
 
     [[nodiscard]] std::unordered_set<SimilarityVector> GetSimVecs(
             RecordIdentifier left_record_id) const;

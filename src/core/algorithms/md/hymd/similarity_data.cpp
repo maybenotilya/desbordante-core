@@ -77,21 +77,6 @@ SimilarityVector SimilarityData::GetSimilarityVector(CompressedRecord const& lef
     return similarities;
 }
 
-
-[[nodiscard]] std::optional<model::md::DecisionBoundary> SimilarityData::SpecializeOneLhs(
-        model::Index col_match_index, model::md::DecisionBoundary lhs_bound) const {
-    std::vector<model::md::DecisionBoundary> const& decision_bounds =
-            column_matches_info_[col_match_index].similarity_info.lhs_bounds;
-    auto end_bounds = decision_bounds.end();
-    auto upper = std::upper_bound(decision_bounds.begin(), end_bounds, lhs_bound);
-    if (upper == end_bounds) {
-        // Does not handle the case where the highest possible decision bound is not 1.0
-        // correctly, but Metanome doesn't either
-        return std::nullopt;
-    }
-    return *upper;
-}
-
 std::optional<model::md::DecisionBoundary> SimilarityData::GetPreviousDecisionBound(
         model::md::DecisionBoundary const lhs_bound, model::Index const column_match_index) const {
     std::vector<model::md::DecisionBoundary> const& bounds =

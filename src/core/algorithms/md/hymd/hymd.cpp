@@ -121,14 +121,15 @@ unsigned long long HyMD::ExecuteInternal() {
     similarity_data_ =
             SimilarityData::CreateFrom(compressed_records_.get(), std::move(column_matches_info));
     lattice_ = std::make_unique<lattice::FullLattice>(column_match_number, [](...) { return 1; });
-    auto lattice_traverser = LatticeTraverser{
-            lattice_.get(), similarity_data_.get(),
+    Specializer specializer{similarity_data_->GetColumnMatchesInfo(), lattice_.get(),
+                            prune_nondisjoint_};
+    LatticeTraverser lattice_traverser{
+            lattice_.get(),
             std::make_unique<lattice::cardinality::MinPickingLevelGetter>(lattice_.get()),
-            Validator{compressed_records_.get(), similarity_data_->GetColumnMatchesInfo(),
-                      min_support_, lattice_.get(), prune_nondisjoint_},
-            prune_nondisjoint_};
-    auto record_pair_inferrer =
-            RecordPairInferrer{similarity_data_.get(), lattice_.get(), prune_nondisjoint_};
+            {compressed_records_.get(), similarity_data_->GetColumnMatchesInfo(), min_support_,
+             lattice_.get()},
+            &specializer};
+    RecordPairInferrer record_pair_inferrer{similarity_data_.get(), lattice_.get(), &specializer};
 
     bool done = false;
     do {

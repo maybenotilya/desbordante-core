@@ -7,6 +7,7 @@
 #include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/hymd/column_match_info.h"
 #include "algorithms/md/hymd/indexes/compressed_records.h"
+#include "algorithms/md/hymd/invalidated_rhs.h"
 #include "algorithms/md/hymd/lattice/full_lattice.h"
 #include "algorithms/md/hymd/lattice/validation_info.h"
 #include "algorithms/md/hymd/recommendation.h"
@@ -26,7 +27,6 @@ private:
     std::vector<ColumnMatchInfo> const* const column_matches_info_;
     std::size_t const min_support_;
     lattice::FullLattice* const lattice_;
-    bool const prune_nondisjoint_;
 
     [[nodiscard]] model::Index GetLeftPliIndex(model::Index const column_match_index) const {
         return (*column_matches_info_)[column_match_index].left_column_index;
@@ -68,21 +68,18 @@ private:
 
 public:
     struct Result {
-        using RhsToLowerInfo =
-                std::tuple<model::Index, model::md::DecisionBoundary, model::md::DecisionBoundary>;
         std::vector<std::vector<Recommendation>> recommendations;
-        std::vector<RhsToLowerInfo> rhss_to_lower_info;
+        InvalidatedRhss invalidated;
         bool is_unsupported;
     };
 
     Validator(indexes::CompressedRecords const* compressed_records,
               std::vector<ColumnMatchInfo> const& column_matches_info, std::size_t min_support,
-              lattice::FullLattice* lattice, bool prune_nondisjoint)
+              lattice::FullLattice* lattice)
         : compressed_records_(compressed_records),
           column_matches_info_(&column_matches_info),
           min_support_(min_support),
-          lattice_(lattice),
-          prune_nondisjoint_(prune_nondisjoint) {}
+          lattice_(lattice) {}
 
     [[nodiscard]] Result Validate(lattice::ValidationInfo& validation_info) const;
 };

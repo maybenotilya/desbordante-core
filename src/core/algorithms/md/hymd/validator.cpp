@@ -165,8 +165,8 @@ Validator::Result Validator::Validate(lattice::ValidationInfo& info) const {
     boost::dynamic_bitset<>& indices_bitset = info.rhs_indices;
     std::vector<Index> non_zero_indices = GetNonZeroIndices(lhs_bounds);
     std::size_t const cardinality = non_zero_indices.size();
-    std::vector<std::tuple<Index, DecisionBoundary, DecisionBoundary>> rhss_to_lower_info;
-    rhss_to_lower_info.reserve(indices_bitset.count());
+    InvalidatedRhss invalidated;
+    invalidated.reserve(indices_bitset.count());
     if (cardinality == 0) [[unlikely]] {
         for (Index index = indices_bitset.find_first(); index != boost::dynamic_bitset<>::npos;
              index = indices_bitset.find_next(index)) {
@@ -175,9 +175,9 @@ Validator::Result Validator::Validate(lattice::ValidationInfo& info) const {
                     column_matches_info[index].similarity_info.lowest_similarity;
             if (old_bound == new_bound) [[unlikely]]
                 continue;
-            rhss_to_lower_info.emplace_back(index, old_bound, new_bound);
+            invalidated.emplace_back(index, old_bound, new_bound);
         }
-        return {{}, std::move(rhss_to_lower_info), GetTotalPairsNum() < min_support_};
+        return {{}, std::move(invalidated), GetTotalPairsNum() < min_support_};
     }
     auto process_set_pairs = [&, &right_records = GetRightCompressor().GetRecords()](
                                      auto* const& cluster, auto* const& similar_records,
@@ -232,9 +232,9 @@ Validator::Result Validator::Validate(lattice::ValidationInfo& info) const {
                     DecisionBoundary const new_bound = working_info.current_bound;
                     assert(old_bound != 0.0);
                     assert(new_bound == 0.0);
-                    rhss_to_lower_info.emplace_back(index, old_bound, 0.0);
+                    invalidated.emplace_back(index, old_bound, 0.0);
                 }
-                return {std::move(recommendations), std::move(rhss_to_lower_info), false};
+                return {std::move(recommendations), std::move(invalidated), false};
             }
         }
         for (WorkingInfo const& working_info : working) {
@@ -242,17 +242,15 @@ Validator::Result Validator::Validate(lattice::ValidationInfo& info) const {
             DecisionBoundary const old_bound = working_info.old_bound;
             DecisionBoundary const new_bound = working_info.current_bound;
             if (new_bound == old_bound) continue;
-            rhss_to_lower_info.emplace_back(index, old_bound, new_bound);
+            invalidated.emplace_back(index, old_bound, new_bound);
         }
-        return {std::move(recommendations), std::move(rhss_to_lower_info), support < min_support_};
+        return {std::move(recommendations), std::move(invalidated), support < min_support_};
     };
     if (cardinality == 1) {
         Index const non_zero_index = non_zero_indices.front();
         // Never happens when disjointedness pruning is on.
-        if (!prune_nondisjoint_) {
-            if (indices_bitset.test_set(non_zero_index, false)) {
-                rhss_to_lower_info.emplace_back(non_zero_index, rhs_bounds[non_zero_index], 0.0);
-            }
+        if (indices_bitset.test_set(non_zero_index, false)) {
+            invalidated.emplace_back(non_zero_index, rhs_bounds[non_zero_index], 0.0);
         }
         std::vector<indexes::PliCluster> const& clusters =
                 GetLeftCompressor().GetPli(GetLeftPliIndex(non_zero_index)).GetClusters();
