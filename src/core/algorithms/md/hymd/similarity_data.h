@@ -42,7 +42,7 @@ public:
           single_table_(compressed_records_->OneTableGiven()),
           column_matches_info_(std::move(column_matches_info)) {}
 
-    static std::unique_ptr<SimilarityData> CreateFrom(
+    static SimilarityData CreateFrom(
             indexes::CompressedRecords* compressed_records,
             std::vector<std::tuple<
                     std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>,

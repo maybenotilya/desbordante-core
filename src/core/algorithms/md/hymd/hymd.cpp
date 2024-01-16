@@ -78,9 +78,7 @@ void HyMD::RegisterOptions() {
             &column_matches_option_, kColumnMatches, kDColumnMatches, {column_matches_default}});
 }
 
-void HyMD::ResetStateMd() {
-    lattice_.reset();
-}
+void HyMD::ResetStateMd() {}
 
 void HyMD::LoadDataInternal() {
     left_schema_ = std::make_shared<RelationalSchema>(left_table_->GetRelationName());
@@ -118,18 +116,17 @@ unsigned long long HyMD::ExecuteInternal() {
     std::size_t const column_match_number = column_matches_info.size();
     assert(column_match_number != 0);
     // TODO: make infrastructure for depth level
-    similarity_data_ =
-            SimilarityData::CreateFrom(compressed_records_.get(), std::move(column_matches_info));
-    lattice_ = std::make_unique<lattice::FullLattice>(column_match_number, [](...) { return 1; });
-    Specializer specializer{similarity_data_->GetColumnMatchesInfo(), lattice_.get(),
+    SimilarityData similarity_data = SimilarityData::CreateFrom(compressed_records_.get(), std::move(column_matches_info));
+    lattice::FullLattice lattice{column_match_number, [](...) { return 1; }};
+    Specializer specializer{similarity_data.GetColumnMatchesInfo(), &lattice,
                             prune_nondisjoint_};
     LatticeTraverser lattice_traverser{
-            lattice_.get(),
-            std::make_unique<lattice::cardinality::MinPickingLevelGetter>(lattice_.get()),
-            {compressed_records_.get(), similarity_data_->GetColumnMatchesInfo(), min_support_,
-             lattice_.get()},
+            &lattice,
+            std::make_unique<lattice::cardinality::MinPickingLevelGetter>(&lattice),
+            {compressed_records_.get(), similarity_data.GetColumnMatchesInfo(), min_support_,
+             &lattice},
             &specializer};
-    RecordPairInferrer record_pair_inferrer{similarity_data_.get(), lattice_.get(), &specializer};
+    RecordPairInferrer record_pair_inferrer{&similarity_data, &lattice, &specializer};
 
     bool done = false;
     do {
@@ -137,34 +134,36 @@ unsigned long long HyMD::ExecuteInternal() {
         done = lattice_traverser.TraverseLattice(done);
     } while (!done);
 
-    RegisterResults();
+    RegisterResults(similarity_data, lattice.GetAll());
 
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() -
                                                                  start_time)
             .count();
 }
 
-void HyMD::RegisterResults() {
-    std::size_t const column_match_number = similarity_data_->GetColumnMatchNumber();
+void HyMD::RegisterResults(SimilarityData const& similarity_data,
+                           std::vector<lattice::MdLatticeNodeInfo> lattice_mds) {
+    std::size_t const column_match_number = similarity_data.GetColumnMatchNumber();
     std::vector<model::md::ColumnMatch> column_matches;
     column_matches.reserve(column_match_number);
     for (model::Index column_match_index = 0; column_match_index < column_match_number;
          ++column_match_index) {
         auto [left_col_index, right_col_index] =
-                similarity_data_->GetColMatchIndices(column_match_index);
+                similarity_data.GetColMatchIndices(column_match_index);
         column_matches.emplace_back(left_col_index, right_col_index,
                                     std::get<2>(column_matches_option_[column_match_index])
                                             ->GetSimilarityMeasureName());
     }
     std::vector<model::MD> mds;
-    for (auto const& md : lattice_->GetAll()) {
+    for (lattice::MdLatticeNodeInfo const& md : lattice_mds) {
+        DecisionBoundaryVector& rhs_bounds = *md.rhs_bounds;
         for (model::Index rhs_index = 0; rhs_index < column_match_number; ++rhs_index) {
-            model::md::DecisionBoundary const rhs_bound = md.rhs_bounds->operator[](rhs_index);
+            model::md::DecisionBoundary const rhs_bound = rhs_bounds[rhs_index];
             if (rhs_bound == 0.0) continue;
             std::vector<model::md::LhsColumnSimilarityClassifier> lhs;
             for (model::Index lhs_index = 0; lhs_index < column_match_number; ++lhs_index) {
                 model::md::DecisionBoundary const lhs_bound = md.lhs_bounds[lhs_index];
-                lhs.emplace_back(similarity_data_->GetPreviousDecisionBound(lhs_bound, lhs_index),
+                lhs.emplace_back(similarity_data.GetPreviousDecisionBound(lhs_bound, lhs_index),
                                  lhs_index, lhs_bound);
             }
             model::md::ColumnSimilarityClassifier rhs{rhs_index, rhs_bound};

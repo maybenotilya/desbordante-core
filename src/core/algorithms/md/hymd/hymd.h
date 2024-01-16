@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <vector>
 
 #include "algorithms/md/hymd/indexes/compressed_records.h"
 #include "algorithms/md/hymd/lattice/full_lattice.h"
@@ -24,10 +25,6 @@ private:
 
     std::unique_ptr<indexes::CompressedRecords> compressed_records_;
 
-    // shared_ptr(?)
-    std::unique_ptr<SimilarityData> similarity_data_;
-    std::unique_ptr<lattice::FullLattice> lattice_;
-
     std::size_t min_support_ = 0;
     bool prune_nondisjoint_ = true;
     // TODO: thread number limit
@@ -49,7 +46,8 @@ private:
     void ResetStateMd() final;
     unsigned long long ExecuteInternal() final;
 
-    void RegisterResults();
+    void RegisterResults(SimilarityData const& similarity_data,
+                         std::vector<lattice::MdLatticeNodeInfo> lattice_mds);
 
 public:
     HyMD();

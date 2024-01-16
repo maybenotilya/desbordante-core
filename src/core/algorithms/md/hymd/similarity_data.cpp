@@ -8,7 +8,7 @@
 
 namespace algos::hymd {
 
-std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
+SimilarityData SimilarityData::CreateFrom(
         indexes::CompressedRecords* const compressed_records,
         std::vector<
                 std::tuple<std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>,
@@ -36,7 +36,7 @@ std::unique_ptr<SimilarityData> SimilarityData::CreateFrom(
                                      right_pli.GetClusters()),
                 left_col_index, right_col_index);
     }
-    return std::make_unique<SimilarityData>(compressed_records, std::move(column_matches_info));
+    return {compressed_records, std::move(column_matches_info)};
 }
 
 std::unordered_set<SimilarityVector> SimilarityData::GetSimVecs(

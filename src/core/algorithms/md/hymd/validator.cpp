@@ -89,7 +89,7 @@ bool Validator::LowerForColumnMatchNoCheck(
     std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped(
             std::min(matched_records.size(), working_info.col_match_values));
     for (CompressedRecord const* left_record_ptr : matched_records) {
-        grouped[left_record_ptr->operator[](working_info.left_index)].push_back(left_record_ptr);
+        grouped[(*left_record_ptr)[working_info.left_index]].push_back(left_record_ptr);
     }
     model::md::DecisionBoundary& current_rhs_bound = working_info.current_bound;
     indexes::SimilarityMatrix const& similarity_matrix = working_info.similarity_matrix;

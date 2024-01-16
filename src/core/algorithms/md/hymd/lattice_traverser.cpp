@@ -10,7 +10,6 @@ namespace algos::hymd {
 
 void LatticeTraverser::LowerAndSpecialize(Validator::Result& validation_result,
                                           lattice::ValidationInfo& validation_info) {
-    using model::md::DecisionBoundary, model::Index;
     DecisionBoundaryVector& lhs_bounds = validation_info.node_info->lhs_bounds;
     DecisionBoundaryVector& rhs_bounds = *validation_info.node_info->rhs_bounds;
 
