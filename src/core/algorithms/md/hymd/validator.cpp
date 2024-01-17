@@ -79,6 +79,17 @@ struct Validator::WorkingInfo {
           right_index(right_index) {}
 };
 
+std::unordered_set<RecordIdentifier> const* Validator::GetSimilarRecords(
+        ValueIdentifier value_id, model::md::DecisionBoundary lhs_bound,
+        model::Index column_match_index) const {
+    indexes::SimilarityIndex const& similarity_index =
+            (*column_matches_info_)[column_match_index].similarity_info.similarity_index;
+    indexes::MatchingRecsMapping const& val_index = similarity_index[value_id];
+    auto it = val_index.lower_bound(lhs_bound);
+    if (it == val_index.end()) return nullptr;
+    return &it->second;
+}
+
 template <typename Collection>
 bool Validator::LowerForColumnMatchNoCheck(
         WorkingInfo& working_info, std::vector<CompressedRecord const*> const& matched_records,
