@@ -116,10 +116,10 @@ unsigned long long HyMD::ExecuteInternal() {
     std::size_t const column_match_number = column_matches_info.size();
     assert(column_match_number != 0);
     // TODO: make infrastructure for depth level
-    SimilarityData similarity_data = SimilarityData::CreateFrom(compressed_records_.get(), std::move(column_matches_info));
+    SimilarityData similarity_data =
+            SimilarityData::CreateFrom(compressed_records_.get(), std::move(column_matches_info));
     lattice::FullLattice lattice{column_match_number, [](...) { return 1; }};
-    Specializer specializer{similarity_data.GetColumnMatchesInfo(), &lattice,
-                            prune_nondisjoint_};
+    Specializer specializer{similarity_data.GetColumnMatchesInfo(), &lattice, prune_nondisjoint_};
     LatticeTraverser lattice_traverser{
             &lattice,
             std::make_unique<lattice::cardinality::MinPickingLevelGetter>(&lattice),
