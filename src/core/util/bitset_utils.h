@@ -30,7 +30,7 @@ template <typename Index>
 std::vector<Index> BitsetToIndices(boost::dynamic_bitset<> const& bitset) {
     std::vector<Index> indices;
     indices.reserve(bitset.count());
-    ForEachIndex(bitset, [&](auto i){
+    ForEachIndex(bitset, [&](auto i) {
         assert(i <= std::numeric_limits<Index>::max());
         indices.push_back(static_cast<Index>(i));
     });
