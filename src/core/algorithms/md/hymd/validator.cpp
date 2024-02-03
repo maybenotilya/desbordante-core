@@ -304,7 +304,7 @@ class Validator::OneCardPairProvider {
                     .GetPli(validator_->GetLeftPliIndex(non_zero_index_))
                     .GetClusters();
     std::size_t const clusters_size_ = clusters_.size();
-    std::unordered_set<RecordIdentifier> const* similar_records_ptr_;
+    std::unordered_set<RecordIdentifier> const* similar_records_ptr_{};
 
 public:
     OneCardPairProvider(Validator const* validator, IndexVector const& non_zero_indices,
@@ -400,7 +400,7 @@ class Validator::MultiCardPairProvider {
           col_match_val_idx_vec_(std::move(init_info.col_match_val_idx_vec)),
           lhs_bounds_(init_info.lhs_bounds) {
         value_ids_.reserve(init_info.pli_mapping.size());
-        rec_sets_.reserve(init_info.col_match_val_idx_vec.size());
+        rec_sets_.reserve(col_match_val_idx_vec_.size());
     }
 
     bool TryGetNextGroup() {
