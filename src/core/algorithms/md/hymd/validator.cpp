@@ -20,6 +20,7 @@ using RecommendationVector = std::vector<Recommendation>;
 using RecordVector = std::vector<CompressedRecord>;
 using IndexVector = std::vector<Index>;
 using AllRecomVecs = std::vector<RecommendationVector>;
+using RecIdVec = std::vector<RecordIdentifier>;
 
 IndexVector GetNonZeroIndices(DecisionBoundaryVector const& lhs) {
     IndexVector indices;
@@ -94,8 +95,8 @@ struct WorkingInfo {
           right_index(right_index) {}
 };
 
-std::unordered_set<RecordIdentifier> const* Validator::GetSimilarRecords(
-        ValueIdentifier value_id, DecisionBoundary lhs_bound, Index column_match_index) const {
+RecSet const* Validator::GetSimilarRecords(ValueIdentifier value_id, DecisionBoundary lhs_bound,
+                                           Index column_match_index) const {
     assert(lhs_bound != 0.0);
     indexes::SimilarityIndex const& similarity_index =
             (*column_matches_info_)[column_match_index].similarity_info.similarity_index;
@@ -118,12 +119,12 @@ class Validator::SetPairProcessor {
 
     enum class Status { kInvalidated, kCheckedAll };
 
-    [[nodiscard]] Status LowerForColumnMatch(
-            WorkingInfo& working_info, indexes::PliCluster const& cluster,
-            std::unordered_set<RecordIdentifier> const& similar_records) const;
+    [[nodiscard]] Status LowerForColumnMatch(WorkingInfo& working_info,
+                                             indexes::PliCluster const& cluster,
+                                             RecSet const& similar_records) const;
     [[nodiscard]] Status LowerForColumnMatch(
             WorkingInfo& working_info, std::vector<CompressedRecord const*> const& matched_records,
-            std::vector<RecordIdentifier> const& similar_records) const;
+            RecIdVec const& similar_records) const;
 
     template <typename Collection>
     Status LowerForColumnMatchNoCheck(WorkingInfo& working_info,
@@ -274,7 +275,7 @@ auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatchNoCheck(
 template <typename PairProvider>
 auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatch(
         WorkingInfo& working_info, std::vector<CompressedRecord const*> const& matched_records,
-        std::vector<RecordIdentifier> const& similar_records) const -> Status {
+        RecIdVec const& similar_records) const -> Status {
     if (working_info.ShouldStop()) return Status::kInvalidated;
     return LowerForColumnMatchNoCheck(working_info, matched_records, similar_records);
 }
@@ -282,7 +283,7 @@ auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatch(
 template <typename PairProvider>
 auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatch(
         WorkingInfo& working_info, indexes::PliCluster const& cluster,
-        std::unordered_set<RecordIdentifier> const& similar_records) const -> Status {
+        indexes::RecSet const& similar_records) const -> Status {
     if (working_info.ShouldStop()) return Status::kInvalidated;
 
     assert(!similar_records.empty());
@@ -304,7 +305,7 @@ class Validator::OneCardPairProvider {
                     .GetPli(validator_->GetLeftPliIndex(non_zero_index_))
                     .GetClusters();
     std::size_t const clusters_size_ = clusters_.size();
-    std::unordered_set<RecordIdentifier> const* similar_records_ptr_{};
+    RecSet const* similar_records_ptr_{};
 
 public:
     OneCardPairProvider(Validator const* validator, IndexVector const& non_zero_indices,
@@ -371,7 +372,6 @@ class Validator::MultiCardPairProvider {
 
     using RecordCluster = std::vector<CompressedRecord const*>;
     using GroupMap = std::unordered_map<std::vector<ValueIdentifier>, RecordCluster>;
-    using RecIdVec = std::vector<RecordIdentifier>;
 
     Validator const* const validator_;
     GroupMap grouped_;
@@ -437,10 +437,9 @@ public:
                 rec_sets_.clear();
                 ++cur_group_iter_;
                 for (auto const& [column_match_index, value_ids_index] : col_match_val_idx_vec_) {
-                    std::unordered_set<RecordIdentifier> const* similar_records_ptr =
-                            validator_->GetSimilarRecords(val_ids[value_ids_index],
-                                                          lhs_bounds_[column_match_index],
-                                                          column_match_index);
+                    RecSet const* similar_records_ptr = validator_->GetSimilarRecords(
+                            val_ids[value_ids_index], lhs_bounds_[column_match_index],
+                            column_match_index);
                     if (similar_records_ptr == nullptr) goto no_similar_records;
                     rec_sets_.push_back(similar_records_ptr);
                 }

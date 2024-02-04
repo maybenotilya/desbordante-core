@@ -61,9 +61,9 @@ private:
 
     constexpr static bool kSortIndices = false;
 
-    [[nodiscard]] std::unordered_set<RecordIdentifier> const* GetSimilarRecords(
-            ValueIdentifier value_id, model::md::DecisionBoundary lhs_bound,
-            model::Index column_match_index) const;
+    [[nodiscard]] indexes::RecSet const* GetSimilarRecords(ValueIdentifier value_id,
+                                                           model::md::DecisionBoundary lhs_bound,
+                                                           model::Index column_match_index) const;
 
 public:
     Validator(indexes::CompressedRecords const* compressed_records,
