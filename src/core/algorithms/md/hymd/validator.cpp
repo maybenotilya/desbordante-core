@@ -283,7 +283,7 @@ auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatch(
 template <typename PairProvider>
 auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatch(
         WorkingInfo& working_info, indexes::PliCluster const& cluster,
-        indexes::RecSet const& similar_records) const -> Status {
+        RecSet const& similar_records) const -> Status {
     if (working_info.ShouldStop()) return Status::kInvalidated;
 
     assert(!similar_records.empty());
