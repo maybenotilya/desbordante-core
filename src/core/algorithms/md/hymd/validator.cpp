@@ -335,10 +335,11 @@ public:
 class Validator::MultiCardPairProvider {
     struct InitInfo {
         Validator const* validator;
-        std::map<Index, IndexVector> pli_mapping;
         std::vector<std::pair<Index, Index>> col_match_val_idx_vec;
         IndexVector non_first_indices;
         DecisionBoundaryVector const& lhs_bounds;
+        Index first_pli_index;
+        std::size_t plis_involved = 1;
 
         InitInfo(Validator const* validator, IndexVector const& non_zero_indices,
                  DecisionBoundaryVector const& lhs_bounds)
@@ -346,26 +347,31 @@ class Validator::MultiCardPairProvider {
             std::size_t const cardinality = non_zero_indices.size();
             col_match_val_idx_vec.reserve(cardinality);
 
+            std::size_t const left_pli_number = validator->GetLeftCompressor().GetPliNumber();
+            non_first_indices.reserve(std::min(cardinality, left_pli_number));
+            std::vector<IndexVector> pli_map(left_pli_number);
             for (Index col_match_index : non_zero_indices) {
-                pli_mapping[validator->GetLeftPliIndex(col_match_index)].push_back(col_match_index);
+                pli_map[validator->GetLeftPliIndex(col_match_index)].push_back(col_match_index);
             }
-            auto map_it = pli_mapping.begin();
-            auto const& [pli_idx, col_match_idxs] = *map_it;
-            for (Index const col_match_idx : col_match_idxs) {
-                col_match_val_idx_vec.emplace_back(col_match_idx, 0);
-            }
-            std::size_t const plis_involved = pli_mapping.size();
-            non_first_indices.reserve(plis_involved - 1);
-            {
-                Index value_ids_index = 1;
-                auto map_end = pli_mapping.end();
-                for (++map_it; map_it != map_end; ++map_it, ++value_ids_index) {
-                    auto const& [pli_idx, col_match_idxs] = *map_it;
-                    non_first_indices.push_back(pli_idx);
-                    for (Index const col_match_idx : col_match_idxs) {
-                        col_match_val_idx_vec.emplace_back(col_match_idx, value_ids_index);
-                    }
+
+            Index pli_idx = 0;
+            while (pli_map[pli_idx].empty()) ++pli_idx;
+
+            Index value_ids_index = 0;
+            auto fill_for_value_ids_idx = [this, &value_ids_index](IndexVector const& indices) {
+                for (Index const col_match_idx : indices) {
+                    col_match_val_idx_vec.emplace_back(col_match_idx, value_ids_index);
                 }
+                ++value_ids_index;
+            };
+            first_pli_index = pli_idx;
+            fill_for_value_ids_idx(pli_map[pli_idx]);
+            for (++pli_idx; pli_idx != left_pli_number; ++pli_idx) {
+                IndexVector const& col_match_idxs = pli_map[pli_idx];
+                if (col_match_idxs.empty()) continue;
+                ++plis_involved;
+                non_first_indices.push_back(pli_idx);
+                fill_for_value_ids_idx(col_match_idxs);
             }
         }
     };
@@ -394,12 +400,11 @@ class Validator::MultiCardPairProvider {
     MultiCardPairProvider(InitInfo init_info)
         : validator_(init_info.validator),
           non_first_indices_(std::move(init_info.non_first_indices)),
-          first_pli_(init_info.validator->GetLeftCompressor()
-                             .GetPli(init_info.pli_mapping.begin()->first)
-                             .GetClusters()),
+          first_pli_(
+                  validator_->GetLeftCompressor().GetPli(init_info.first_pli_index).GetClusters()),
           col_match_val_idx_vec_(std::move(init_info.col_match_val_idx_vec)),
           lhs_bounds_(init_info.lhs_bounds) {
-        value_ids_.reserve(init_info.pli_mapping.size());
+        value_ids_.reserve(init_info.plis_involved);
         rec_sets_.reserve(col_match_val_idx_vec_.size());
     }
 
