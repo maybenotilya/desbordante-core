@@ -77,25 +77,23 @@ bool MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
         this_node_rhs_bound = rhs_bound;
         return true;
     }
-    {
-        for (model::Index fol_next_node_index =
-                     utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1);
-             fol_next_node_index != col_match_number;
-             fol_next_node_index =
-                     utility::GetFirstNonZeroIndex(lhs_bounds, fol_next_node_index + 1)) {
-            std::size_t const child_array_index = fol_next_node_index - this_node_index;
-            OptionalChild& optional_child = children_[child_array_index];
-            if (!optional_child.has_value()) continue;
-            model::md::DecisionBoundary const generalization_bound_limit =
-                    lhs_bounds[fol_next_node_index];
-            for (auto const& [generalization_bound, node] : *optional_child) {
-                if (generalization_bound > generalization_bound_limit) break;
-                if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index,
-                                           fol_next_node_index + 1))
-                    return false;
-            }
+
+    for (model::Index fol_next_node_index =
+                 utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1);
+         fol_next_node_index != col_match_number;
+         fol_next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, fol_next_node_index + 1)) {
+        std::size_t const child_array_index = fol_next_node_index - this_node_index;
+        OptionalChild& optional_child = children_[child_array_index];
+        if (!optional_child.has_value()) continue;
+        model::md::DecisionBoundary const generalization_bound_limit =
+                lhs_bounds[fol_next_node_index];
+        for (auto const& [generalization_bound, node] : *optional_child) {
+            if (generalization_bound > generalization_bound_limit) break;
+            if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index, fol_next_node_index + 1))
+                return false;
         }
     }
+
     model::Index const child_array_index = next_node_index - this_node_index;
     auto [boundary_mapping, is_first_arr] = TryEmplaceChild(children_, child_array_index);
     model::md::DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
