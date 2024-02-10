@@ -199,8 +199,8 @@ Validator::SetPairProcessor<PairProvider>::MakeWorkingAndRecs(
     std::pair<std::vector<WorkingInfo>, AllRecomVecs> working_and_recs;
     auto& [working, recommendations] = working_and_recs;
     std::size_t const working_size = indices_bitset.count();
-    recommendations.reserve(working_size);
     working.reserve(working_size);
+    recommendations.reserve(working_size);
     IndexVector indices = util::BitsetToIndices<Index>(indices_bitset);
     if constexpr (kSortIndices) {
         // TODO: investigate best order.
@@ -409,9 +409,7 @@ class Validator::MultiCardPairProvider {
     }
 
     bool TryGetNextGroup() {
-        if (++first_value_id_ == first_pli_size_) {
-            return false;
-        }
+        if (++first_value_id_ == first_pli_size_) return false;
         grouped_.clear();
         indexes::PliCluster const& cluster = first_pli_[first_value_id_];
         value_ids_.push_back(first_value_id_);
@@ -457,12 +455,11 @@ public:
                 using CRecSet = RecSet const;
                 auto size_cmp = [](CRecSet* p1, CRecSet* p2) { return p1->size() < p2->size(); };
                 std::sort(check_set_begin, check_set_end, size_cmp);
+                CRecSet& first = **check_set_begin;
                 ++check_set_begin;
-                CRecSet& first = **rec_sets_.begin();
                 for (RecordIdentifier rec : first) {
-                    if (std::all_of(check_set_begin, check_set_end, [rec](CRecSet* rec_set_ptr) {
-                            return rec_set_ptr->contains(rec);
-                        })) {
+                    auto rec_cont = [rec](CRecSet* set_ptr) { return set_ptr->contains(rec); };
+                    if (std::all_of(check_set_begin, check_set_end, rec_cont)) {
                         similar_records_.push_back(rec);
                     }
                 }
