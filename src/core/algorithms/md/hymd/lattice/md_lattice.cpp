@@ -22,7 +22,43 @@ template <typename MdInfoType>
 using MdSpecGenChecker = SpecGeneralizationChecker<MdNode, MdInfoType>;
 }  // namespace
 
+#define ELPP_STL_LOGGING
+#define ELPP_LOG_UNORDERED_MAP
+#include <easylogging++.h>
+
 namespace algos::hymd::lattice {
+
+void MdLattice::AddLevelStats(MdNode const& cur_node, std::vector<LevelStats>& level_stats,
+                              std::size_t level) const {
+    LevelStats& cur_stats = level_stats.at(level);
+    MdNodeChildren const& children = cur_node.children;
+    Rhs const& rhs = cur_node.rhs;
+    ++cur_stats.nodes;
+    std::size_t set_lhss =
+            std::count_if(children.begin(), children.end(), std::mem_fn(&MdOptionalMap::HasValue));
+    cur_stats.set_lhss += set_lhss;
+    if (!set_lhss) ++cur_stats.childless_nodes;
+    auto is_rhs_set = [](ColumnClassifierValueId ccv_id) { return ccv_id != kLowestCCValueId; };
+    std::size_t set_rhss = std::count_if(rhs.begin(), rhs.end(), is_rhs_set);
+    cur_stats.set_rhss += set_rhss;
+    if (!set_rhss) ++cur_stats.empty_nodes;
+    if (!set_lhss && !set_rhss) ++cur_stats.empty_and_childless_nodes;
+    auto count = [&](MdCCVIdChildMap const& child_map, Index child_array_index) {
+        auto& stat_threshold_map = cur_stats.child_thresholds[level + child_array_index];
+        // cur_stats.child_thresholds[level + child_array_index] += child_map.size();
+        for (auto& [ccv_id, node] : child_map) {
+            ++stat_threshold_map[ccv_id];
+            AddLevelStats(node, level_stats, level + 1);
+        }
+    };
+    cur_node.ForEachNonEmpty(count);
+}
+
+std::vector<LevelStats> MdLattice::CountLevelStats() const {
+    std::vector<LevelStats> level_stats(max_level_ + 1, LevelStats(column_matches_size_));
+    AddLevelStats(md_root_, level_stats, 0);
+    return level_stats;
+}
 
 // TODO: remove recursion
 MdLattice::MdLattice(SingleLevelFunc single_level_func,
@@ -586,6 +622,22 @@ void MdLattice::MdVerificationMessenger::LowerAndSpecialize(
         rhs.Set(rhs_index, new_ccv_id);
     }
     lattice_->Specialize(GetLhs(), invalidated.GetInvalidated());
+}
+
+void MdLattice::PrintStats() const {
+    auto lstats = CountLevelStats();
+    for (model::Index level = 0; level < lstats.size(); ++level) {
+        LOG(DEBUG) << "Level " << level;
+        auto& st = lstats[level];
+        LOG(DEBUG) << "Nodes: " << st.nodes;
+        LOG(DEBUG) << "Empty nodes: " << st.empty_nodes;
+        LOG(DEBUG) << "Childless nodes: " << st.childless_nodes;
+        LOG(DEBUG) << "Empty and childless nodes: " << st.empty_and_childless_nodes;
+        LOG(DEBUG) << "Set lhss: " << st.set_lhss << "/"
+                   << st.nodes * (column_matches_size_ - level);
+        LOG(DEBUG) << "Set rhss: " << st.set_rhss << "/" << st.nodes * column_matches_size_;
+        LOG(DEBUG) << "Thresholds in children: " << st.child_thresholds;
+    }
 }
 
 void MdLattice::RaiseInterestingnessCCVIds(

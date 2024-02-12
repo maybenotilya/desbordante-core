@@ -26,6 +26,18 @@
 
 namespace algos::hymd::lattice {
 
+struct LevelStats {
+    std::size_t nodes = 0;
+    std::size_t set_lhss = 0;
+    std::size_t set_rhss = 0;
+    std::size_t empty_nodes = 0;
+    std::size_t childless_nodes = 0;
+    std::size_t empty_and_childless_nodes = 0;
+    std::vector<std::map<ColumnClassifierValueId, std::size_t>> child_thresholds;
+
+    LevelStats(std::size_t col_matches) : child_thresholds(col_matches) {}
+};
+
 class MdLattice {
 private:
     template <typename T>
@@ -116,6 +128,8 @@ private:
     [[nodiscard]] bool HasGeneralization(Md const& md) const;
     void ExcludeGeneralizations(MultiMd& md) const;
 
+    void AddLevelStats(MdNode const& cur_node, std::vector<LevelStats>& level_stats,
+                       std::size_t level) const;
     void GetLevel(MdNode& cur_node, std::vector<MdVerificationMessenger>& collected,
                   MdLhs& cur_node_lhs, model::Index cur_node_index, std::size_t level_left);
 
@@ -221,6 +235,9 @@ public:
     std::vector<MdRefiner> CollectRefinersForViolated(
             PairComparisonResult const& pair_comparison_result);
     std::vector<MdLatticeNodeInfo> GetAll();
+
+    std::vector<LevelStats> CountLevelStats() const;
+    void PrintStats() const;
 };
 
 }  // namespace algos::hymd::lattice
