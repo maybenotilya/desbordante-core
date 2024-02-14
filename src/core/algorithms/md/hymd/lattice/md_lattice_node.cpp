@@ -61,68 +61,87 @@ bool MdLatticeNode::HasGeneralization(DecisionBoundaryVector const& lhs_bounds,
 }
 
 bool MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
-                                 model::md::DecisionBoundary rhs_bound,
-                                 model::Index const rhs_index, model::Index const this_node_index) {
-    model::md::DecisionBoundary& this_node_rhs_bound = rhs_bounds_[rhs_index];
-    if (this_node_rhs_bound >= rhs_bound) return false;
+                                 model::md::DecisionBoundary const rhs_bound,
+                                 model::Index const rhs_index, model::Index this_node_index) {
     std::size_t const col_match_number = rhs_bounds_.size();
-    model::Index const next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
-    if (next_node_index == col_match_number) {
-        // Correct. This method is only used when inferring, so we must get a maximum, which is
-        // enforced with `if (this_rhs_sim >= rhs_sim) return;` above, no need for an additional
-        // check. I believe Metanome implemented this method incorrectly (they used Math.min instead
-        // of Math.max). However, before validating an MD, they set the rhs bound to 1.0, so that
-        // error has no effect on the final result. If this boundary is set correctly (like here),
-        // we don't have to set the RHS bound to 1.0 before validating and can start with the value
-        // that was originally in the lattice, as the only way that value could be not equal to 1.0
-        // at the start of the validation is if it was lowered by some record pair.
-        this_node_rhs_bound = rhs_bound;
-        return true;
-    }
 
-    for (model::Index fol_next_node_index =
-                 utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1);
-         fol_next_node_index != col_match_number;
-         fol_next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, fol_next_node_index + 1)) {
-        std::size_t const child_array_index = fol_next_node_index - this_node_index;
-        OptionalChild& optional_child = children_[child_array_index];
-        if (!optional_child.has_value()) continue;
-        model::md::DecisionBoundary const generalization_bound_limit =
-                lhs_bounds[fol_next_node_index];
-        for (auto const& [generalization_bound, node] : *optional_child) {
-            if (generalization_bound > generalization_bound_limit) break;
-            if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index, fol_next_node_index + 1))
+    MdLatticeNode* cur_node_ptr = this;
+    model::md::DecisionBoundary& this_node_rhs_bound = cur_node_ptr->rhs_bounds_[rhs_index];
+    if (this_node_rhs_bound >= rhs_bound) return false;
+    model::md::DecisionBoundary* cur_node_rhs_ptr = &this_node_rhs_bound;
+
+    for (model::Index next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
+         next_node_index != col_match_number;
+         next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1)) {
+        LatticeChildArray<MdLatticeNode>& children = cur_node_ptr->children_;
+        for (model::Index fol_next_node_index =
+                     utility::GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1);
+             fol_next_node_index != col_match_number;
+             fol_next_node_index =
+                     utility::GetFirstNonZeroIndex(lhs_bounds, fol_next_node_index + 1)) {
+            std::size_t const child_array_index = fol_next_node_index - this_node_index;
+            OptionalChild& optional_child = children[child_array_index];
+            if (!optional_child.has_value()) continue;
+            model::md::DecisionBoundary const generalization_bound_limit =
+                    lhs_bounds[fol_next_node_index];
+            for (auto const& [generalization_bound, node] : *optional_child) {
+                if (generalization_bound > generalization_bound_limit) break;
+                if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index,
+                                           fol_next_node_index + 1))
+                    return false;
+            }
+        }
+
+        std::size_t const child_array_index = next_node_index - this_node_index;
+        auto [boundary_mapping, is_first_arr] = TryEmplaceChild(children, child_array_index);
+        model::md::DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
+        std::size_t const next_child_array_size = col_match_number - next_node_index;
+        if (is_first_arr) [[unlikely]] {
+            boundary_mapping.try_emplace(next_lhs_bound, col_match_number, next_child_array_size)
+                    .first->second.AddUnchecked(lhs_bounds, rhs_bound, rhs_index,
+                                                next_node_index + 1);
+            return true;
+        }
+
+        auto it = boundary_mapping.begin();
+        auto end = boundary_mapping.end();
+        for (; it != end; ++it) {
+            auto& [generalization_bound, node] = *it;
+            if (generalization_bound > next_lhs_bound) {
+                break;
+            }
+            if (generalization_bound == next_lhs_bound) {
+                goto advance;
+            }
+            if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1)) {
                 return false;
+            }
         }
-    }
-
-    model::Index const child_array_index = next_node_index - this_node_index;
-    auto [boundary_mapping, is_first_arr] = TryEmplaceChild(children_, child_array_index);
-    model::md::DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
-    std::size_t const next_child_array_size = col_match_number - next_node_index;
-    if (is_first_arr) [[unlikely]] {
-        boundary_mapping.try_emplace(next_lhs_bound, col_match_number, next_child_array_size)
-                .first->second.AddUnchecked(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
+        // first in bound map
+        boundary_mapping
+                .emplace_hint(it, std::piecewise_construct, std::forward_as_tuple(next_lhs_bound),
+                              std::forward_as_tuple(col_match_number, next_child_array_size))
+                ->second.AddUnchecked(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
         return true;
+
+    advance:
+        cur_node_ptr = &it->second;
+        model::md::DecisionBoundary& cur_node_rhs_bound = cur_node_ptr->rhs_bounds_[rhs_index];
+        if (cur_node_rhs_bound >= rhs_bound) return false;
+        cur_node_rhs_ptr = &cur_node_rhs_bound;
+        this_node_index = next_node_index + 1;
     }
-    auto it = boundary_mapping.begin();
-    auto end = boundary_mapping.end();
-    for (; it != end; ++it) {
-        auto& [generalization_bound, node] = *it;
-        if (generalization_bound > next_lhs_bound) {
-            break;
-        }
-        if (generalization_bound == next_lhs_bound) {
-            return node.AddIfMinimal(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
-        }
-        if (node.HasGeneralization(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1)) {
-            return false;
-        }
-    }
-    boundary_mapping
-            .emplace_hint(it, std::piecewise_construct, std::forward_as_tuple(next_lhs_bound),
-                          std::forward_as_tuple(col_match_number, next_child_array_size))
-            ->second.AddUnchecked(lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
+    // Correct. This method is only used when inferring, so we must get a maximum, which is
+    // enforced with either of `if (cur_node_rhs_bound >= rhs_bound) return false;` or
+    // `if (this_node_rhs_bound >= rhs_bound) return false;` above, no need for an additional check.
+    // I believe Metanome implemented this method incorrectly (they used Math.min instead of
+    // Math.max). However, before validating an MD, they set the rhs bound to 1.0, so that error has
+    // no effect on the final result. If this boundary is set correctly (like here), we don't have
+    // to set the RHS bound to 1.0 before validating and can start with the value that was
+    // originally in the lattice, potentially yielding more recommendations, since the only way that
+    // value could be not equal to 1.0 at the start of validation is if it was lowered by some
+    // record pair.
+    *cur_node_rhs_ptr = rhs_bound;
     return true;
 }
 
