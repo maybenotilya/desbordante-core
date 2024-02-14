@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "algorithms/md/hymd/indexes/column_similarity_info.h"
+#include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/utility/java_hash.h"
 #include "util/py_tuple_hash.h"
 
@@ -55,7 +56,7 @@ std::unordered_set<SimilarityVector> SimilarityData::GetSimVecs(
             indexes::SimilarityMatrixRow const& sim_matrix_row =
                     sim_info.similarity_matrix[left_record[left_col_index]];
             auto it = sim_matrix_row.find(record[right_col_index]);
-            pair_sims.push_back(it == sim_matrix_row.end() ? 0.0 : it->second);
+            pair_sims.push_back(it == sim_matrix_row.end() ? kLowestBound : it->second);
         }
         sim_vecs.insert(pair_sims);
         pair_sims.clear();
@@ -72,7 +73,7 @@ SimilarityVector SimilarityData::GetSimilarityVector(CompressedRecord const& lef
         indexes::SimilarityMatrixRow const& row =
                 sim_info.similarity_matrix[left_record[left_col_index]];
         auto sim_it = row.find(right_record[right_col_index]);
-        similarities.push_back(sim_it == row.end() ? 0.0 : sim_it->second);
+        similarities.push_back(sim_it == row.end() ? kLowestBound : sim_it->second);
     }
     return similarities;
 }

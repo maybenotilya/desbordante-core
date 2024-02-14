@@ -6,6 +6,7 @@
 
 #include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/hymd/decision_boundary_vector.h"
+#include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/utility/get_first_non_zero_index.h"
 
 namespace {
@@ -81,7 +82,7 @@ void MinPickerNode::ExcludeGeneralizationRhs(MdLatticeNodeInfo const& lattice_no
     BoundaryMap<MinPickerNode>& threshold_mapping = *optional_child;
     model::md::DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
     for (auto& [threshold, node] : threshold_mapping) {
-        assert(threshold > 0.0);
+        assert(threshold > kLowestBound);
         if (threshold > next_lhs_bound) break;
         node.ExcludeGeneralizationRhs(lattice_node_info, next_node_index + 1, considered_indices);
         if (considered_indices.none()) return;

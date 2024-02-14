@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "algorithms/md/hymd/lattice/md_lattice_node_info.h"
+#include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/utility/set_for_scope.h"
 #include "model/index.h"
 
@@ -34,7 +35,7 @@ void RecordPairInferrer::ProcessSimVec(SimilarityVector const& sim) {
             if (pair_rhs_bound >= old_md_rhs_bound) continue;
             do {
                 DecisionBoundary& md_rhs_bound_ref = rhs_bounds[rhs_index];
-                md_rhs_bound_ref = 0.0;
+                md_rhs_bound_ref = kLowestBound;
                 // trivial
                 if (pair_rhs_bound <= lhs_bounds[rhs_index]) break;
                 // not minimal

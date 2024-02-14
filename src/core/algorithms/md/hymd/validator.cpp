@@ -6,6 +6,7 @@
 
 #include "algorithms/md/hymd/decision_boundary_vector.h"
 #include "algorithms/md/hymd/indexes/compressed_records.h"
+#include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/table_identifiers.h"
 #include "algorithms/md/hymd/utility/java_hash.h"
 #include "model/index.h"
@@ -76,7 +77,7 @@ struct WorkingInfo {
     }
 
     bool ShouldStop() const {
-        return current_bound == 0.0 && EnoughRecommendations();
+        return current_bound == kLowestBound && EnoughRecommendations();
     }
 
     WorkingInfo(DecisionBoundary old_bound, Index col_match_index,
@@ -97,7 +98,7 @@ struct WorkingInfo {
 
 RecSet const* Validator::GetSimilarRecords(ValueIdentifier value_id, DecisionBoundary lhs_bound,
                                            Index column_match_index) const {
-    assert(lhs_bound != 0.0);
+    assert(lhs_bound != kLowestBound);
     indexes::SimilarityIndex const& similarity_index =
             (*column_matches_info_)[column_match_index].similarity_info.similarity_index;
     indexes::MatchingRecsMapping const& val_index = similarity_index[value_id];
@@ -144,9 +145,9 @@ class Validator::SetPairProcessor {
             Index const index = working_info.index;
             DecisionBoundary const old_bound = working_info.old_bound;
             DecisionBoundary const new_bound = working_info.current_bound;
-            assert(old_bound != 0.0);
-            assert(new_bound == 0.0);
-            invalidated_.emplace_back(index, old_bound, 0.0);
+            assert(old_bound != kLowestBound);
+            assert(new_bound == kLowestBound);
+            invalidated_.emplace_back(index, old_bound, kLowestBound);
         }
         return {std::move(recommendations), std::move(invalidated_), false};
     }
@@ -218,7 +219,7 @@ Validator::SetPairProcessor<PairProvider>::MakeWorkingAndRecs(
     }
 
     auto for_each_working = [&](auto f) { std::for_each(working.begin(), working.end(), f); };
-    for_each_working([&](WorkingInfo const& w) { rhs_bounds_[w.index] = 0.0; });
+    for_each_working([&](WorkingInfo const& w) { rhs_bounds_[w.index] = kLowestBound; });
     std::vector<DecisionBoundary> const gen_max_rhs =
             validator_->lattice_->GetRhsInterestingnessBounds(lhs_bounds_, indices);
     for_each_working([&](WorkingInfo const& w) { rhs_bounds_[w.index] = w.old_bound; });
@@ -258,7 +259,7 @@ auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatchNoCheck(
             if (it_right == row.end()) {
                 add_recommendations();
             rhs_not_valid:
-                current_rhs_bound = 0.0;
+                current_rhs_bound = kLowestBound;
                 if (working_info.EnoughRecommendations()) return Status::kInvalidated;
                 continue;
             }
@@ -504,7 +505,7 @@ Validator::Result Validator::Validate(lattice::ValidationInfo& info) const {
         Index const non_zero_index = non_zero_indices.front();
         // Never happens when disjointedness pruning is on.
         if (indices_bitset.test_set(non_zero_index, false)) {
-            invalidated.emplace_back(non_zero_index, rhs_bounds[non_zero_index], 0.0);
+            invalidated.emplace_back(non_zero_index, rhs_bounds[non_zero_index], kLowestBound);
         }
         SetPairProcessor<OneCardPairProvider> processor(this, invalidated, rhs_bounds, lhs_bounds,
                                                         non_zero_indices);

@@ -5,6 +5,7 @@
 
 #include "algorithms/md/hymd/lattice/cardinality/min_picking_level_getter.h"
 #include "algorithms/md/hymd/lattice_traverser.h"
+#include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/preprocessing/similarity_measure/levenshtein_similarity_measure.h"
 #include "algorithms/md/hymd/record_pair_inferrer.h"
 #include "algorithms/md/hymd/similarity_data.h"
@@ -159,7 +160,7 @@ void HyMD::RegisterResults(SimilarityData const& similarity_data,
         DecisionBoundaryVector& rhs_bounds = *md.rhs_bounds;
         for (model::Index rhs_index = 0; rhs_index < column_match_number; ++rhs_index) {
             model::md::DecisionBoundary const rhs_bound = rhs_bounds[rhs_index];
-            if (rhs_bound == 0.0) continue;
+            if (rhs_bound == kLowestBound) continue;
             std::vector<model::md::LhsColumnSimilarityClassifier> lhs;
             for (model::Index lhs_index = 0; lhs_index < column_match_number; ++lhs_index) {
                 model::md::DecisionBoundary const lhs_bound = md.lhs_bounds[lhs_index];

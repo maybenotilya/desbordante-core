@@ -4,6 +4,7 @@
 #include <cassert>
 #include <optional>
 
+#include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/utility/get_first_non_zero_index.h"
 
 namespace {
@@ -17,8 +18,9 @@ void MdLatticeNode::AddUnchecked(DecisionBoundaryVector const& lhs_bounds,
                                  model::md::DecisionBoundary rhs_bound,
                                  model::Index const rhs_index, model::Index this_node_index) {
     assert(IsEmpty(children_));
-    assert(std::all_of(rhs_bounds_.begin(), rhs_bounds_.end(),
-                       [](model::md::DecisionBoundary const bound) { return bound == 0.0; }));
+    assert(std::all_of(
+            rhs_bounds_.begin(), rhs_bounds_.end(),
+            [](model::md::DecisionBoundary const bound) { return bound == kLowestBound; }));
     std::size_t const col_match_number = rhs_bounds_.size();
     MdLatticeNode* cur_node_ptr = this;
     for (model::Index next_node_index = utility::GetFirstNonZeroIndex(lhs_bounds, this_node_index);
@@ -152,7 +154,7 @@ void MdLatticeNode::FindViolated(std::vector<MdLatticeNodeInfo>& found,
             cur_lhs_bound = generalization_bound;
             node.FindViolated(found, this_node_lhs_bounds, similarity_vector, next_node_index + 1);
         }
-        cur_lhs_bound = 0.0;
+        cur_lhs_bound = kLowestBound;
     }
 }
 
@@ -201,7 +203,7 @@ void MdLatticeNode::GetLevel(std::vector<MdLatticeNodeInfo>& collected,
                              SingleLevelFunc const& single_level_func) {
     if (level_left == 0) {
         if (std::any_of(rhs_bounds_.begin(), rhs_bounds_.end(),
-                        [](model::md::DecisionBoundary bound) { return bound != 0.0; }))
+                        [](model::md::DecisionBoundary bound) { return bound != kLowestBound; }))
             collected.emplace_back(this_node_lhs_bounds, &rhs_bounds_);
         return;
     }
@@ -212,14 +214,14 @@ void MdLatticeNode::GetLevel(std::vector<MdLatticeNodeInfo>& collected,
         model::Index const next_node_index = this_node_index + child_array_index;
         model::md::DecisionBoundary& next_lhs_bound = this_node_lhs_bounds[next_node_index];
         for (auto& [boundary, node] : *children_[child_array_index]) {
-            assert(boundary > 0.0);
+            assert(boundary > kLowestBound);
             std::size_t single = single_level_func(next_node_index, boundary);
             if (single > level_left) break;
             next_lhs_bound = boundary;
             node.GetLevel(collected, this_node_lhs_bounds, next_node_index + 1, level_left - single,
                           single_level_func);
         }
-        next_lhs_bound = 0.0;
+        next_lhs_bound = kLowestBound;
     }
 }
 
@@ -227,7 +229,7 @@ void MdLatticeNode::GetAll(std::vector<MdLatticeNodeInfo>& collected,
                            DecisionBoundaryVector& this_node_lhs_bounds,
                            model::Index this_node_index) {
     if (std::any_of(rhs_bounds_.begin(), rhs_bounds_.end(),
-                    [](model::md::DecisionBoundary bound) { return bound != 0.0; }))
+                    [](model::md::DecisionBoundary bound) { return bound != kLowestBound; }))
         collected.emplace_back(this_node_lhs_bounds, &rhs_bounds_);
     std::size_t const child_array_size = children_.size();
     for (model::Index child_array_index = FindFirstNonEmptyIndex(children_, 0);
@@ -239,7 +241,7 @@ void MdLatticeNode::GetAll(std::vector<MdLatticeNodeInfo>& collected,
             next_lhs_bound = boundary;
             node.GetAll(collected, this_node_lhs_bounds, next_node_index + 1);
         }
-        next_lhs_bound = 0.0;
+        next_lhs_bound = kLowestBound;
     }
 }
 

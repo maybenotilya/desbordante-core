@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cassert>
 
+#include "algorithms/md/hymd/lowest_bound.h"
+
 namespace algos::hymd::lattice {
 
 // TODO: remove recursion
@@ -22,7 +24,7 @@ void MdLattice::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
     std::size_t level = 0;
     for (model::Index i = 0; i < column_matches_size_; ++i) {
         model::md::DecisionBoundary cur_bound = lhs_bounds[i];
-        if (cur_bound == 0.0) continue;
+        if (cur_bound == kLowestBound) continue;
         level += get_single_level_(cur_bound, i);
     }
     if (level > max_level_) max_level_ = level;
@@ -36,7 +38,7 @@ bool MdLattice::HasGeneralization(DecisionBoundaryVector const& lhs_bounds,
 
 std::vector<MdLatticeNodeInfo> MdLattice::FindViolated(SimilarityVector const& similarity_vector) {
     std::vector<MdLatticeNodeInfo> found;
-    DecisionBoundaryVector current_lhs(similarity_vector.size(), 0.0);
+    DecisionBoundaryVector current_lhs(similarity_vector.size(), kLowestBound);
     root_.FindViolated(found, current_lhs, similarity_vector, 0);
     return found;
 }
@@ -56,14 +58,14 @@ std::vector<model::md::DecisionBoundary> MdLattice::GetRhsInterestingnessBounds(
 
 std::vector<MdLatticeNodeInfo> MdLattice::GetLevel(std::size_t level) {
     std::vector<MdLatticeNodeInfo> collected;
-    DecisionBoundaryVector current_lhs(column_matches_size_, 0.0);
+    DecisionBoundaryVector current_lhs(column_matches_size_, kLowestBound);
     root_.GetLevel(collected, current_lhs, 0, level, get_single_level_);
     return collected;
 }
 
 std::vector<MdLatticeNodeInfo> MdLattice::GetAll() {
     std::vector<MdLatticeNodeInfo> collected;
-    DecisionBoundaryVector current_lhs(column_matches_size_, 0.0);
+    DecisionBoundaryVector current_lhs(column_matches_size_, kLowestBound);
     root_.GetAll(collected, current_lhs, 0);
     return collected;
 }

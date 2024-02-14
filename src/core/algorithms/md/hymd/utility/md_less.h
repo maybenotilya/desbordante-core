@@ -1,5 +1,6 @@
 #pragma once
 
+#include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/md.h"
 
 namespace algos::hymd::utility {
@@ -11,9 +12,9 @@ inline bool MdLessPairs(MdPair const& pair_left, MdPair const& pair_right) {
     auto const& [lhs_left, rhs_left] = pair_left;
     auto const& [lhs_right, rhs_right] = pair_right;
     auto const cardinality_left = std::count_if(lhs_left.begin(), lhs_left.end(),
-                                                [](auto bound) { return bound != 0.0; });
+                                                [](auto bound) { return bound != kLowestBound; });
     auto const cardinality_right = std::count_if(lhs_right.begin(), lhs_right.end(),
-                                                 [](auto bound) { return bound != 0.0; });
+                                                 [](auto bound) { return bound != kLowestBound; });
     if (cardinality_left < cardinality_right) {
         return true;
     } else if (cardinality_left > cardinality_right) {

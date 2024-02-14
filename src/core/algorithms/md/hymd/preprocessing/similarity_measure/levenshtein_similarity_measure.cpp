@@ -6,6 +6,7 @@
 
 #include <boost/asio.hpp>
 
+#include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/utility/make_unique_for_overwrite.h"
 #include "model/types/double_type.h"
 #include "model/types/string_type.h"
@@ -102,7 +103,7 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
             std::size_t const collection_size = collection.size();
             assert(data_right_size != 0);
             if (collection_size != data_right_size) {
-                data.row_lowest = 0.0;
+                data.row_lowest = kLowestBound;
             }
             data.row_decision_bounds.assign(collection_size, 1.0);
             data.sim_value_id_vec.reserve(collection_size);
@@ -138,9 +139,9 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
             auto get_similarity = [&string_left, left_size, &data_info_right, buf1 = buf.get(),
                                    buf2 = buf.get() + buf_size](ValueIdentifier value_id_right) {
                 auto const& right_nulls = data_info_right->GetNulls();
-                if (right_nulls.find(value_id_right) != right_nulls.end()) return 0.0;
+                if (right_nulls.find(value_id_right) != right_nulls.end()) return kLowestBound;
                 auto const& right_empty = data_info_right->GetEmpty();
-                if (right_empty.find(value_id_right) != right_empty.end()) return 0.0;
+                if (right_empty.find(value_id_right) != right_empty.end()) return kLowestBound;
 
                 auto const& string_right =
                         model::Type::GetValue<std::string>(data_info_right->GetAt(value_id_right));
@@ -162,7 +163,7 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
                 Similarity similarity = get_similarity(value_id_right);
                 if (similarity < min_sim_) {
                     // Metanome keeps the actual value for some reason.
-                    data.row_lowest = 0.0 /*similarity???*/;
+                    data.row_lowest = kLowestBound /*similarity???*/;
                     continue;
                 }
                 if (data.row_lowest > similarity) data.row_lowest = similarity;
@@ -176,7 +177,7 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
             if (data.sim_value_id_vec.empty()) {
                 assert(data.row_decision_bounds.empty());
                 assert(data.valid_records_number == 0);
-                assert(data.row_lowest == 0.0);
+                assert(data.row_lowest == kLowestBound);
                 return;
             }
             std::sort(

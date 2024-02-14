@@ -3,6 +3,7 @@
 #include <boost/asio.hpp>
 
 #include "algorithms/md/hymd/invalidated_rhs.h"
+#include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/utility/set_for_scope.h"
 #include "model/index.h"
 
@@ -17,7 +18,7 @@ void LatticeTraverser::LowerAndSpecialize(Validator::Result& validation_result,
     // TODO: move the below to another class.
     if (is_unsupported) {
         // Does practically nothing, just repeating what is in the article.
-        std::fill(rhs_bounds.begin(), rhs_bounds.end(), 0.0);
+        std::fill(rhs_bounds.begin(), rhs_bounds.end(), kLowestBound);
         // TODO: specializations can be removed from the MD lattice. If not worth it, removing just
         // this node and its children should be cheap. Though, destructors also take time.
         lattice_->MarkUnsupported(lhs_bounds);
