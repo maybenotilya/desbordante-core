@@ -15,8 +15,8 @@ namespace algos::hymd::lattice {
 
 class MdLatticeNode {
 private:
-    DecisionBoundaryVector rhs_bounds_;
     LatticeChildArray<MdLatticeNode> children_;
+    DecisionBoundaryVector rhs_bounds_;
 
     void AddUnchecked(DecisionBoundaryVector const& lhs_bounds,
                       model::md::DecisionBoundary rhs_bound, model::Index rhs_index,
@@ -46,10 +46,10 @@ public:
                 DecisionBoundaryVector& this_node_lhs_bounds, model::Index this_node_index);
 
     MdLatticeNode(std::size_t attributes_num, std::size_t children_number)
-        : rhs_bounds_(attributes_num), children_(children_number) {}
+        : children_(children_number), rhs_bounds_(attributes_num) {}
 
     explicit MdLatticeNode(DecisionBoundaryVector rhs)
-        : rhs_bounds_(std::move(rhs)), children_(rhs_bounds_.size()) {}
+        : children_(rhs.size()), rhs_bounds_(std::move(rhs)) {}
 };
 
 }  // namespace algos::hymd::lattice

@@ -9,8 +9,9 @@
 namespace algos::hymd::lattice {
 
 class SupportNode {
-    bool is_unsupported_ = false;
     LatticeChildArray<SupportNode> children_;
+    bool is_unsupported_ = false;
+
     void MarkUnchecked(DecisionBoundaryVector const& lhs_bounds, model::Index this_node_index);
 
 public:

@@ -19,8 +19,8 @@ namespace algos::hymd::lattice::cardinality {
 
 class MinPickerNode {
 private:
-    ValidationInfo* task_info_ = nullptr;
     LatticeChildArray<MinPickerNode> children_;
+    ValidationInfo* task_info_ = nullptr;
 
     void AddUnchecked(ValidationInfo* validation_info, model::Index this_node_index);
 
