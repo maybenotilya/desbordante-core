@@ -40,6 +40,10 @@ private:
     // independently to determine an MD's level but the lattice traversal algorithms still works?
     SingleLevelFunc const get_single_level_;
 
+    bool HasLhsGeneralization(Node const& node, DecisionBoundaryVector const& lhs_bounds,
+                              model::md::DecisionBoundary rhs_bound, model::Index rhs_index,
+                              model::Index node_index, model::Index start_index) const;
+
     void GetLevel(Node& cur_node, std::vector<MdLatticeNodeInfo>& collected,
                   DecisionBoundaryVector& cur_node_lhs_bounds, model::Index cur_node_index,
                   std::size_t level_left);
