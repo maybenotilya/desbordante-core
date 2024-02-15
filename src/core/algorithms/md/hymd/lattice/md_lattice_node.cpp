@@ -106,8 +106,7 @@ bool MdLatticeNode::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
         }
 
         auto it = boundary_mapping.begin();
-        auto end = boundary_mapping.end();
-        for (; it != end; ++it) {
+        for (auto end = boundary_mapping.end(); it != end; ++it) {
             auto& [generalization_bound, node] = *it;
             if (generalization_bound > next_lhs_bound) {
                 break;
