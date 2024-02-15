@@ -32,8 +32,8 @@ void MdLattice::AddUnchecked(Node& cur_node, DecisionBoundaryVector const& lhs_b
     assert(!NotEmpty(cur_node.rhs_bounds));
     Node* cur_node_ptr = &cur_node;
     for (Index next_node_index = GetFirstNonZeroIndex(lhs_bounds, cur_node_index);
-         next_node_index != column_matches_size_;
-         next_node_index = GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1)) {
+         next_node_index != column_matches_size_; cur_node_index = next_node_index + 1,
+               next_node_index = GetFirstNonZeroIndex(lhs_bounds, cur_node_index)) {
         std::size_t const child_array_index = next_node_index - cur_node_index;
         std::size_t const next_child_array_size = column_matches_size_ - next_node_index;
         cur_node_ptr = &cur_node_ptr->children[child_array_index]
@@ -41,7 +41,6 @@ void MdLattice::AddUnchecked(Node& cur_node, DecisionBoundaryVector const& lhs_b
                                 .try_emplace(lhs_bounds[next_node_index], column_matches_size_,
                                              next_child_array_size)
                                 .first->second;
-        cur_node_index = next_node_index + 1;
     }
     cur_node_ptr->rhs_bounds[rhs_index] = rhs_bound;
 }
@@ -80,13 +79,13 @@ void MdLattice::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
     for (Index next_node_index = GetFirstNonZeroIndex(lhs_bounds, cur_node_index);
          next_node_index != column_matches_size_; cur_node_index = next_node_index + 1,
                next_node_index = GetFirstNonZeroIndex(lhs_bounds, cur_node_index)) {
-        NodeChildren& children = cur_node_ptr->children;
         if (HasLhsGeneralization(*cur_node_ptr, lhs_bounds, rhs_bound, rhs_index, cur_node_index,
                                  next_node_index + 1))
             return;
 
         std::size_t const child_array_index = next_node_index - cur_node_index;
-        auto [boundary_mapping, is_first_arr] = TryEmplaceChild(children, child_array_index);
+        auto [boundary_mapping, is_first_arr] =
+                TryEmplaceChild(cur_node_ptr->children, child_array_index);
         DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
         std::size_t const next_child_array_size = column_matches_size_ - next_node_index;
         if (is_first_arr) [[unlikely]] {
