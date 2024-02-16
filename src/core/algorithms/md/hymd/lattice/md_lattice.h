@@ -28,6 +28,7 @@ private:
         explicit Node(DecisionBoundaryVector rhs)
             : children(rhs.size()), rhs_bounds(std::move(rhs)) {}
     };
+    class GeneralizationChecker;
 
     using BoundMap = BoundaryMap<Node>;
     using OptionalChild = std::optional<BoundMap>;
@@ -65,9 +66,14 @@ private:
     void GetAll(Node& cur_node, std::vector<MdLatticeNodeInfo>& collected,
                 DecisionBoundaryVector& cur_node_lhs_bounds, model::Index this_node_index);
 
-    void AddUnchecked(Node& cur_node, DecisionBoundaryVector const& lhs_bounds,
-                      model::md::DecisionBoundary rhs_bound, model::Index rhs_index,
-                      model::Index cur_node_index);
+    void AddNewMinimal(Node& cur_node, DecisionBoundaryVector const& lhs_bounds,
+                       model::md::DecisionBoundary rhs_bound, model::Index rhs_index,
+                       model::Index cur_node_index);
+
+    void UpdateMaxLevel(DecisionBoundaryVector const& lhs_bounds);
+
+    Node* ReturnNextNode(DecisionBoundaryVector const& lhs_bounds, GeneralizationChecker& checker,
+                         model::Index cur_node_index, model::Index next_node_index);
 
 public:
     std::size_t GetColMatchNumber() const noexcept {

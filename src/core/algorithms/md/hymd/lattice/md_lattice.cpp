@@ -26,8 +26,9 @@ MdLattice::MdLattice(std::size_t column_matches_size, SingleLevelFunc single_lev
       column_matches_size_(column_matches_size),
       get_single_level_(std::move(single_level_func)) {}
 
-void MdLattice::AddUnchecked(Node& cur_node, DecisionBoundaryVector const& lhs_bounds,
-                             DecisionBoundary rhs_bound, Index rhs_index, Index cur_node_index) {
+void MdLattice::AddNewMinimal(Node& cur_node, DecisionBoundaryVector const& lhs_bounds,
+                              DecisionBoundary const rhs_bound, Index const rhs_index,
+                              Index cur_node_index) {
     assert(IsEmpty(cur_node.children));
     assert(!NotEmpty(cur_node.rhs_bounds));
     Node* cur_node_ptr = &cur_node;
@@ -43,11 +44,12 @@ void MdLattice::AddUnchecked(Node& cur_node, DecisionBoundaryVector const& lhs_b
                                 .first->second;
     }
     cur_node_ptr->rhs_bounds[rhs_index] = rhs_bound;
+    UpdateMaxLevel(lhs_bounds);
 }
 
 bool MdLattice::HasLhsGeneralization(Node const& node, DecisionBoundaryVector const& lhs_bounds,
-                                     DecisionBoundary rhs_bound, Index rhs_index, Index node_index,
-                                     Index start_index) const {
+                                     DecisionBoundary const rhs_bound, Index const rhs_index,
+                                     Index const node_index, Index const start_index) const {
     for (Index next_node_index = GetFirstNonZeroIndex(lhs_bounds, start_index);
          next_node_index != column_matches_size_;
          next_node_index = GetFirstNonZeroIndex(lhs_bounds, next_node_index + 1)) {
@@ -64,85 +66,9 @@ bool MdLattice::HasLhsGeneralization(Node const& node, DecisionBoundaryVector co
     return false;
 }
 
-void MdLattice::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
-                             DecisionBoundary const rhs_bound, Index rhs_index) {
-    // TODO: use info about where the LHS was specialized from to reduce generalization checks.
-    // When an MD is inferred from, it is not a specialization of any other MD in the lattice, so
-    // its LHS is not a specialization of any other. The only LHSs we have to check after a
-    // specialization are those that are generalizations of the new LHS but not the old one.
-    Node* cur_node_ptr = &root_;
-    DecisionBoundary& cur_node_rhs_bound = cur_node_ptr->rhs_bounds[rhs_index];
-    if (cur_node_rhs_bound >= rhs_bound) return;
-    DecisionBoundary* cur_node_rhs_ptr = &cur_node_rhs_bound;
-
-    Index cur_node_index = 0;
-    for (Index next_node_index = GetFirstNonZeroIndex(lhs_bounds, cur_node_index);
-         next_node_index != column_matches_size_; cur_node_index = next_node_index + 1,
-               next_node_index = GetFirstNonZeroIndex(lhs_bounds, cur_node_index)) {
-        if (HasLhsGeneralization(*cur_node_ptr, lhs_bounds, rhs_bound, rhs_index, cur_node_index,
-                                 next_node_index + 1))
-            return;
-
-        std::size_t const child_array_index = next_node_index - cur_node_index;
-        auto [boundary_mapping, is_first_arr] =
-                TryEmplaceChild(cur_node_ptr->children, child_array_index);
-        DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
-        std::size_t const next_child_array_size = column_matches_size_ - next_node_index;
-        if (is_first_arr) [[unlikely]] {
-            Node& new_node = boundary_mapping
-                                     .try_emplace(next_lhs_bound, column_matches_size_,
-                                                  next_child_array_size)
-                                     .first->second;
-            AddUnchecked(new_node, lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
-            goto succeeded;
-        }
-
-        auto it = boundary_mapping.begin();
-        for (auto end = boundary_mapping.end(); it != end; ++it) {
-            auto& [generalization_bound, node] = *it;
-            if (generalization_bound > next_lhs_bound) {
-                break;
-            }
-            if (generalization_bound == next_lhs_bound) {
-                goto advance;
-            }
-            if (HasGeneralization(node, lhs_bounds, rhs_bound, rhs_index, next_node_index + 1)) {
-                return;
-            }
-        }
-        {
-            Node& new_node = boundary_mapping
-                                     .emplace_hint(it, std::piecewise_construct,
-                                                   std::forward_as_tuple(next_lhs_bound),
-                                                   std::forward_as_tuple(column_matches_size_,
-                                                                         next_child_array_size))
-                                     ->second;
-            // first in bound map
-            AddUnchecked(new_node, lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
-        }
-        goto succeeded;
-
-    advance:
-        cur_node_ptr = &it->second;
-        DecisionBoundary& cur_node_rhs_bound = cur_node_ptr->rhs_bounds[rhs_index];
-        if (cur_node_rhs_bound >= rhs_bound) return;
-        cur_node_rhs_ptr = &cur_node_rhs_bound;
-    }
-    // Correct. This method is only used when inferring, so we must get a maximum, which is
-    // enforced with either of `if (cur_node_rhs_bound >= rhs_bound) return false;` or
-    // `if (this_node_rhs_bound >= rhs_bound) return false;` above, no need for an additional check.
-    // I believe Metanome implemented this method incorrectly (they used Math.min instead of
-    // Math.max). However, before validating an MD, they set the rhs bound to 1.0, so that error has
-    // no effect on the final result. If this boundary is set correctly (like here), we don't have
-    // to set the RHS bound to 1.0 before validating and can start with the value that was
-    // originally in the lattice, potentially yielding more recommendations, since the only way that
-    // value could be not equal to 1.0 at the start of validation is if it was lowered by some
-    // record pair.
-    *cur_node_rhs_ptr = rhs_bound;
-
-succeeded:
+void MdLattice::UpdateMaxLevel(DecisionBoundaryVector const& lhs_bounds) {
     std::size_t level = 0;
-    for (Index i = 0; i < column_matches_size_; ++i) {
+    for (Index i = 0; i != column_matches_size_; ++i) {
         DecisionBoundary cur_bound = lhs_bounds[i];
         if (cur_bound == kLowestBound) continue;
         level += get_single_level_(cur_bound, i);
@@ -150,8 +76,117 @@ succeeded:
     if (level > max_level_) max_level_ = level;
 }
 
+class MdLattice::GeneralizationChecker {
+private:
+    Node* node_ = nullptr;
+    DecisionBoundary* cur_node_rhs_ptr_ = nullptr;
+    Index const rhs_index_;
+    DecisionBoundary const rhs_bound_;
+
+public:
+    GeneralizationChecker(Index const rhs_index, DecisionBoundary const rhs_bound) noexcept
+        : rhs_index_(rhs_index), rhs_bound_(rhs_bound) {}
+
+    bool SetAndCheck(Node& node) noexcept {
+        node_ = &node;
+        cur_node_rhs_ptr_ = &node_->rhs_bounds[rhs_index_];
+        return *cur_node_rhs_ptr_ >= rhs_bound_;
+    }
+
+    Node& CurNode() noexcept {
+        return *node_;
+    }
+
+    NodeChildren& Children() noexcept {
+        return node_->children;
+    }
+
+    DecisionBoundary IncomingBound() const noexcept {
+        return rhs_bound_;
+    }
+
+    Index IncomingIndex() const noexcept {
+        return rhs_index_;
+    }
+
+    void SetBoundOnCurrent() noexcept {
+        *cur_node_rhs_ptr_ = rhs_bound_;
+    }
+};
+
+auto MdLattice::ReturnNextNode(DecisionBoundaryVector const& lhs_bounds,
+                               GeneralizationChecker& checker, Index cur_node_index,
+                               Index next_node_index) -> Node* {
+    DecisionBoundary const rhs_bound = checker.IncomingBound();
+    Index const rhs_index = checker.IncomingIndex();
+    Index const child_array_index = next_node_index - cur_node_index;
+    auto [boundary_mapping, is_first_arr] = TryEmplaceChild(checker.Children(), child_array_index);
+    DecisionBoundary const next_lhs_bound = lhs_bounds[next_node_index];
+    std::size_t const next_child_array_size = column_matches_size_ - next_node_index;
+    if (is_first_arr) [[unlikely]] {
+        Node& new_node =
+                boundary_mapping
+                        .try_emplace(next_lhs_bound, column_matches_size_, next_child_array_size)
+                        .first->second;
+        AddNewMinimal(new_node, lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
+        return nullptr;
+    }
+
+    auto it = boundary_mapping.begin();
+    for (auto end = boundary_mapping.end(); it != end; ++it) {
+        auto& [generalization_bound, node] = *it;
+        if (generalization_bound > next_lhs_bound) break;
+        if (generalization_bound == next_lhs_bound) return &it->second;
+        if (HasGeneralization(node, lhs_bounds, rhs_bound, rhs_index, next_node_index + 1))
+            return nullptr;
+    }
+    using std::forward_as_tuple;
+    Node& new_node =
+            boundary_mapping
+                    .emplace_hint(it, std::piecewise_construct, forward_as_tuple(next_lhs_bound),
+                                  forward_as_tuple(column_matches_size_, next_child_array_size))
+                    ->second;
+    AddNewMinimal(new_node, lhs_bounds, rhs_bound, rhs_index, next_node_index + 1);
+    return nullptr;
+}
+
+void MdLattice::AddIfMinimal(DecisionBoundaryVector const& lhs_bounds,
+                             DecisionBoundary const rhs_bound, Index const rhs_index) {
+    // TODO: use info about where the LHS was specialized from to reduce generalization checks.
+    // When an MD is inferred from, it is not a specialization of any other MD in the lattice, so
+    // its LHS is not a specialization of any other. The only LHSs we have to check after a
+    // specialization are those that are generalizations of the new LHS but not the old one.
+
+    auto checker = GeneralizationChecker(rhs_index, rhs_bound);
+    if (checker.SetAndCheck(root_)) return;
+
+    for (Index cur_node_index = 0,
+               next_node_index = GetFirstNonZeroIndex(lhs_bounds, cur_node_index);
+         next_node_index != column_matches_size_; cur_node_index = next_node_index + 1,
+               next_node_index = GetFirstNonZeroIndex(lhs_bounds, cur_node_index)) {
+        if (HasLhsGeneralization(checker.CurNode(), lhs_bounds, rhs_bound, rhs_index,
+                                 cur_node_index, next_node_index + 1))
+            return;
+
+        Node* next_node = ReturnNextNode(lhs_bounds, checker, cur_node_index, next_node_index);
+        if (!next_node) return;
+        if (checker.SetAndCheck(*next_node)) return;
+    }
+    // Correct. This method is only used when inferring, so we must get a maximum, which is
+    // enforced with either of `if (cur_node_rhs_bound >= rhs_bound) return false;` above, no need
+    // for an additional check.
+    // I believe Metanome implemented this method incorrectly (they used Math.min instead of
+    // Math.max). However, before validating an MD, they set the rhs bound to 1.0, so that error has
+    // no effect on the final result. If this boundary is set correctly (like here), we don't have
+    // to set the RHS bound to 1.0 before validating and can start with the value that was
+    // originally in the lattice, potentially yielding more recommendations, since the only way that
+    // value could be not equal to 1.0 at the start of validation is if it was lowered by some
+    // record pair.
+    checker.SetBoundOnCurrent();
+}
+
 bool MdLattice::HasGeneralization(Node const& node, DecisionBoundaryVector const& lhs_bounds,
-                                  DecisionBoundary rhs_bound, Index rhs_index,
+                                  DecisionBoundary const rhs_bound, Index const rhs_index,
                                   Index const cur_node_index) const {
     if (node.rhs_bounds[rhs_index] >= rhs_bound) return true;
     if (HasLhsGeneralization(node, lhs_bounds, rhs_bound, rhs_index, cur_node_index,
@@ -161,14 +196,14 @@ bool MdLattice::HasGeneralization(Node const& node, DecisionBoundaryVector const
 }
 
 bool MdLattice::HasGeneralization(DecisionBoundaryVector const& lhs_bounds,
-                                  DecisionBoundary const rhs_bound, Index rhs_index) const {
+                                  DecisionBoundary const rhs_bound, Index const rhs_index) const {
     return HasGeneralization(root_, lhs_bounds, rhs_bound, rhs_index, 0);
 }
 
 void MdLattice::FindViolatedInternal(Node& cur_node, std::vector<MdLatticeNodeInfo>& found,
                                      DecisionBoundaryVector& cur_node_lhs_bounds,
                                      SimilarityVector const& similarity_vector,
-                                     Index this_node_index) {
+                                     Index const this_node_index) {
     DecisionBoundaryVector& rhs_bounds = cur_node.rhs_bounds;
     NodeChildren& children = cur_node.children;
     {
@@ -209,7 +244,7 @@ std::vector<MdLatticeNodeInfo> MdLattice::FindViolated(SimilarityVector const& s
 
 void MdLattice::RaiseInterestingnessBounds(
         Node const& cur_node, DecisionBoundaryVector const& lhs_bounds,
-        std::vector<DecisionBoundary>& cur_interestingness_bounds, Index this_node_index,
+        std::vector<DecisionBoundary>& cur_interestingness_bounds, Index const this_node_index,
         std::vector<Index> const& indices) const {
     {
         std::size_t const indices_size = indices.size();
@@ -260,20 +295,21 @@ std::vector<DecisionBoundary> MdLattice::GetRhsInterestingnessBounds(
 }
 
 void MdLattice::GetLevel(Node& cur_node, std::vector<MdLatticeNodeInfo>& collected,
-                         DecisionBoundaryVector& cur_node_lhs_bounds, Index cur_node_index,
-                         std::size_t level_left) {
+                         DecisionBoundaryVector& cur_node_lhs_bounds, Index const cur_node_index,
+                         std::size_t const level_left) {
+    DecisionBoundaryVector& rhs_bounds = cur_node.rhs_bounds;
+    NodeChildren& children = cur_node.children;
     if (level_left == 0) {
-        if (NotEmpty(cur_node.rhs_bounds))
-            collected.emplace_back(cur_node_lhs_bounds, &cur_node.rhs_bounds);
+        if (NotEmpty(rhs_bounds)) collected.emplace_back(cur_node_lhs_bounds, &rhs_bounds);
         return;
     }
-    std::size_t const child_array_size = cur_node.children.size();
-    for (Index child_array_index = FindFirstNonEmptyIndex(cur_node.children, 0);
+    std::size_t const child_array_size = children.size();
+    for (Index child_array_index = FindFirstNonEmptyIndex(children, 0);
          child_array_index != child_array_size;
-         child_array_index = FindFirstNonEmptyIndex(cur_node.children, child_array_index + 1)) {
+         child_array_index = FindFirstNonEmptyIndex(children, child_array_index + 1)) {
         Index const next_node_index = cur_node_index + child_array_index;
         DecisionBoundary& next_lhs_bound = cur_node_lhs_bounds[next_node_index];
-        for (auto& [boundary, node] : *cur_node.children[child_array_index]) {
+        for (auto& [boundary, node] : *children[child_array_index]) {
             assert(boundary > kLowestBound);
             std::size_t const single = get_single_level_(next_node_index, boundary);
             if (single > level_left) break;
@@ -285,7 +321,7 @@ void MdLattice::GetLevel(Node& cur_node, std::vector<MdLatticeNodeInfo>& collect
     }
 }
 
-std::vector<MdLatticeNodeInfo> MdLattice::GetLevel(std::size_t level) {
+std::vector<MdLatticeNodeInfo> MdLattice::GetLevel(std::size_t const level) {
     std::vector<MdLatticeNodeInfo> collected;
     DecisionBoundaryVector current_lhs(column_matches_size_, kLowestBound);
     GetLevel(root_, collected, current_lhs, 0, level);
@@ -293,7 +329,7 @@ std::vector<MdLatticeNodeInfo> MdLattice::GetLevel(std::size_t level) {
 }
 
 void MdLattice::GetAll(Node& cur_node, std::vector<MdLatticeNodeInfo>& collected,
-                       DecisionBoundaryVector& this_node_lhs_bounds, Index this_node_index) {
+                       DecisionBoundaryVector& this_node_lhs_bounds, Index const this_node_index) {
     NodeChildren& children = cur_node.children;
     DecisionBoundaryVector& rhs_bounds = cur_node.rhs_bounds;
     if (NotEmpty(rhs_bounds)) collected.emplace_back(this_node_lhs_bounds, &rhs_bounds);
