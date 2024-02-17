@@ -109,4 +109,11 @@ constexpr auto kDInsertStatements = "Rows to be inserted into the table using th
 constexpr auto kDDeleteStatements = "Rows to be deleted from the table using the delete operation";
 constexpr auto kDUpdateStatements = "Rows to be replaced in the table using the update operation";
 constexpr auto kDNDWeight = "Weight of ND to verify (positive integer)";
+constexpr auto kDLeftTable = "first table processed by the algorithm";
+constexpr auto kDRightTable = "second table processed by the algorithm";
+constexpr auto kDPruneNonDisjoint =
+        "don't search for dependencies where the LHS decision boundary at the same index as the "
+        "RHS decision boundary limits the number of records matched";
+constexpr auto kDMinSupport = "minimum support for a dependency's LHS";
+constexpr auto kDColumnMatches = "column matches to examine";
 }  // namespace config::descriptions
