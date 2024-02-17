@@ -36,7 +36,7 @@ std::pair<BoundaryMap<NodeType>&, bool> TryEmplaceChild(LatticeChildArray<NodeTy
 }
 
 template <typename NodeType>
-bool IsEmpty(LatticeChildArray<NodeType>& child_array) {
+bool IsEmpty(LatticeChildArray<NodeType> const& child_array) {
     return std::all_of(child_array.begin(), child_array.end(),
                        [](auto const& optional_child) { return !optional_child.has_value(); });
 }
