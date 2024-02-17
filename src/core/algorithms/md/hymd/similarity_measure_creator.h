@@ -20,6 +20,8 @@ public:
 
     virtual std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure> MakeMeasure()
             const = 0;
+
+    virtual ~SimilarityMeasureCreator() = default;
 };
 
 }  // namespace algos::hymd
