@@ -8,6 +8,7 @@
 
 #include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/utility/make_unique_for_overwrite.h"
+#include "config/exceptions.h"
 #include "model/types/double_type.h"
 #include "model/types/string_type.h"
 #include "util/pick_m_highest_bias.h"
@@ -237,5 +238,15 @@ LevenshteinSimilarityMeasure::LevenshteinSimilarityMeasure(model::md::DecisionBo
       is_null_equal_null_(is_null_equal_null),
       min_sim_(min_sim),
       size_limit_(size_limit) {}
+
+LevenshteinSimilarityMeasure::Creator::Creator(model::md::DecisionBoundary min_sim,
+                                               bool is_null_equal_null, std::size_t size_limit)
+    : SimilarityMeasureCreator(kName),
+      min_sim_(min_sim),
+      is_null_equal_null_(is_null_equal_null),
+      size_limit_(size_limit) {
+    if (!(0.0 <= min_sim_ && min_sim_ <= 1.0))
+        throw config::ConfigurationError("Minimum similarity out of range");
+}
 
 }  // namespace algos::hymd::preprocessing::similarity_measure

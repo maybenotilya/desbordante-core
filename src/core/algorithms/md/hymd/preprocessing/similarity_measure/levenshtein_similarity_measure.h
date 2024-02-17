@@ -21,11 +21,7 @@ public:
 
     public:
         Creator(model::md::DecisionBoundary min_sim = 0.7, bool is_null_equal_null = true,
-                std::size_t size_limit = 0)
-            : SimilarityMeasureCreator(kName),
-              min_sim_(min_sim),
-              is_null_equal_null_(is_null_equal_null),
-              size_limit_(size_limit) {}
+                std::size_t size_limit = 0);
 
         std::unique_ptr<SimilarityMeasure> MakeMeasure() const final {
             return std::make_unique<LevenshteinSimilarityMeasure>(min_sim_, is_null_equal_null_,
