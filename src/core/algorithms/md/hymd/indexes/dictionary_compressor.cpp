@@ -20,9 +20,10 @@ void DictionaryCompressor::AddRecord(std::vector<std::string> record) {
         return;
     }
     ++records_processed_;
-    CompressedRecord rec(expected_size);
+    CompressedRecord rec;
+    rec.reserve(expected_size);
     for (model::Index i = 0; i < expected_size; ++i) {
-        rec[i] = plis_[i].AddNextValue(record[i]);
+        rec.push_back(plis_[i].AddNextValue(record[i]));
     }
     records_.push_back(std::move(rec));
 }
