@@ -8,7 +8,7 @@ namespace algos::hymd::lattice::cardinality {
 
 class MinPickingLevelGetter final : public LevelGetter {
 private:
-    using MinPickerType = OneByOnePicker;
+    using MinPickerType = MinPickerLattice;
     MinPickerType min_picker_;
     std::unordered_map<DecisionBoundaryVector, boost::dynamic_bitset<>> picked_;
 
@@ -20,7 +20,8 @@ private:
     static constexpr bool kEraseEmptyKeepOrder = false;
 
 public:
-    MinPickingLevelGetter(FullLattice* lattice) : LevelGetter(lattice), min_picker_() {}
+    MinPickingLevelGetter(FullLattice* lattice)
+        : LevelGetter(lattice), min_picker_(lattice->GetColMatchNumber()) {}
 };
 
 }  // namespace algos::hymd::lattice::cardinality
