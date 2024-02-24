@@ -70,13 +70,29 @@ void HyMD::RegisterOptions() {
         return column_matches_option;
     };
 
-    RegisterOption(Option{&left_table_, kLeftTable, kDLeftTable});
+    auto not_null = [](config::InputTable const& table) {
+        if (table == nullptr) throw config::ConfigurationError("Left table may not be null.");
+    };
+    auto column_matches_check = [this](ColMatchesVector const& col_matches) {
+        for (auto const& [left_name, right_name, creator] : col_matches) {
+            if (!left_schema_->IsColumnInSchema(left_name))
+                throw config::ConfigurationError("Column " + left_name + " is not in left table.");
+            if (!right_schema_->IsColumnInSchema(right_name))
+                throw config::ConfigurationError("Column " + right_name +
+                                                 " is not in right table.");
+        }
+    };
+
     RegisterOption(Option{&right_table_, kRightTable, kDRightTable, config::InputTable{nullptr}});
+    RegisterOption(Option{&left_table_, kLeftTable, kDLeftTable}
+                           .SetValueCheck(not_null)
+                           .SetConditionalOpts({{{}, {kRightTable}}}));
 
     RegisterOption(Option{&min_support_, kMinSupport, kDMinSupport, {min_support_default}});
     RegisterOption(Option{&prune_nondisjoint_, kPruneNonDisjoint, kDPruneNonDisjoint, true});
     RegisterOption(Option{
-            &column_matches_option_, kColumnMatches, kDColumnMatches, {column_matches_default}});
+            &column_matches_option_, kColumnMatches, kDColumnMatches, {column_matches_default}}
+                           .SetValueCheck(column_matches_check));
 }
 
 void HyMD::ResetStateMd() {}

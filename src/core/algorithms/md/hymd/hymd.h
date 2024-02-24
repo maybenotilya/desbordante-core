@@ -17,6 +17,9 @@ namespace algos::hymd {
 
 class HyMD final : public MdAlgorithm {
 private:
+    using ColMatchesVector = std::vector<
+            std::tuple<std::string, std::string, std::shared_ptr<SimilarityMeasureCreator>>>;
+
     config::InputTable left_table_;
     config::InputTable right_table_;
 
@@ -35,8 +38,7 @@ private:
     // TODO: limit LHS bounds searched (currently only size limit is implemented)
     // TODO: memory conservation mode (load only some columns)
 
-    std::vector<std::tuple<std::string, std::string, std::shared_ptr<SimilarityMeasureCreator>>>
-            column_matches_option_;
+    ColMatchesVector column_matches_option_;
 
     void RegisterOptions();
 
