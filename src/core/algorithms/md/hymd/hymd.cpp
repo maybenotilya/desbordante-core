@@ -74,6 +74,8 @@ void HyMD::RegisterOptions() {
         if (table == nullptr) throw config::ConfigurationError("Left table may not be null.");
     };
     auto column_matches_check = [this](ColMatchesVector const& col_matches) {
+        if (col_matches.empty())
+            throw config::ConfigurationError("Mining with empty column matches is meaningless.");
         for (auto const& [left_name, right_name, creator] : col_matches) {
             if (!left_schema_->IsColumnInSchema(left_name))
                 throw config::ConfigurationError("Column " + left_name + " is not in left table.");
