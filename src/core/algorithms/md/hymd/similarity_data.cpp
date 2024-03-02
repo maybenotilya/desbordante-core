@@ -49,7 +49,7 @@ std::unordered_set<SimilarityVector> SimilarityData::GetSimVecs(
     RecordIdentifier const start_from = single_table_ ? left_record_id + 1 : 0;
     SimilarityVector pair_sims;
     pair_sims.reserve(GetColumnMatchNumber());
-    std::vector<CompressedRecord> const& right_records = GetRightCompressor().GetRecords();
+    indexes::CompressedRecords const& right_records = GetRightCompressor().GetRecords();
     // TODO: parallelize this
     std::for_each(right_records.begin() + start_from, right_records.end(), [&](auto const& record) {
         for (auto const& [sim_info, left_col_index, right_col_index] : column_matches_info_) {

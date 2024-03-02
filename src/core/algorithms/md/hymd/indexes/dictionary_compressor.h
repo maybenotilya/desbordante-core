@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "algorithms/md/hymd/compressed_record.h"
+#include "algorithms/md/hymd/indexes/compressed_records.h"
 #include "algorithms/md/hymd/indexes/keyed_position_list_index.h"
 #include "model/index.h"
 #include "model/table/idataset_stream.h"
@@ -16,7 +16,7 @@ namespace algos::hymd::indexes {
 class DictionaryCompressor {
 private:
     std::vector<KeyedPositionListIndex> plis_;
-    std::vector<CompressedRecord> records_;
+    CompressedRecords records_;
     std::size_t records_processed_ = 0;
 
 public:
@@ -31,7 +31,7 @@ public:
         return plis_[column_index];
     };
 
-    [[nodiscard]] std::vector<CompressedRecord> const& GetRecords() const noexcept {
+    [[nodiscard]] CompressedRecords const& GetRecords() const noexcept {
         return records_;
     }
 

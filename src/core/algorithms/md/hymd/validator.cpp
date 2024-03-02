@@ -16,12 +16,16 @@
 namespace {
 using model::Index, model::md::DecisionBoundary;
 using namespace algos::hymd;
+using indexes::CompressedRecords;
+using indexes::PliCluster;
 using indexes::RecSet;
+using indexes::SimilarityMatrix;
 using RecommendationVector = std::vector<Recommendation>;
-using RecordVector = std::vector<CompressedRecord>;
 using IndexVector = std::vector<Index>;
 using AllRecomVecs = std::vector<RecommendationVector>;
 using RecIdVec = std::vector<RecordIdentifier>;
+using RecPtr = CompressedRecord const*;
+using RecordCluster = std::vector<RecPtr>;
 
 IndexVector GetNonZeroIndices(DecisionBoundaryVector const& lhs) {
     IndexVector indices;
@@ -67,8 +71,8 @@ struct WorkingInfo {
     DecisionBoundary current_bound;
     std::size_t const col_match_values;
     DecisionBoundary interestingness_boundary;
-    RecordVector const& right_records;
-    indexes::SimilarityMatrix const& similarity_matrix;
+    CompressedRecords const& right_records;
+    SimilarityMatrix const& similarity_matrix;
     Index const left_index;
     Index const right_index;
 
@@ -82,9 +86,8 @@ struct WorkingInfo {
 
     WorkingInfo(DecisionBoundary old_bound, Index col_match_index,
                 RecommendationVector& recommendations, std::size_t col_match_values,
-                RecordVector const& right_records,
-                indexes::SimilarityMatrix const& similarity_matrix, Index const left_index,
-                Index const right_index)
+                CompressedRecords const& right_records, SimilarityMatrix const& similarity_matrix,
+                Index const left_index, Index const right_index)
         : recommendations(recommendations),
           old_bound(old_bound),
           index(col_match_index),
@@ -111,8 +114,8 @@ template <typename PairProvider>
 class Validator::SetPairProcessor {
     Validator const* const validator_;
     std::vector<ColumnMatchInfo> const& column_matches_info_ = *validator_->column_matches_info_;
-    RecordVector const& left_records_ = validator_->GetLeftCompressor().GetRecords();
-    RecordVector const& right_records_ = validator_->GetRightCompressor().GetRecords();
+    CompressedRecords const& left_records_ = validator_->GetLeftCompressor().GetRecords();
+    CompressedRecords const& right_records_ = validator_->GetRightCompressor().GetRecords();
     InvalidatedRhss& invalidated_;
     DecisionBoundaryVector& rhs_bounds_;
     DecisionBoundaryVector const& lhs_bounds_;
@@ -120,16 +123,15 @@ class Validator::SetPairProcessor {
 
     enum class Status { kInvalidated, kCheckedAll };
 
-    [[nodiscard]] Status LowerForColumnMatch(WorkingInfo& working_info,
-                                             indexes::PliCluster const& cluster,
+    [[nodiscard]] Status LowerForColumnMatch(WorkingInfo& working_info, PliCluster const& cluster,
                                              RecSet const& similar_records) const;
-    [[nodiscard]] Status LowerForColumnMatch(
-            WorkingInfo& working_info, std::vector<CompressedRecord const*> const& matched_records,
-            RecIdVec const& similar_records) const;
+    [[nodiscard]] Status LowerForColumnMatch(WorkingInfo& working_info,
+                                             RecordCluster const& matched_records,
+                                             RecIdVec const& similar_records) const;
 
     template <typename Collection>
     Status LowerForColumnMatchNoCheck(WorkingInfo& working_info,
-                                      std::vector<CompressedRecord const*> const& matched_records,
+                                      RecordCluster const& matched_records,
                                       Collection const& similar_records) const;
 
     std::pair<std::vector<WorkingInfo>, AllRecomVecs> MakeWorkingAndRecs(
@@ -233,23 +235,23 @@ Validator::SetPairProcessor<PairProvider>::MakeWorkingAndRecs(
 template <typename PairProvider>
 template <typename Collection>
 auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatchNoCheck(
-        WorkingInfo& working_info, std::vector<CompressedRecord const*> const& matched_records,
+        WorkingInfo& working_info, RecordCluster const& matched_records,
         Collection const& similar_records) const -> Status {
     assert(!similar_records.empty());
     assert(!matched_records.empty());
 
-    std::unordered_map<ValueIdentifier, std::vector<CompressedRecord const*>> grouped(
+    std::unordered_map<ValueIdentifier, RecordCluster> grouped(
             std::min(matched_records.size(), working_info.col_match_values));
-    for (CompressedRecord const* left_record_ptr : matched_records) {
+    for (RecPtr left_record_ptr : matched_records) {
         grouped[(*left_record_ptr)[working_info.left_index]].push_back(left_record_ptr);
     }
     DecisionBoundary& current_rhs_bound = working_info.current_bound;
-    indexes::SimilarityMatrix const& similarity_matrix = working_info.similarity_matrix;
+    SimilarityMatrix const& similarity_matrix = working_info.similarity_matrix;
     for (auto const& [left_value_id, records_left] : grouped) {
         for (RecordIdentifier record_id_right : similar_records) {
             CompressedRecord const& right_record = working_info.right_records[record_id_right];
             auto add_recommendations = [&records_left, &right_record, &working_info]() {
-                for (CompressedRecord const* left_record_ptr : records_left) {
+                for (RecPtr left_record_ptr : records_left) {
                     working_info.recommendations.emplace_back(left_record_ptr, &right_record);
                 }
             };
@@ -275,7 +277,7 @@ auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatchNoCheck(
 
 template <typename PairProvider>
 auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatch(
-        WorkingInfo& working_info, std::vector<CompressedRecord const*> const& matched_records,
+        WorkingInfo& working_info, RecordCluster const& matched_records,
         RecIdVec const& similar_records) const -> Status {
     if (working_info.ShouldStop()) return Status::kInvalidated;
     return LowerForColumnMatchNoCheck(working_info, matched_records, similar_records);
@@ -283,13 +285,12 @@ auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatch(
 
 template <typename PairProvider>
 auto Validator::SetPairProcessor<PairProvider>::LowerForColumnMatch(
-        WorkingInfo& working_info, indexes::PliCluster const& cluster,
-        RecSet const& similar_records) const -> Status {
+        WorkingInfo& working_info, PliCluster const& cluster, RecSet const& similar_records) const
+        -> Status {
     if (working_info.ShouldStop()) return Status::kInvalidated;
 
     assert(!similar_records.empty());
-    std::vector<CompressedRecord const*> cluster_records =
-            GetAllocatedVector<CompressedRecord const*>(cluster.size());
+    RecordCluster cluster_records = GetAllocatedVector<RecPtr>(cluster.size());
     for (RecordIdentifier left_record_id : cluster) {
         cluster_records.push_back(&left_records_[left_record_id]);
     }
@@ -301,7 +302,7 @@ class Validator::OneCardPairProvider {
     ValueIdentifier value_id_ = ValueIdentifier(-1);
     Index const non_zero_index_;
     DecisionBoundary const decision_boundary_;
-    std::vector<indexes::PliCluster> const& clusters_ =
+    std::vector<PliCluster> const& clusters_ =
             validator_->GetLeftCompressor()
                     .GetPli(validator_->GetLeftPliIndex(non_zero_index_))
                     .GetClusters();
@@ -324,7 +325,7 @@ public:
         return false;
     }
 
-    indexes::PliCluster const& GetCluster() const {
+    PliCluster const& GetCluster() const {
         return clusters_[value_id_];
     }
 
@@ -377,7 +378,6 @@ class Validator::MultiCardPairProvider {
         }
     };
 
-    using RecordCluster = std::vector<CompressedRecord const*>;
     using GroupMap = std::unordered_map<std::vector<ValueIdentifier>, RecordCluster>;
 
     Validator const* const validator_;
@@ -390,9 +390,9 @@ class Validator::MultiCardPairProvider {
     IndexVector const non_first_indices_;
     IndexVector::const_iterator non_first_start_ = non_first_indices_.begin();
     IndexVector::const_iterator non_first_end_ = non_first_indices_.end();
-    std::vector<indexes::PliCluster> const& first_pli_;
+    std::vector<PliCluster> const& first_pli_;
     std::size_t first_pli_size_ = first_pli_.size();
-    RecordVector const& left_records_ = validator_->GetLeftCompressor().GetRecords();
+    CompressedRecords const& left_records_ = validator_->GetLeftCompressor().GetRecords();
     std::vector<std::pair<Index, Index>> const col_match_val_idx_vec_;
     DecisionBoundaryVector const& lhs_bounds_;
     RecIdVec similar_records_;
@@ -412,7 +412,7 @@ class Validator::MultiCardPairProvider {
     bool TryGetNextGroup() {
         if (++first_value_id_ == first_pli_size_) return false;
         grouped_.clear();
-        indexes::PliCluster const& cluster = first_pli_[first_value_id_];
+        PliCluster const& cluster = first_pli_[first_value_id_];
         value_ids_.push_back(first_value_id_);
         for (RecordIdentifier record_id : cluster) {
             std::vector<ValueIdentifier> const& record = left_records_[record_id];
