@@ -5,30 +5,31 @@
 namespace algos::hymd::indexes {
 
 class RecordsInfo {
-    std::shared_ptr<DictionaryCompressor const> const records_left_;
-    std::shared_ptr<DictionaryCompressor const> const records_right_;
+    std::shared_ptr<DictionaryCompressor const> const left_compressor_;
+    std::shared_ptr<DictionaryCompressor const> const right_compressor_;
 
 public:
     [[nodiscard]] bool OneTableGiven() const noexcept {
-        return records_left_ == records_right_;
+        return left_compressor_ == right_compressor_;
     }
 
     [[nodiscard]] DictionaryCompressor const& GetLeftCompressor() const noexcept {
-        return *records_left_;
+        return *left_compressor_;
     }
 
     [[nodiscard]] DictionaryCompressor const& GetRightCompressor() const noexcept {
-        return *records_right_;
+        return *right_compressor_;
     }
 
-    RecordsInfo(std::shared_ptr<DictionaryCompressor> records_left,
-                std::shared_ptr<DictionaryCompressor> records_right) noexcept
-        : records_left_(std::move(records_left)), records_right_(std::move(records_right)) {}
+    RecordsInfo(std::shared_ptr<DictionaryCompressor> left_compressor,
+                std::shared_ptr<DictionaryCompressor> right_compressor) noexcept
+        : left_compressor_(std::move(left_compressor)),
+          right_compressor_(std::move(right_compressor)) {}
 
     static std::unique_ptr<RecordsInfo> CreateFrom(model::IDatasetStream& left_table) {
-        std::shared_ptr<DictionaryCompressor> left_compressed =
+        std::shared_ptr<DictionaryCompressor> left_compressor =
                 DictionaryCompressor::CreateFrom(left_table);
-        return std::make_unique<RecordsInfo>(left_compressed, left_compressed);
+        return std::make_unique<RecordsInfo>(left_compressor, left_compressor);
     }
 
     static std::unique_ptr<RecordsInfo> CreateFrom(model::IDatasetStream& left_table,

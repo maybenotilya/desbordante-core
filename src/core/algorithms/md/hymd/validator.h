@@ -30,7 +30,7 @@ private:
     class OneCardPairProvider;
     class MultiCardPairProvider;
 
-    indexes::RecordsInfo const* const compressed_records_;
+    indexes::RecordsInfo const* const records_info_;
     std::vector<ColumnMatchInfo> const* const column_matches_info_;
     std::size_t const min_support_;
     lattice::FullLattice* const lattice_;
@@ -44,11 +44,11 @@ private:
     }
 
     indexes::DictionaryCompressor const& GetLeftCompressor() const noexcept {
-        return compressed_records_->GetLeftCompressor();
+        return records_info_->GetLeftCompressor();
     }
 
     indexes::DictionaryCompressor const& GetRightCompressor() const noexcept {
-        return compressed_records_->GetRightCompressor();
+        return records_info_->GetRightCompressor();
     }
 
     std::size_t GetLeftValueNum(model::Index const col_match_index) const {
@@ -66,10 +66,10 @@ private:
                                                            model::Index column_match_index) const;
 
 public:
-    Validator(indexes::RecordsInfo const* compressed_records,
+    Validator(indexes::RecordsInfo const* records_info,
               std::vector<ColumnMatchInfo> const& column_matches_info, std::size_t min_support,
               lattice::FullLattice* lattice)
-        : compressed_records_(compressed_records),
+        : records_info_(records_info),
           column_matches_info_(&column_matches_info),
           min_support_(min_support),
           lattice_(lattice) {}

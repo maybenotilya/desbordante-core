@@ -32,8 +32,8 @@ void HyMD::RegisterOptions() {
     DESBORDANTE_OPTION_USING;
 
     auto min_support_default = [this]() {
-        if (compressed_records_->OneTableGiven()) {
-            return compressed_records_->GetLeftCompressor().GetRecords().size() + 1;
+        if (records_info_->OneTableGiven()) {
+            return records_info_->GetLeftCompressor().GetRecords().size() + 1;
         } else {
             return std::size_t(1);
         }
@@ -42,7 +42,7 @@ void HyMD::RegisterOptions() {
     auto column_matches_default = [this]() {
         std::vector<std::tuple<std::string, std::string, std::shared_ptr<SimilarityMeasureCreator>>>
                 column_matches_option;
-        if (compressed_records_->OneTableGiven()) {
+        if (records_info_->OneTableGiven()) {
             std::size_t const num_columns = left_schema_->GetNumColumns();
             column_matches_option.reserve(num_columns);
             for (model::Index i = 0; i < num_columns; ++i) {
@@ -109,17 +109,17 @@ void HyMD::LoadDataInternal() {
     }
     if (right_table_ == nullptr) {
         right_schema_ = left_schema_;
-        compressed_records_ = indexes::RecordsInfo::CreateFrom(*left_table_);
+        records_info_ = indexes::RecordsInfo::CreateFrom(*left_table_);
     } else {
         right_schema_ = std::make_unique<RelationalSchema>(right_table_->GetRelationName());
         std::size_t const right_table_cols = right_table_->GetNumberOfColumns();
         for (model::Index i = 0; i < right_table_cols; ++i) {
             right_schema_->AppendColumn(right_table_->GetColumnName(i));
         }
-        compressed_records_ = indexes::RecordsInfo::CreateFrom(*left_table_, *right_table_);
+        records_info_ = indexes::RecordsInfo::CreateFrom(*left_table_, *right_table_);
     }
-    if (compressed_records_->GetLeftCompressor().GetNumberOfRecords() == 0 ||
-        compressed_records_->GetRightCompressor().GetNumberOfRecords() == 0) {
+    if (records_info_->GetLeftCompressor().GetNumberOfRecords() == 0 ||
+        records_info_->GetRightCompressor().GetNumberOfRecords() == 0) {
         throw config::ConfigurationError("MD mining with either table empty is meaningless!");
     }
 }
@@ -138,14 +138,13 @@ unsigned long long HyMD::ExecuteInternal() {
     assert(column_match_number != 0);
     // TODO: make infrastructure for depth level
     SimilarityData similarity_data =
-            SimilarityData::CreateFrom(compressed_records_.get(), std::move(column_matches_info));
+            SimilarityData::CreateFrom(records_info_.get(), std::move(column_matches_info));
     lattice::FullLattice lattice{column_match_number, [](...) { return 1; }};
     Specializer specializer{similarity_data.GetColumnMatchesInfo(), &lattice, prune_nondisjoint_};
     LatticeTraverser lattice_traverser{
             &lattice,
             std::make_unique<lattice::cardinality::MinPickingLevelGetter>(&lattice),
-            {compressed_records_.get(), similarity_data.GetColumnMatchesInfo(), min_support_,
-             &lattice},
+            {records_info_.get(), similarity_data.GetColumnMatchesInfo(), min_support_, &lattice},
             &specializer};
     RecordPairInferrer record_pair_inferrer{&similarity_data, &lattice, &specializer};
 

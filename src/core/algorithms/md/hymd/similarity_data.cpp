@@ -10,16 +10,16 @@
 namespace algos::hymd {
 
 SimilarityData SimilarityData::CreateFrom(
-        indexes::RecordsInfo* const compressed_records,
+        indexes::RecordsInfo* const records_info,
         std::vector<
                 std::tuple<std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>,
                            model::Index, model::Index>> const column_matches_info_initial) {
-    bool const one_table_given = compressed_records->OneTableGiven();
+    bool const one_table_given = records_info->OneTableGiven();
     std::size_t const col_match_number = column_matches_info_initial.size();
     std::vector<ColumnMatchInfo> column_matches_info;
     column_matches_info.reserve(col_match_number);
-    auto const& left_records = compressed_records->GetLeftCompressor();
-    auto const& right_records = compressed_records->GetRightCompressor();
+    auto const& left_records = records_info->GetLeftCompressor();
+    auto const& right_records = records_info->GetRightCompressor();
     for (auto const& [measure, left_col_index, right_col_index] : column_matches_info_initial) {
         auto const& left_pli = left_records.GetPli(left_col_index);
         // TODO: cache DataInfo.
@@ -37,7 +37,7 @@ SimilarityData SimilarityData::CreateFrom(
                                      right_pli.GetClusters()),
                 left_col_index, right_col_index);
     }
-    return {compressed_records, std::move(column_matches_info)};
+    return {records_info, std::move(column_matches_info)};
 }
 
 std::unordered_set<SimilarityVector> SimilarityData::GetSimVecs(
