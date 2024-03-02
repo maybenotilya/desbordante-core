@@ -6,7 +6,7 @@
 
 #include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/hymd/column_match_info.h"
-#include "algorithms/md/hymd/indexes/compressed_records.h"
+#include "algorithms/md/hymd/indexes/records_info.h"
 #include "algorithms/md/hymd/invalidated_rhs.h"
 #include "algorithms/md/hymd/lattice/full_lattice.h"
 #include "algorithms/md/hymd/lattice/validation_info.h"

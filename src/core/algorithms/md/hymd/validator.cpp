@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "algorithms/md/hymd/decision_boundary_vector.h"
-#include "algorithms/md/hymd/indexes/compressed_records.h"
+#include "algorithms/md/hymd/indexes/records_info.h"
 #include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/table_identifiers.h"
 #include "algorithms/md/hymd/utility/java_hash.h"
