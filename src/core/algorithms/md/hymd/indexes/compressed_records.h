@@ -13,11 +13,11 @@ public:
         return records_left_ == records_right_;
     }
 
-    [[nodiscard]] DictionaryCompressor const& GetLeftRecords() const noexcept {
+    [[nodiscard]] DictionaryCompressor const& GetLeftCompressor() const noexcept {
         return *records_left_;
     }
 
-    [[nodiscard]] DictionaryCompressor const& GetRightRecords() const noexcept {
+    [[nodiscard]] DictionaryCompressor const& GetRightCompressor() const noexcept {
         return *records_right_;
     }
 

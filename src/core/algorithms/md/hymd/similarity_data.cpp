@@ -18,8 +18,8 @@ SimilarityData SimilarityData::CreateFrom(
     std::size_t const col_match_number = column_matches_info_initial.size();
     std::vector<ColumnMatchInfo> column_matches_info;
     column_matches_info.reserve(col_match_number);
-    auto const& left_records = compressed_records->GetLeftRecords();
-    auto const& right_records = compressed_records->GetRightRecords();
+    auto const& left_records = compressed_records->GetLeftCompressor();
+    auto const& right_records = compressed_records->GetRightCompressor();
     for (auto const& [measure, left_col_index, right_col_index] : column_matches_info_initial) {
         auto const& left_pli = left_records.GetPli(left_col_index);
         // TODO: cache DataInfo.

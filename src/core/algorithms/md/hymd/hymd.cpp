@@ -33,7 +33,7 @@ void HyMD::RegisterOptions() {
 
     auto min_support_default = [this]() {
         if (compressed_records_->OneTableGiven()) {
-            return compressed_records_->GetLeftRecords().GetRecords().size() + 1;
+            return compressed_records_->GetLeftCompressor().GetRecords().size() + 1;
         } else {
             return std::size_t(1);
         }
@@ -118,8 +118,8 @@ void HyMD::LoadDataInternal() {
         }
         compressed_records_ = indexes::CompressedRecords::CreateFrom(*left_table_, *right_table_);
     }
-    if (compressed_records_->GetLeftRecords().GetNumberOfRecords() == 0 ||
-        compressed_records_->GetRightRecords().GetNumberOfRecords() == 0) {
+    if (compressed_records_->GetLeftCompressor().GetNumberOfRecords() == 0 ||
+        compressed_records_->GetRightCompressor().GetNumberOfRecords() == 0) {
         throw config::ConfigurationError("MD mining with either table empty is meaningless!");
     }
 }

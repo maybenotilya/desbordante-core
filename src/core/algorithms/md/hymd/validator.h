@@ -44,11 +44,11 @@ private:
     }
 
     indexes::DictionaryCompressor const& GetLeftCompressor() const noexcept {
-        return compressed_records_->GetLeftRecords();
+        return compressed_records_->GetLeftCompressor();
     }
 
     indexes::DictionaryCompressor const& GetRightCompressor() const noexcept {
-        return compressed_records_->GetRightRecords();
+        return compressed_records_->GetRightCompressor();
     }
 
     std::size_t GetLeftValueNum(model::Index const col_match_index) const {

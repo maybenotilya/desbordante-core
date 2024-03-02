@@ -28,11 +28,11 @@ private:
     std::vector<ColumnMatchInfo> const column_matches_info_;
 
     indexes::DictionaryCompressor const& GetLeftCompressor() const noexcept {
-        return compressed_records_->GetLeftRecords();
+        return compressed_records_->GetLeftCompressor();
     }
 
     indexes::DictionaryCompressor const& GetRightCompressor() const noexcept {
-        return compressed_records_->GetRightRecords();
+        return compressed_records_->GetRightCompressor();
     }
 
 public:
