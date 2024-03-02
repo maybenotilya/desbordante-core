@@ -44,6 +44,7 @@ void HyMD::RegisterOptions() {
                 column_matches_option;
         if (compressed_records_->OneTableGiven()) {
             std::size_t const num_columns = left_schema_->GetNumColumns();
+            column_matches_option.reserve(num_columns);
             for (model::Index i = 0; i < num_columns; ++i) {
                 std::string const column_name = left_schema_->GetColumn(i)->GetName();
                 column_matches_option.emplace_back(
@@ -55,6 +56,7 @@ void HyMD::RegisterOptions() {
         } else {
             std::size_t const num_columns_left = left_schema_->GetNumColumns();
             std::size_t const num_columns_right = left_schema_->GetNumColumns();
+            column_matches_option.reserve(num_columns_left * num_columns_right);
             for (model::Index i = 0; i < num_columns_left; ++i) {
                 std::string const column_name_left = left_schema_->GetColumn(i)->GetName();
                 for (model::Index j = 0; j < num_columns_right; ++j) {
