@@ -22,7 +22,7 @@ namespace algos::hymd {
 
 class SimilarityData {
 private:
-    indexes::CompressedRecords const* const compressed_records_;
+    indexes::RecordsInfo const* const compressed_records_;
     bool const single_table_;
 
     std::vector<ColumnMatchInfo> const column_matches_info_;
@@ -36,14 +36,14 @@ private:
     }
 
 public:
-    SimilarityData(indexes::CompressedRecords* compressed_records,
+    SimilarityData(indexes::RecordsInfo* compressed_records,
                    std::vector<ColumnMatchInfo> column_matches_info) noexcept
         : compressed_records_(compressed_records),
           single_table_(compressed_records_->OneTableGiven()),
           column_matches_info_(std::move(column_matches_info)) {}
 
     static SimilarityData CreateFrom(
-            indexes::CompressedRecords* compressed_records,
+            indexes::RecordsInfo* compressed_records,
             std::vector<std::tuple<
                     std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>,
                     model::Index, model::Index>>

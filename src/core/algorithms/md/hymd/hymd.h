@@ -26,7 +26,7 @@ private:
     std::shared_ptr<RelationalSchema> left_schema_;
     std::shared_ptr<RelationalSchema> right_schema_;
 
-    std::unique_ptr<indexes::CompressedRecords> compressed_records_;
+    std::unique_ptr<indexes::RecordsInfo> compressed_records_;
 
     std::size_t min_support_ = 0;
     bool prune_nondisjoint_ = true;

@@ -30,7 +30,7 @@ private:
     class OneCardPairProvider;
     class MultiCardPairProvider;
 
-    indexes::CompressedRecords const* const compressed_records_;
+    indexes::RecordsInfo const* const compressed_records_;
     std::vector<ColumnMatchInfo> const* const column_matches_info_;
     std::size_t const min_support_;
     lattice::FullLattice* const lattice_;
@@ -66,7 +66,7 @@ private:
                                                            model::Index column_match_index) const;
 
 public:
-    Validator(indexes::CompressedRecords const* compressed_records,
+    Validator(indexes::RecordsInfo const* compressed_records,
               std::vector<ColumnMatchInfo> const& column_matches_info, std::size_t min_support,
               lattice::FullLattice* lattice)
         : compressed_records_(compressed_records),

@@ -109,14 +109,14 @@ void HyMD::LoadDataInternal() {
     }
     if (right_table_ == nullptr) {
         right_schema_ = left_schema_;
-        compressed_records_ = indexes::CompressedRecords::CreateFrom(*left_table_);
+        compressed_records_ = indexes::RecordsInfo::CreateFrom(*left_table_);
     } else {
         right_schema_ = std::make_unique<RelationalSchema>(right_table_->GetRelationName());
         std::size_t const right_table_cols = right_table_->GetNumberOfColumns();
         for (model::Index i = 0; i < right_table_cols; ++i) {
             right_schema_->AppendColumn(right_table_->GetColumnName(i));
         }
-        compressed_records_ = indexes::CompressedRecords::CreateFrom(*left_table_, *right_table_);
+        compressed_records_ = indexes::RecordsInfo::CreateFrom(*left_table_, *right_table_);
     }
     if (compressed_records_->GetLeftCompressor().GetNumberOfRecords() == 0 ||
         compressed_records_->GetRightCompressor().GetNumberOfRecords() == 0) {

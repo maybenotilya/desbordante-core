@@ -10,7 +10,7 @@
 namespace algos::hymd {
 
 SimilarityData SimilarityData::CreateFrom(
-        indexes::CompressedRecords* const compressed_records,
+        indexes::RecordsInfo* const compressed_records,
         std::vector<
                 std::tuple<std::unique_ptr<preprocessing::similarity_measure::SimilarityMeasure>,
                            model::Index, model::Index>> const column_matches_info_initial) {
