@@ -12,11 +12,11 @@
 #include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/hymd/preprocessing/similarity_measure/levenshtein_similarity_measure.h"
 #include "algorithms/md/hymd/utility/md_less.h"
+#include "all_csv_configs.h"
 #include "config/names.h"
 #include "config/tabular_data/input_table_type.h"
 #include "model/index.h"
 #include "parser/csv_parser/csv_parser.h"
-#include "table_config.h"
 
 namespace {
 auto GetCardinality(std::vector<model::md::DecisionBoundary> const& lhs_bounds) {
@@ -29,14 +29,13 @@ namespace tests {
 
 class HyMDTest : public ::testing::Test {
 protected:
-    static algos::StdParamsMap GetParamMap(std::filesystem::path const& path, char separator,
-                                           bool has_header,
+    static algos::StdParamsMap GetParamMap(CSVConfig const& csv_config,
                                            std::optional<std::size_t> min_support = std::nullopt,
                                            bool prune_nondisjoint = true,
                                            model::md::DecisionBoundary minimum_similarity = 0.7) {
         using namespace config::names;
         using namespace algos::hymd;
-        config::InputTable table = std::make_unique<CSVParser>(path, separator, has_header);
+        config::InputTable table = std::make_unique<CSVParser>(csv_config);
         std::shared_ptr<SimilarityMeasureCreator> measure_creator = std::make_shared<
                 preprocessing::similarity_measure::LevenshteinSimilarityMeasure::Creator>(
                 minimum_similarity);
@@ -64,8 +63,7 @@ protected:
 TEST_F(HyMDTest, DrunkAnimalsNormal) {
     using model::md::DecisionBoundary, model::Index, model::MD;
     using MdPair = std::pair<std::vector<DecisionBoundary>, std::pair<Index, DecisionBoundary>>;
-    auto const dataset_path = test_data_dir / "drunk_animals.csv";
-    auto param_map = GetParamMap(dataset_path, ',', true);
+    auto param_map = GetParamMap(kDrunkAnimals);
     auto hymd = algos::CreateAndLoadAlgorithm<algos::hymd::HyMD>(param_map);
     std::vector<MdPair> expected = {
             {{0.0, 0.0, 0.0, 0.75}, {2, 0.75}},
@@ -84,8 +82,7 @@ TEST_F(HyMDTest, DrunkAnimalsNormal) {
 
 TEST_F(HyMDTest, DrunkAnimalsNoLimits) {
     using model::md::DecisionBoundary, model::Index, model::MD, algos::hymd::utility::MdPair;
-    auto const dataset_path = test_data_dir / "drunk_animals.csv";
-    auto param_map = GetParamMap(dataset_path, ',', true, 0, false, 0.0);
+    auto param_map = GetParamMap(kDrunkAnimals, 0, false, 0.0);
     auto hymd = algos::CreateAndLoadAlgorithm<algos::hymd::HyMD>(param_map);
     std::vector<MdPair> expected = {
             {{0, 0, 0, 0}, {1, 1 / 6.}},   {{0.2, 0, 0, 0}, {3, 1}},
@@ -103,8 +100,7 @@ TEST_F(HyMDTest, DrunkAnimalsNoLimits) {
             {{0.125, 1, 0, 0}, {0, 1}},    {{0.125, 1, 0, 0}, {2, 1}},
             {{0.125, 1, 0, 0}, {3, 1}},
     };
-    std::sort(expected.begin(), expected.end(),
-              [](auto const& l, auto const& r) { return algos::hymd::utility::MdLessPairs(l, r); });
+    std::sort(expected.begin(), expected.end(), algos::hymd::utility::MdLessPairs);
     std::vector<MdPair> actual;
     algos::ConfigureFromMap(*hymd, param_map);
     hymd->Execute();
@@ -116,11 +112,10 @@ TEST_F(HyMDTest, DrunkAnimalsNoLimits) {
     ASSERT_EQ(expected, actual);
 }
 
-TEST_F(HyMDTest, AdultFDs) {
+TEST_F(HyMDTest, AdultMDs) {
     using model::md::DecisionBoundary, model::Index, model::MD;
     using IndexPair = std::pair<Index, Index>;
-    auto const dataset_path = test_data_dir / "adult.csv";
-    auto param_map = GetParamMap(dataset_path, ';', false);
+    auto param_map = GetParamMap(kadult);
     auto hymd = algos::CreateAndLoadAlgorithm<algos::hymd::HyMD>(param_map);
     algos::ConfigureFromMap(*hymd, param_map);
     hymd->Execute();
@@ -144,6 +139,7 @@ TEST_F(HyMDTest, AdultFDs) {
                    << "). Found MDs: " << found_mds_string.str();
         }
     }
+    ASSERT_EQ(111u, actual_mds.size());
 }
 
 }  // namespace tests
