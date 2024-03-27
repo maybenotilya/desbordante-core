@@ -13,8 +13,8 @@ namespace std {
 template <>
 struct hash<std::vector<double>> {
     std::size_t operator()(std::vector<double> const& p) const noexcept {
-        constexpr bool kUseJavaHash = true;
-        if constexpr (kUseJavaHash) {
+        constexpr bool use_java_hash = true;
+        if constexpr (use_java_hash) {
             return algos::hymd::utility::HashIterable(p, [](double element) {
                 return /* TODO: replace with std::bit_cast when GCC in CI is upgraded */ algos::
                         hymd::utility::BitCast<std::int64_t>(element);

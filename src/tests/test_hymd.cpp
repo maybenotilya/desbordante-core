@@ -115,7 +115,7 @@ TEST_F(HyMDTest, DrunkAnimalsNoLimits) {
 TEST_F(HyMDTest, AdultMDs) {
     using model::md::DecisionBoundary, model::Index, model::MD;
     using IndexPair = std::pair<Index, Index>;
-    auto param_map = GetParamMap(kadult);
+    auto param_map = GetParamMap(kAdult);
     auto hymd = algos::CreateAndLoadAlgorithm<algos::hymd::HyMD>(param_map);
     algos::ConfigureFromMap(*hymd, param_map);
     hymd->Execute();

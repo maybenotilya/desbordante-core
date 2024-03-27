@@ -48,8 +48,8 @@ namespace std {
 template <>
 struct hash<vector<ValueIdentifier>> {
     size_t operator()(vector<ValueIdentifier> const& p) const {
-        constexpr bool kUseJavaHash = true;
-        if constexpr (kUseJavaHash) {
+        constexpr bool use_java_hash = true;
+        if constexpr (use_java_hash) {
             return utility::HashIterable(p);
         } else {
             auto hasher = util::PyTupleHash<ValueIdentifier>(p.size());

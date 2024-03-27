@@ -30,11 +30,11 @@ namespace std {
 template <>
 struct hash<algos::hymd::Recommendation> {
     std::size_t operator()(algos::hymd::Recommendation const& p) const noexcept {
-        constexpr bool kUseJavaHash = true;
+        constexpr bool use_java_hash = true;
         using algos::hymd::CompressedRecord, algos::hymd::ValueIdentifier;
         CompressedRecord const& left_record = *p.left_record;
         CompressedRecord const& right_record = *p.right_record;
-        if constexpr (kUseJavaHash) {
+        if constexpr (use_java_hash) {
             auto values = {algos::hymd::utility::HashIterable(left_record),
                            algos::hymd::utility::HashIterable(right_record)};
             return algos::hymd::utility::CombineHashes(values);
