@@ -123,7 +123,7 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
             }
         };
         if (left_nulls.find(value_id_left) != left_nulls.end()) {
-            if (!is_null_equal_null_) return;
+            if (!is_null_equal_null_) task_info[value_id_left].row_lowest = kLowestBound;
             simple_case(task_info[value_id_left], right_nulls);
         } else if (left_empty.find(value_id_left) != left_empty.end()) {
             simple_case(task_info[value_id_left], right_empty);
@@ -213,7 +213,6 @@ indexes::ColumnMatchSimilarityInfo LevenshteinSimilarityMeasure::MakeIndexes(
     }
     pool.join();
     for (SimTaskData& task : task_info) {
-        if (task.row_decision_bounds.empty()) continue;
         similarity_index.push_back(std::move(task.matching_recs_mapping));
         similarity_matrix.push_back(std::move(task.sim_matrix_row));
         decision_bounds_set.insert(task.row_decision_bounds.begin(),
