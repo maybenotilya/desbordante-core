@@ -7,20 +7,34 @@
 #include "config/option_using.h"
 #include "config/tabular_data/input_table/option.h"
 
+namespace {
+using namespace algos;
+
+std::unique_ptr<FDAlgorithm> CreateAlgorithm(
+        AlgorithmType algorithm,
+        PliBasedFDAlgorithm::ColumnLayoutRelationDataManager relation_manager) {
+    if (IsBaseOf<PliBasedFDAlgorithm>(algorithm)) {
+        return CreateAlgorithmInstance<PliBasedFDAlgorithm>(algorithm, relation_manager);
+    }
+    return CreateAlgorithmInstance<FDAlgorithm>(algorithm);
+}
+}  // namespace
+
 namespace algos {
 
 TypoMiner::TypoMiner(AlgorithmType precise, AlgorithmType approx)
-    : TypoMiner(CreateAlgorithmInstance<FDAlgorithm>(precise),
-                CreateAlgorithmInstance<FDAlgorithm>(approx)) {}
+    : TypoMiner([this, precise]() { return CreateAlgorithm(precise, MakeRelationManager()); },
+                [this, approx]() { return CreateAlgorithm(approx, MakeRelationManager()); }) {}
 
-TypoMiner::TypoMiner(std::unique_ptr<FDAlgorithm> precise_algo,
-                     std::unique_ptr<FDAlgorithm> approx_algo)
+template <typename GetPrecise, typename GetApprox>
+TypoMiner::TypoMiner(GetPrecise get_precise, GetApprox get_approx)
         : Algorithm({/*"Precise fd algorithm execution", "Approximate fd algoritm execution",
                      "Extracting fds with non-zero error"*/}),
-          precise_algo_(std::move(precise_algo)),
-          approx_algo_(std::move(approx_algo)) {
+          precise_algo_(get_precise()),
+          approx_algo_(get_approx()),
+          relation_manager_(MakeRelationManager()) {
     RegisterOptions();
-    MakeOptionsAvailable({config::TableOpt.GetName(), config::EqualNullsOpt.GetName()});
+    MakeOptionsAvailable({config::kTableOpt.GetName(), config::kEqualNullsOpt.GetName()});
 }
 
 void TypoMiner::RegisterOptions() {
@@ -41,8 +55,8 @@ void TypoMiner::RegisterOptions() {
         }
     };
 
-    RegisterOption(config::TableOpt(&input_table_));
-    RegisterOption(config::EqualNullsOpt(&is_null_equal_null_));
+    RegisterOption(config::kTableOpt(&input_table_));
+    RegisterOption(config::kEqualNullsOpt(&is_null_equal_null_));
     RegisterOption(Option{&radius_, kRadius, kDRadius, -1.0}.SetValueCheck(radius_check));
     RegisterOption(Option{&ratio_, kRatio, kDRatio, {ratio_default}}.SetValueCheck(ratio_check));
 }
@@ -57,7 +71,7 @@ void TypoMiner::ResetState() {
 }
 
 bool TypoMiner::SetExternalOption(std::string_view option_name, boost::any const& value) {
-    if (option_name == config::ErrorOpt.GetName()) {
+    if (option_name == config::kErrorOpt.GetName()) {
         if (value.empty()) {
             throw config::ConfigurationError("Must specify error value when mining typos.");
         }
@@ -95,19 +109,14 @@ void TypoMiner::AddSpecificNeededOptions(
 }
 
 void TypoMiner::LoadDataInternal() {
-    relation_ = ColumnLayoutRelationData::CreateFrom(*input_table_, is_null_equal_null_);
+    relation_ = relation_manager_.GetRelation();
     input_table_->Reset();
     typed_relation_ =
             model::ColumnLayoutTypedRelationData::CreateFrom(*input_table_, is_null_equal_null_);
 
     for (Algorithm* algo : {precise_algo_.get(), approx_algo_.get()}) {
-        auto pli_algo = dynamic_cast<PliBasedFDAlgorithm*>(algo);
-        if (pli_algo == nullptr) {
-            input_table_->Reset();
-            algo->LoadData();
-        } else {
-            pli_algo->LoadData(relation_);
-        }
+        input_table_->Reset();
+        algo->LoadData();
     }
 }
 
@@ -223,7 +232,7 @@ std::vector<TypoMiner::SquashedElement> TypoMiner::SquashCluster(
     squashed.push_back({.tuple_index = *prev, .amount = 1});
 
     for (auto it = std::next(cluster.cbegin()); it != cluster.cend(); ++it) {
-        if (probing_table[*it] != model::PLI::singleton_value_id_ &&
+        if (probing_table[*it] != model::PLI::kSingletonValueId &&
             probing_table[*it] == probing_table[*prev]) {
             squashed.back().amount++;
         } else {

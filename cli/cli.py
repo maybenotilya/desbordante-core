@@ -5,6 +5,7 @@ from collections import namedtuple
 from enum import StrEnum, auto
 from time import process_time
 from typing import Any, Callable
+from os import scandir
 
 import click
 import desbordante
@@ -12,15 +13,24 @@ import desbordante
 
 class Task(StrEnum):
     fd = auto()
+    cfd = auto()
+    ar = auto()
     afd = auto()
+    od = auto()
+    pfd = auto()
+    ind = auto()
     fd_verification = auto()
     afd_verification = auto()
     mfd_verification = auto()
+    ucc_verification = auto()
+    aucc_verification = auto()
+    gfd_verification = auto()
 
 
 class Algorithm(StrEnum):
     pyro = auto()
     tane = auto()
+    pfdtane = auto()
     hyfd = auto()
     fd_mine = auto()
     dfd = auto()
@@ -29,9 +39,20 @@ class Algorithm(StrEnum):
     fun = auto()
     fastfds = auto()
     aid = auto()
+    fd_first = auto()
+    fastod = auto()
+    order = auto()
+    spider = auto()
+    faida = auto()
+    apriori = auto()
     naive_fd_verifier = auto()
     naive_afd_verifier = auto()
     icde09_mfd_verifier = auto()
+    naive_ucc_verifier = auto()
+    naive_aucc_verifier = auto()
+    naive_gfd_verifier = auto()
+    gfd_verifier = auto()
+    egfd_verifier = auto()
 
 
 HELP = 'help'
@@ -41,6 +62,11 @@ ALGORITHM = 'algorithm'
 FILENAME = 'filename'
 VERBOSE = 'verbose'
 ERROR = 'error'
+ERROR_MEASURE = 'error_measure'
+TABLES = 'tables'
+TABLES_LIST = 'tables_list'
+TABLES_DIRECTORY = 'tables_directory'
+INPUT_FORMAT = 'input_format'
 
 PRIMARY_HELP = '''The Desbordante data profiler is designed to help users
 discover or verify various types of patterns in data. These patterns are
@@ -94,10 +120,15 @@ output file or to console, if none is specified.
 Currently, the console version of Desbordante supports:
 1) Discovery of exact functional dependencies
 2) Discovery of approximate functional dependencies
-3) Verification of exact functional dependencies
-4) Verification of approximate functional dependencies
-5) Verification of metric dependencies
-
+3) Discovery of probabilistic functional dependencies
+4) Discovery of association rules
+5) Discovery of exact order dependencies (set-based and list-based axiomatization)
+6) Discovery of inclusion dependencies
+7) Verification of exact functional dependencies
+8) Verification of approximate functional dependencies
+9) Verification of metric dependencies
+10) Verification of exact unique column combinations
+11) Verification of approximate unique column combinations
 If you need other types, you should look into the C++ code, the Python
 bindings or the Web version.
 
@@ -109,7 +140,9 @@ bindings or the Web version.
     specify the algorithm to run, e.g., PYRO
 
 --table=TABLE
-    specify the input file to be processed by the algorithm
+    specify the input file to be processed by the algorithm.
+    Algorithms for some tasks (currently, only IND) accept multiple
+    input files; see --task=TASK for more information
 
 --is_null_equal_null=BOOLEAN
     specify whether two NULLs should be considered equal
@@ -134,6 +167,14 @@ algorithms” paper by T. Papenbrock et al.
 Algorithms: PYRO, TANE, HYFD, FD_MINE, DFD, DEP_MINER, FDEP, FUN, FASTFDS, AID
 Default: HYFD
 '''
+CFD_HELP = '''Discover approximate conditional functional dependencies. For
+more information about the primitive and the algorithm, refer to the “Revisiting
+Conditional Functional Dependency Discovery: Splitting the “C” from the “FD””
+paper by J. Rammelaere and F. Geerts.
+
+Algorithms: FD_FIRST
+Default: FD_FIRST
+'''
 AFD_HELP = '''Discover minimal non-trivial approximate functional
 dependencies. Approximate functional dependencies are defined in the
 “Efficient Discovery of Approximate Dependencies” paper by S. Kruse and
@@ -141,6 +182,49 @@ F. Naumann.
 
 Algorithms: PYRO, TANE
 Default: PYRO
+'''
+OD_HELP = '''Discover order dependencies. For more information about the 
+primitive and algorithms, refer to the “Effective and complete discovery 
+of order dependencies via set-based axiomatization” paper by J. Szlichta 
+et al.
+
+Algorithms: FASTOD, ORDER
+Default: FASTOD
+'''
+PFD_HELP = '''Discover minimal non-trivial probabilistic functional
+dependencies. Probabilitistic functional dependencies are defined in the
+“Functional Dependency Generation and Applications in pay-as-you-go 
+data integration systems” paper by Daisy Zhe Wang et al.
+Algorithms: PFDTANE
+Default: PFDTANE
+'''
+IND_HELP = '''Discover inclusion dependecies. For more information about
+inclusion dependecies, refer to the "Inclusion Dependency Discovery: An
+Experimental Evaluation of Thirteen Algorithms" by Falco Dürsch et al.
+Algorithms for this task accept multiple input files. You can use one of the
+following options:
+
+--tables=TABLE
+    specify input files to be processed by the algorithm.
+    For multiple values, specify multiple times
+    (e.g., --tables=TABLE_1 --tables=TABLE_2)
+
+--tables_list=FILENAME
+    specify file with list of input files (one on a line).
+    You can type --tables_list=- to use stdin
+
+--tables_directory=FILENAME, STRING, BOOLEAN
+    specify directory with input files.
+    separator and has_header are applied to all tables
+
+Algorithms: SPIDER, FAIDA
+Default: SPIDER
+'''
+AR_HELP = '''Discover association rules. For more information, refer to
+"Frequent Pattern Mining" book by Charu C. Aggarwal and Jiawei Han.
+
+Algorithms: Apriori
+Default: Apriori
 '''
 FD_VERIFICATION_HELP = '''Verify whether a given exact functional dependency
 holds on the specified dataset. For more information about the primitive and
@@ -166,6 +250,25 @@ N. Koudas et al.
 Algorithms: ICDE09_MFD_VERIFIER
 Default: ICDE09_MFD_VERIFIER
 '''
+UCC_VERIFICATION_HELP = '''Verify whether a given unique column combination
+holds on the specified dataset. For more information about the primitive and 
+the algorithms, refer to "Efficient Discovery of Approximate Dependencies" by 
+S. Kruse and F. Naumann
+
+Algorithms: NAIVE_UCC_VERIFIER
+Default: NAIVE_UCC_VERIFIER
+'''
+AUCC_VERIFICATION_HELP = '''Verify whether a given approximate unique column combination
+holds on the specified dataset. For more information about the primitive and 
+the algorithms, refer to "Efficient Discovery of Approximate Dependencies" by 
+S. Kruse and F. Naumann
+
+Algorithms: NAIVE_AUCC_VERIFIER
+Default: NAIVE_AUCC_VERIFIER
+'''
+GFD_VERIFICATION_HELP = '''
+Algorithms: NAIVE_GFD_VERIFIER, GFD_VERIFIER, EGFD_VERIFIER
+'''
 PYRO_HELP = '''A modern algorithm for discovery of approximate functional
 dependencies. Approximate functional dependencies are defined in the
 “Efficient Discovery of Approximate Dependencies” paper by S.Kruse and
@@ -175,6 +278,11 @@ TANE_HELP = '''A classic algorithm for discovery of exact and approximate
 functional dependencies. For more information, refer to “TANE : An Efficient
 Algorithm for Discovering Functional and Approximate Dependencies” by
 Y. Huntala et al.
+'''
+PFDTANE_HELP = '''A TANE-based algorithm for discovery of probabilistic
+functional dependencies. For more information, refer to “Functional Dependency
+Generation and Applications in pay-as-you-go data integration systems” by
+Daisy Zhe Wang et al.
 '''
 HYFD_HELP = '''A modern algorithm for discovery of exact functional
 dependencies. One of the most high-performance algorithms for this task. For
@@ -216,6 +324,31 @@ it is significantly faster (10x-100x). For more information, refer to the
 “Approximate Discovery of Functional Dependencies for Large Datasets” paper
 by T.Bleifus et al.
 '''
+SPIDER_HELP = '''A disk-backed unary inclusion dependency mining algorithm.
+For more information, refer to "Efficiently detecting inclusion dependencies"
+by J. Bauckmann et al.
+'''
+FAIDA_HELP = '''Both unary and n-ary inclusion dependency mining algorithm.
+Unlike all other algorithms, it is approximate, i.e. it can
+miss some dependencies or produce non-valid ones. In exchange,
+it is significantly faster. For more information, refer to "Fast approximate
+discovery of inclusion dependencies" by S. Kruse et al.
+'''
+FASTOD_HELP = '''A modern algorithm for discovery of canonical order 
+dependencies. For more information, refer to the “Effective and complete 
+discovery of order dependencies via set-based axiomatization” paper by 
+J. Szlichta et al.
+'''
+ORDER_HELP = '''Algorithm Order efficiently discovers all n-ary lexicographical 
+order dependencies under the operator “<”. For more information, refer to the
+“Efficient order dependency detection” paper by Philipp Langer and Felix Naumann.
+'''
+FD_FIRST_HELP = '''FD-First algorithm belongs to the family of algorithms
+for discovering approximate conditional functional dependencies. For more
+information, refer to the “Revisiting Conditional Functional Dependency
+Discovery: Splitting the “C” from the “FD”” paper by J. Rammelaere 
+and F. Geerts.
+'''
 NAIVE_FD_VERIFIER_HELP = '''A straightforward partition-based algorithm for
 verifying whether a given exact functional dependency holds on the specified
 dataset. For more information, refer to Lemma 2.2 from “TANE: An Efficient
@@ -233,6 +366,28 @@ ICDE09_MFD_VERIFIER_HELP = '''A family of metric functional dependency
 verification algorithms. For more information about the primitive and the
 algorithms, refer to “Metric Functional Dependencies” by N. Koudas et al.
 '''
+GFD_VERIFIER_HELP = '''Algorithm for verifying whether a given
+graph functional dependency holds. For more information about the primitive
+refer to “Functional Dependencies for Graphs” by Wenfei Fan et al.
+'''
+NAIVE_UCC_VERIFIER_HELP = '''A straightforward partition-based algorithm for
+verifying whether a given unique column combination holds.
+For more information on partitions refer to Section 2 of “TANE : An 
+Efficient Algorithm for Discovering Functional and Approximate Dependencies”
+by Y.Huntala et al. For more information on UCC, refer to "Efficient Discovery
+of Approximate Dependencies" by S. Kruse and F. Naumann.
+'''
+NAIVE_AUCC_VERIFIER_HELP = '''A straightforward partition-based algorithm for
+verifying whether a given approximate unique column combination holds.
+For more information on partitions refer to Section 2 of “TANE : An 
+Efficient Algorithm for Discovering Functional and Approximate Dependencies”
+by Y.Huntala et al. For more information on AUCC, refer to "Efficient Discovery
+of Approximate Dependencies" by S. Kruse and F. Naumann.
+'''
+APRIORI_HELP = '''An algorithm for frequent item set mining and association 
+rule discovery. For more information, refer to the "Fast Algorithms for 
+Mining Association Rules" paper by Agrawal and Srikant from 1994.
+'''
 
 OPTION_TYPES = {
     str: 'STRING',
@@ -243,15 +398,24 @@ OPTION_TYPES = {
 
 TASK_HELP_PAGES = {
     Task.fd: FD_HELP,
+    Task.cfd: CFD_HELP,
     Task.afd: AFD_HELP,
+    Task.od: OD_HELP,
+    Task.pfd: PFD_HELP,
+    Task.ind: IND_HELP,
+    Task.ar: AR_HELP,
     Task.fd_verification: FD_VERIFICATION_HELP,
     Task.afd_verification: AFD_VERIFICATION_HELP,
-    Task.mfd_verification: MFD_VERIFICATION_HELP
+    Task.mfd_verification: MFD_VERIFICATION_HELP,
+    Task.ucc_verification: UCC_VERIFICATION_HELP,
+    Task.aucc_verification: AUCC_VERIFICATION_HELP,
+    Task.gfd_verification: GFD_VERIFICATION_HELP,
 }
 
 ALGO_HELP_PAGES = {
     Algorithm.pyro: PYRO_HELP,
     Algorithm.tane: TANE_HELP,
+    Algorithm.pfdtane: PFDTANE_HELP,
     Algorithm.hyfd: HYFD_HELP,
     Algorithm.fd_mine: FD_MINE_HELP,
     Algorithm.dfd: DFD_HELP,
@@ -260,9 +424,20 @@ ALGO_HELP_PAGES = {
     Algorithm.fun: FUN_HELP,
     Algorithm.fastfds: FASTFDS_HELP,
     Algorithm.aid: AID_HELP,
+    Algorithm.fastod: FASTOD_HELP,
+    Algorithm.order: ORDER_HELP,
+    Algorithm.spider: SPIDER_HELP,
+    Algorithm.faida: FAIDA_HELP,
+    Algorithm.fd_first: FD_FIRST_HELP,
     Algorithm.naive_fd_verifier: NAIVE_FD_VERIFIER_HELP,
     Algorithm.naive_afd_verifier: NAIVE_AFD_VERIFIER_HELP,
-    Algorithm.icde09_mfd_verifier: ICDE09_MFD_VERIFIER_HELP
+    Algorithm.icde09_mfd_verifier: ICDE09_MFD_VERIFIER_HELP,
+    Algorithm.naive_ucc_verifier: NAIVE_UCC_VERIFIER_HELP,
+    Algorithm.naive_aucc_verifier: NAIVE_AUCC_VERIFIER_HELP,
+    Algorithm.naive_gfd_verifier: GFD_VERIFIER_HELP,
+    Algorithm.gfd_verifier: GFD_VERIFIER_HELP,
+    Algorithm.egfd_verifier: GFD_VERIFIER_HELP,
+    Algorithm.apriori: APRIORI_HELP
 }
 
 TaskInfo = namedtuple('TaskInfo', ['algos', 'default'])
@@ -271,21 +446,37 @@ TASK_INFO = {
     Task.fd: TaskInfo([Algorithm.pyro, Algorithm.tane, Algorithm.hyfd,
                        Algorithm.fd_mine, Algorithm.dfd, Algorithm.dep_miner,
                        Algorithm.fdep, Algorithm.fun, Algorithm.fastfds,
-                       Algorithm.aid],
+                       Algorithm.aid, Algorithm.pfdtane],
                       Algorithm.hyfd),
+    Task.cfd: TaskInfo([Algorithm.fd_first],
+                       Algorithm.fd_first),
     Task.afd: TaskInfo([Algorithm.pyro, Algorithm.tane],
                        Algorithm.pyro),
+    Task.od: TaskInfo([Algorithm.fastod, Algorithm.order],
+                      Algorithm.fastod),
+    Task.pfd: TaskInfo([Algorithm.pfdtane], Algorithm.pfdtane),
+    Task.ind: TaskInfo([Algorithm.spider, Algorithm.faida],
+                       Algorithm.spider),
+    Task.ar: TaskInfo([Algorithm.apriori],
+                      Algorithm.apriori),
     Task.fd_verification: TaskInfo([Algorithm.naive_fd_verifier],
                                    Algorithm.naive_fd_verifier),
     Task.afd_verification: TaskInfo([Algorithm.naive_afd_verifier],
                                     Algorithm.naive_afd_verifier),
     Task.mfd_verification: TaskInfo([Algorithm.icde09_mfd_verifier],
-                                    Algorithm.icde09_mfd_verifier)
+                                    Algorithm.icde09_mfd_verifier),
+    Task.ucc_verification: TaskInfo([Algorithm.naive_ucc_verifier],
+                                    Algorithm.naive_ucc_verifier),
+    Task.aucc_verification: TaskInfo([Algorithm.naive_aucc_verifier],
+                                     Algorithm.naive_aucc_verifier),
+    Task.gfd_verification: TaskInfo([Algorithm.naive_gfd_verifier, Algorithm.gfd_verifier, Algorithm.egfd_verifier],
+                                    Algorithm.naive_gfd_verifier),
 }
 
 ALGOS = {
     Algorithm.pyro: desbordante.fd.algorithms.Pyro,
     Algorithm.tane: desbordante.fd.algorithms.Tane,
+    Algorithm.pfdtane: desbordante.pfd.algorithms.PFDTane,
     Algorithm.hyfd: desbordante.fd.algorithms.HyFD,
     Algorithm.fd_mine: desbordante.fd.algorithms.FdMine,
     Algorithm.dfd: desbordante.fd.algorithms.DFD,
@@ -294,9 +485,20 @@ ALGOS = {
     Algorithm.fun: desbordante.fd.algorithms.FUN,
     Algorithm.fastfds: desbordante.fd.algorithms.FastFDs,
     Algorithm.aid: desbordante.fd.algorithms.Aid,
+    Algorithm.fastod: desbordante.od.algorithms.Fastod,
+    Algorithm.order: desbordante.od.algorithms.Order,
+    Algorithm.spider: desbordante.ind.algorithms.Spider,
+    Algorithm.faida: desbordante.ind.algorithms.Faida,
+    Algorithm.fd_first: desbordante.cfd.algorithms.FDFirst,
     Algorithm.naive_fd_verifier: desbordante.fd_verification.algorithms.FDVerifier,
     Algorithm.naive_afd_verifier: desbordante.afd_verification.algorithms.FDVerifier,
-    Algorithm.icde09_mfd_verifier: desbordante.mfd_verification.algorithms.MetricVerifier
+    Algorithm.icde09_mfd_verifier: desbordante.mfd_verification.algorithms.MetricVerifier,
+    Algorithm.naive_ucc_verifier: desbordante.ucc_verification.algorithms.UccVerifier,
+    Algorithm.naive_aucc_verifier: desbordante.aucc_verification.algorithms.UccVerifier,
+    Algorithm.naive_gfd_verifier: desbordante.gfd_verification.algorithms.NaiveGfdValid,
+    Algorithm.gfd_verifier: desbordante.gfd_verification.algorithms.GfdValid,
+    Algorithm.egfd_verifier: desbordante.gfd_verification.algorithms.EGfdValid,
+    Algorithm.apriori: desbordante.ar.algorithms.Apriori
 }
 
 
@@ -329,11 +531,46 @@ def check_mismatch(algo: str | None, task: str | None) -> None:
 
 
 def check_error_option_presence(task: str | None, error: str | None) -> None:
-    if task == Task.afd and error is None:
+    if task in (Task.afd, Task.pfd) and error is None:
         click.echo(f"ERROR: Missing option '{ERROR}'.")
         sys.exit(1)
     if task in (Task.fd, Task.fd_verification) and error is not None:
         click.echo(f"ERROR: Invalid option: '{ERROR}'.")
+        sys.exit(1)
+
+
+def check_error_measure_option_presence(task: str | None, error_measure: str | None) -> None:
+    if task == Task.pfd and error_measure is None:
+        click.echo(f"ERROR: Missing option '{ERROR_MEASURE}'.")
+        sys.exit(1)
+
+
+def parse_tables_list_file(file: click.File) \
+        -> list[tuple[str, str, bool]]:
+    try:
+        result = []
+        for line_num, line in enumerate(file.readlines(), start=1):
+            table_tuple = line.rsplit(maxsplit=2)
+            if len(table_tuple) != 3:
+                click.echo(
+                    f'ERROR: Invalid format of table description on line {line_num}: {line}')
+                sys.exit(1)
+            filename, separator, has_header_str = table_tuple
+            result.append((filename, separator, bool(has_header_str)))
+        return result
+    except OSError as exc:
+        click.echo(exc)
+        sys.exit(1)
+
+
+def parse_tables_directory(tp: tuple[click.Path, str, bool]) \
+        -> list[tuple[str, str, bool]]:
+    dir_name, separator, has_header = tp
+    try:
+        entries = scandir(dir_name)
+        return [(dir_entry.path, separator, has_header) for dir_entry in entries]
+    except OSError as exc:
+        click.echo(exc)
         sys.exit(1)
 
 
@@ -377,10 +614,32 @@ def get_algo_result(algo: desbordante.Algorithm, algo_name: str) -> Any:
                     result = (f'Exact functional dependency does not hold, but '
                               f'instead approximate functional dependency '
                               f'holds with error = {error}')
+            case Algorithm.naive_ucc_verifier:
+                result = algo.ucc_holds()
+            case Algorithm.naive_aucc_verifier:
+                error = algo.get_error()
+                if error == 0.0:
+                    result = 'Exact unique column combination holds'
+                else:
+                    result = (f'Exact unique column combination does not hold, but '
+                              f'instead approximate unique column combination '
+                              f'holds with error = {error}')
             case Algorithm.icde09_mfd_verifier:
                 result = algo.mfd_holds()
             case algo_name if algo_name in TASK_INFO[Task.fd].algos:
                 result = algo.get_fds()
+            case Algorithm.fastod:
+                result = algo.get_asc_ods() + algo.get_desc_ods() + algo.get_simple_ods()
+            case Algorithm.order:
+                result = algo.get_list_ods()
+            case algo_name if algo_name in TASK_INFO[Task.ind].algos:
+                result = algo.get_inds()
+            case algo_name if algo_name in TASK_INFO[Task.gfd_verification].algos:
+                result = algo.get_gfds()
+            case Algorithm.fd_first:
+                result = algo.get_cfds()
+            case Algorithm.apriori:
+                result = algo.get_ars()
             case _:
                 assert False, 'No matching get_result function.'
         return result
@@ -418,7 +677,10 @@ def print_result(result: Any, filename: str | None) -> None:
 
 
 def print_unused_opts(used_opts: set, provided_opts: set) -> None:
-    unused_opts = provided_opts - (used_opts | {TASK, ALGO, VERBOSE, FILENAME})
+    unused_opts = provided_opts - (used_opts | {TASK, ALGO, VERBOSE, FILENAME} |
+                                   ({TABLES_LIST, TABLES_DIRECTORY}
+                                    if TABLES in used_opts
+                                    else set()))
     if unused_opts:
         click.echo(f'Unused options: {unused_opts}')
 
@@ -436,7 +698,7 @@ def print_algo_help_page(algo_name: str) -> None:
     algo = ALGOS[Algorithm(algo_name)]()
     help_info = ''
     for opt in algo.get_possible_options():
-        if opt not in ('table', 'is_null_equal_null'):
+        if opt not in ('table', TABLES, 'is_null_equal_null'):
             help_info += get_option_help_info(opt, algo)
     click.echo(f'{ALGO_HELP_PAGES[Algorithm(algo_name)]}{help_info}')
 
@@ -474,6 +736,18 @@ def get_option_type_info() -> dict[str, Any]:
     return option_type_info
 
 
+def process_tables_options(opts: dict[str, Any], algo_name: str) -> dict[str, Any]:
+    result = opts.copy()
+
+    for option_name, parse_func in ((TABLES_LIST, parse_tables_list_file),
+            (TABLES_DIRECTORY, parse_tables_directory)):
+        value = result.pop(option_name)
+        if not is_omitted(value):
+            result[TABLES] = list(result[TABLES]) + parse_func(value)
+    
+    return result
+
+
 def algos_options() -> Callable:
     option_type_info = get_option_type_info()
 
@@ -482,11 +756,14 @@ def algos_options() -> Callable:
                 in option_type_info.items():
             arg = f'--{opt_name}'
             if opt_main_type == list:
-                click.option(arg, multiple=True,
+                if opt_additional_types[0] == desbordante.data_types.Table:
+                    click.option(arg, type=(str, str, bool),
+                                 multiple=True)(func)
+                else:
+                    click.option(arg, multiple=True,
                              type=opt_additional_types[0])(func)
             elif opt_main_type == desbordante.data_types.Table:
-                click.option(arg, type=(str, str, bool),
-                             required=True)(func)
+                click.option(arg, type=(str, str, bool))(func)
             else:
                 click.option(arg, type=opt_main_type)(func)
         return func
@@ -508,6 +785,9 @@ def algos_options() -> Callable:
               callback=get_algorithm, is_eager=True)
 @click.option(f'--{FILENAME}', type=str)
 @click.option(f'--{VERBOSE}', is_flag=True)
+@click.option(f'--{TABLES_LIST}', type=click.File('r'))
+@click.option(f'--{TABLES_DIRECTORY}', type=(click.Path(exists=True, file_okay=False,
+               dir_okay=True, resolve_path=True, allow_dash=False), str, bool))
 @algos_options()
 def desbordante_cli(**kwargs: Any) -> None:
     """Takes in options from console as a dictionary, sets these options
@@ -517,16 +797,20 @@ def desbordante_cli(**kwargs: Any) -> None:
     curr_algo_name = kwargs[ALGO]
     curr_algo = ALGOS[curr_algo_name]()
     error_opt = kwargs[ERROR]
+    error_measure_opt = kwargs[ERROR_MEASURE]
     verbose = kwargs[VERBOSE]
     filename = kwargs[FILENAME]
 
     check_mismatch(curr_algo_name, curr_task)
     check_error_option_presence(curr_task, error_opt)
+    check_error_measure_option_presence(curr_task, error_measure_opt)
+
+    opts = process_tables_options(kwargs, curr_algo_name)
 
     start_point = process_time()
-    used_opts = set_algo_options(curr_algo, kwargs)
+    used_opts = set_algo_options(curr_algo, opts)
     curr_algo.load_data()
-    used_opts |= set_algo_options(curr_algo, kwargs)
+    used_opts |= set_algo_options(curr_algo, opts)
     provided_options = get_provided_options(kwargs)
     print_unused_opts(used_opts, set(provided_options.keys()))
     result = get_algo_result(curr_algo, curr_algo_name)

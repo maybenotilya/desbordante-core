@@ -1,8 +1,17 @@
 #include "aid.h"
 
+#include "config/tabular_data/input_table/option.h"
+
 namespace algos {
 
-Aid::Aid() : FDAlgorithm({kDefaultPhaseName}) {}
+Aid::Aid() : FDAlgorithm({kDefaultPhaseName}) {
+    RegisterOptions();
+    MakeOptionsAvailable({config::kTableOpt.GetName()});
+}
+
+void Aid::RegisterOptions() {
+    RegisterOption(config::kTableOpt(&input_table_));
+}
 
 void Aid::LoadDataInternal() {
     number_of_attributes_ = input_table_->GetNumberOfColumns();
@@ -36,8 +45,8 @@ void Aid::ResetStateFd() {
     clusters_.assign(number_of_attributes_, std::unordered_map<size_t, Cluster>{});
     indices_in_clusters_.assign(number_of_attributes_, std::vector<size_t>(number_of_tuples_));
     constant_columns_.reset();
-    prev_ratios_.assign(window_size_, 1.0);
-    sum_ = double{window_size_};
+    prev_ratios_.assign(kWindowSize, 1.0);
+    sum_ = double{kWindowSize};
 }
 
 unsigned long long Aid::ExecuteInternal() {
@@ -82,12 +91,12 @@ void Aid::BuildClusters() {
 }
 
 bool Aid::IsNegativeCoverGrowthSmall(size_t iteration_num, double curr_ratio) {
-    iteration_num %= window_size_;
+    iteration_num %= kWindowSize;
     sum_ -= prev_ratios_[iteration_num];
     sum_ += curr_ratio;
     prev_ratios_[iteration_num] = curr_ratio;
-    double average = sum_ / (double)window_size_;
-    if (average < growth_threshold_) {
+    double average = sum_ / (double)kWindowSize;
+    if (average < kGrowthThreshold) {
         return true;
     }
 
@@ -242,7 +251,7 @@ void Aid::RegisterFDs(size_t rhs_attribute,
 }
 
 size_t Aid::GenerateSecondClusterIndex(size_t index_in_cluster, size_t iteration_num) const {
-    return (iteration_num * prime_) % index_in_cluster;
+    return (iteration_num * kPrime) % index_in_cluster;
 }
 
 boost::dynamic_bitset<> Aid::ChangeAttributesOrder(boost::dynamic_bitset<> const& initial_bitset,

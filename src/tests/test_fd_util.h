@@ -22,12 +22,15 @@ protected:
         return algorithm;
     }
 
-    static algos::StdParamsMap GetParamMap(CSVConfig const& csv_config) {
+    static algos::StdParamsMap GetParamMap(
+            CSVConfig const& csv_config,
+            unsigned int max_lhs_ = std::numeric_limits<unsigned int>::max()) {
         using namespace config::names;
         return {
                 {kCsvConfig, csv_config},
                 {kError, config::ErrorType{0.0}},
                 {kSeed, decltype(algos::pyro::Parameters::seed){0}},
+                {kMaximumLhs, max_lhs_},
         };
     }
 
@@ -47,29 +50,31 @@ protected:
     }
 
 public:
-    static std::unique_ptr<algos::FDAlgorithm> CreateAlgorithmInstance(CSVConfig const& config) {
-        return algos::CreateAndLoadAlgorithm<T>(GetParamMap(config));
+    static std::unique_ptr<algos::FDAlgorithm> CreateAlgorithmInstance(
+            CSVConfig const& config,
+            unsigned int max_lhs = std::numeric_limits<unsigned int>::max()) {
+        return algos::CreateAndLoadAlgorithm<T>(GetParamMap(config, max_lhs));
     }
 
-    inline static std::vector<CSVConfigHash> const light_datasets_ = {
+    inline static std::vector<CSVConfigHash> const kLightDatasets = {
             {{tests::kCIPublicHighway10k, 33398},
-             {tests::kneighbors10k, 43368},
-             {tests::kWDC_astronomical, 22281},
-             {tests::kWDC_age, 19620},
-             {tests::kWDC_appearances, 25827},
-             {tests::kWDC_astrology, 40815},
-             {tests::kWDC_game, 6418},
-             {tests::kWDC_science, 19620},
-             {tests::kWDC_symbols, 28289},
-             {tests::kbreast_cancer, 15121},
-             {tests::kWDC_kepler, 63730}}};
+             {tests::kNeighbors10k, 43368},
+             {tests::kWdcAstronomical, 22281},
+             {tests::kWdcAge, 19620},
+             {tests::kWdcAppearances, 25827},
+             {tests::kWdcAstrology, 40815},
+             {tests::kWdcGame, 6418},
+             {tests::kWdcScience, 19620},
+             {tests::kWdcSymbols, 28289},
+             {tests::kBreastCancer, 15121},
+             {tests::kWdcKepler, 63730}}};
 
-    inline static std::vector<CSVConfigHash> const heavy_datasets_ = {
-            {{tests::kadult, 23075},
+    inline static std::vector<CSVConfigHash> const kHeavyDatasets = {
+            {{tests::kAdult, 23075},
              {tests::kCIPublicHighway, 13035},
              {tests::kEpicMeds, 50218},
              {tests::kEpicVitals, 2083},
-             {tests::kiowa1kk, 28573},
+             {tests::kIowa1kk, 28573},
              {tests::kLegacyPayors, 43612}}};
 };
 }  // namespace tests

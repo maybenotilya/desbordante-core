@@ -19,17 +19,17 @@ namespace algos {
 
 using boost::dynamic_bitset;
 
-Tane::Tane() : PliBasedFDAlgorithm({kDefaultPhaseName}) {
+Tane::Tane(std::optional<ColumnLayoutRelationDataManager> relation_manager)
+    : PliBasedFDAlgorithm({kDefaultPhaseName}, relation_manager) {
     RegisterOptions();
 }
 
 void Tane::RegisterOptions() {
-    RegisterOption(config::ErrorOpt(&max_ucc_error_));
-    RegisterOption(config::MaxLhsOpt(&max_lhs_));
+    RegisterOption(config::kErrorOpt(&max_ucc_error_));
 }
 
-void Tane::MakeExecuteOptsAvailable() {
-    MakeOptionsAvailable({config::MaxLhsOpt.GetName(), config::ErrorOpt.GetName()});
+void Tane::MakeExecuteOptsAvailableFDInternal() {
+    MakeOptionsAvailable({config::kErrorOpt.GetName()});
 }
 
 void Tane::ResetStateFd() {

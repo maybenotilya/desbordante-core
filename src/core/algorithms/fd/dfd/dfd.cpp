@@ -3,6 +3,7 @@
 #include <boost/asio.hpp>
 #include <easylogging++.h>
 
+#include "config/max_lhs/option.h"
 #include "config/thread_number/option.h"
 #include "lattice_traversal/lattice_traversal.h"
 #include "model/table/column_layout_relation_data.h"
@@ -11,16 +12,17 @@
 
 namespace algos {
 
-DFD::DFD() : PliBasedFDAlgorithm({kDefaultPhaseName}) {
+DFD::DFD(std::optional<ColumnLayoutRelationDataManager> relation_manager)
+    : PliBasedFDAlgorithm({kDefaultPhaseName}, relation_manager) {
     RegisterOptions();
 }
 
 void DFD::RegisterOptions() {
-    RegisterOption(config::ThreadNumberOpt(&number_of_threads_));
+    RegisterOption(config::kThreadNumberOpt(&number_of_threads_));
 }
 
-void DFD::MakeExecuteOptsAvailable() {
-    MakeOptionsAvailable({config::ThreadNumberOpt.GetName()});
+void DFD::MakeExecuteOptsAvailableFDInternal() {
+    MakeOptionsAvailable({config::kThreadNumberOpt.GetName()});
 }
 
 void DFD::ResetStateFd() {

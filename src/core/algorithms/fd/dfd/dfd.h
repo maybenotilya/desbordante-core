@@ -16,14 +16,14 @@ private:
 
     config::ThreadNumType number_of_threads_;
 
-    void MakeExecuteOptsAvailable() final;
+    void MakeExecuteOptsAvailableFDInternal() final;
     void RegisterOptions();
 
     void ResetStateFd() final;
     unsigned long long ExecuteInternal() final;
 
 public:
-    DFD();
+    DFD(std::optional<ColumnLayoutRelationDataManager> relation_manager = std::nullopt);
 };
 
 }  // namespace algos

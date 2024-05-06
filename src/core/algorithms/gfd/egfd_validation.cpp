@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include <boost/graph/vf2_sub_graph_iso.hpp>
+#include <easylogging++.h>
 
 #include "config/equal_nulls/option.h"
 #include "config/names_and_descriptions.h"
@@ -163,7 +164,7 @@ bool CandVerify(graph_t const& graph, vertex_t const& v, graph_t const& query, v
 
 void SortComplexity(std::vector<vertex_t>& order, graph_t const& graph, graph_t const& query,
                     std::map<std::string, std::set<vertex_t>> const& label_classes) {
-    auto cmpComplexity = [&graph, &query, &label_classes](vertex_t const& a, vertex_t const& b) {
+    auto cmp_complexity = [&graph, &query, &label_classes](vertex_t const& a, vertex_t const& b) {
         std::size_t a_degree = boost::degree(a, query);
         int an = 0;
         for (const vertex_t& e : label_classes.at(query[a].attributes.at("label"))) {
@@ -181,15 +182,15 @@ void SortComplexity(std::vector<vertex_t>& order, graph_t const& graph, graph_t 
         }
         return an / a_degree < bn / b_degree;
     };
-    std::sort(order.begin(), order.end(), cmpComplexity);
+    std::sort(order.begin(), order.end(), cmp_complexity);
 }
 
 void SortAccurateComplexity(std::vector<vertex_t>& order, graph_t const& graph,
                             graph_t const& query,
                             std::map<std::string, std::set<vertex_t>> const& label_classes) {
     int top = std::min(int(order.size()), 3);
-    auto cmpAccurateComplexity = [&graph, &query, &label_classes](vertex_t const& a,
-                                                                  vertex_t const& b) {
+    auto cmp_accurate_complexity = [&graph, &query, &label_classes](vertex_t const& a,
+                                                                    vertex_t const& b) {
         int a_degree = boost::degree(a, query);
         int an = 0;
         for (const vertex_t& e : label_classes.at(query[a].attributes.at("label"))) {
@@ -207,7 +208,7 @@ void SortAccurateComplexity(std::vector<vertex_t>& order, graph_t const& graph,
         }
         return an / a_degree < bn / b_degree;
     };
-    std::sort(order.begin(), std::next(order.begin(), top), cmpAccurateComplexity);
+    std::sort(order.begin(), std::next(order.begin(), top), cmp_accurate_complexity);
 }
 
 int GetRoot(graph_t const& graph, graph_t const& query, std::set<vertex_t> const& core) {
@@ -395,7 +396,9 @@ void FinalConstruction(std::set<vertex_t> const& lev, CPI& cpi, graph_t const& g
             for (; g_adj_it != g_adj_end; ++g_adj_it) {
                 if (graph[*g_adj_it].attributes.at("label") == query[u].attributes.at("label") &&
                     boost::degree(*g_adj_it, graph) >= boost::degree(u, query) &&
-                    candidates.at(u).find(*g_adj_it) != candidates.at(u).end()) {
+                    candidates.at(u).find(*g_adj_it) != candidates.at(u).end() &&
+                    query[boost::edge(up, u, query).first].label ==
+                            graph[boost::edge(vp, *g_adj_it, graph).first].label) {
                     std::pair<vertex_t, vertex_t> cpi_edge(up, u);
                     if (cpi.find(cpi_edge) != cpi.end()) {
                         if (cpi.at(cpi_edge).find(vp) != cpi.at(cpi_edge).end()) {
@@ -508,12 +511,12 @@ void FinalRefinement(vertex_t const& u, CPI& cpi, graph_t const& query,
         typename boost::graph_traits<graph_t>::adjacency_iterator q_adj_it, q_adj_end;
         boost::tie(q_adj_it, q_adj_end) = boost::adjacent_vertices(u, query);
         for (; q_adj_it != q_adj_end; ++q_adj_it) {
-            vertex_t u_ = *q_adj_it;
-            if ((parent.find(u_) != parent.end()) && (parent.at(u_) == u)) {
-                std::pair<vertex_t, vertex_t> cpi_edge(u, u_);
-                for (vertex_t const& v_ : cpi.at(cpi_edge).at(v)) {
-                    if (candidates.at(u_).find(v_) == candidates.at(u_).end()) {
-                        cpi.at(cpi_edge).at(v).erase(v_);
+            vertex_t u2 = *q_adj_it;
+            if ((parent.find(u2) != parent.end()) && (parent.at(u2) == u)) {
+                std::pair<vertex_t, vertex_t> cpi_edge(u, u2);
+                for (vertex_t const& v2 : cpi.at(cpi_edge).at(v)) {
+                    if (candidates.at(u2).find(v2) == candidates.at(u2).end()) {
+                        cpi.at(cpi_edge).at(v).erase(v2);
                     }
                 }
             }
@@ -661,7 +664,9 @@ bool ValidateNt(graph_t const& graph, vertex_t const& v, graph_t const& query, v
     int index = std::find(seq.begin(), seq.end(), u) - seq.begin();
     for (int i = 0; i < index; ++i) {
         if ((seq.at(i) != parent.at(u)) && boost::edge(seq.at(i), u, query).second) {
-            if (!boost::edge(*match.at(i).first, v, graph).second) {
+            if (!boost::edge(*match.at(i).first, v, graph).second ||
+                graph[boost::edge(*match.at(i).first, v, graph).first].label !=
+                        query[boost::edge(seq.at(i), u, query).first].label) {
                 return false;
             }
         }
@@ -740,14 +745,14 @@ bool Satisfied(graph_t const& graph, graph_t const& query, std::vector<vertex_t>
             snd = snd_token.second;
         } else {
             vertex_t v;
-            vertex_t u = boost::vertex(fst_token.first, query);
+            vertex_t u = boost::vertex(snd_token.first, query);
             int index = std::find(seq.begin(), seq.end(), u) - seq.begin();
             v = *match.at(index).first;
             auto attrs = graph[v].attributes;
             if (attrs.find(snd_token.second) == attrs.end()) {
                 return false;
             }
-            fst = attrs.at(snd_token.second);
+            snd = attrs.at(snd_token.second);
         }
         if (fst != snd) {
             return false;
@@ -778,7 +783,7 @@ void CompleteSeq(CPI& cpi, std::vector<std::set<vertex_t>> const& forest,
     for (auto& tree : forest) {
         std::vector<std::vector<vertex_t>> tree_paths = GetPaths(tree, parent);
 
-        std::vector<vertex_t> tree_NTs = {};
+        std::vector<vertex_t> tree_nts = {};
         for (auto& path : tree_paths) {
             int nt = 0;
             for (auto& desc : nte) {
@@ -789,9 +794,9 @@ void CompleteSeq(CPI& cpi, std::vector<std::set<vertex_t>> const& forest,
                     nt++;
                 }
             }
-            tree_NTs.push_back(nt);
+            tree_nts.push_back(nt);
         }
-        std::vector<vertex_t> tree_seq = MatchingOrder(cpi, tree_paths, tree_NTs);
+        std::vector<vertex_t> tree_seq = MatchingOrder(cpi, tree_paths, tree_nts);
 
         seq.insert(seq.end(), ++tree_seq.begin(), tree_seq.end());
     }
@@ -816,7 +821,7 @@ bool FullMatch(CPI& cpi, Match& match, std::set<vertex_t> const& root_candidates
             match.at(i).first++;
         }
         if (match.at(i).first == match.at(i).second) {
-            std::cout << "Trivially satisfied" << std::endl;
+            LOG(DEBUG) << "Trivially satisfied";
             return true;
         }
     }
@@ -870,7 +875,7 @@ bool CheckTrivially(const CPI& cpi, Match& match, std::map<vertex_t, vertex_t> c
             match.at(k).first++;
         }
         if (match.at(k).first == match.at(k).second) {
-            std::cout << "Trivially satisfied" << std::endl;
+            LOG(DEBUG) << "Trivially satisfied";
             return true;
         }
     }
@@ -915,7 +920,7 @@ bool CheckMatch(const CPI& cpi, Match& match, std::map<vertex_t, vertex_t> const
             continue;
         }
         if (!Satisfied(graph, query, seq, match, gfd.GetConclusion())) {
-            std::cout << "Checked embeddings: " << amount << std::endl;
+            LOG(DEBUG) << "Checked embeddings: " << amount;
             return false;
         }
     }
@@ -928,9 +933,9 @@ bool Check(CPI& cpi, graph_t const& graph, Gfd const& gfd, std::set<vertex_t> co
     graph_t query = gfd.GetPattern();
     std::vector<std::vector<vertex_t>> paths = GetPaths(core, parent);
 
-    std::vector<vertex_t> NTs = {};
-    FullNTs(paths, nte, query, NTs);
-    std::vector<vertex_t> seq = MatchingOrder(cpi, paths, NTs);
+    std::vector<vertex_t> nts = {};
+    FullNTs(paths, nte, query, nts);
+    std::vector<vertex_t> seq = MatchingOrder(cpi, paths, nts);
 
     CompleteSeq(cpi, forest, parent, query, nte, seq);
 
@@ -949,7 +954,7 @@ bool Check(CPI& cpi, graph_t const& graph, Gfd const& gfd, std::set<vertex_t> co
     // check
     if (Satisfied(graph, query, seq, match, gfd.GetPremises()) &&
         !Satisfied(graph, query, seq, match, gfd.GetConclusion())) {
-        std::cout << "Checked embeddings: " << amount << std::endl;
+        LOG(DEBUG) << "Checked embeddings: " << amount;
         return false;
     }
 
@@ -967,7 +972,7 @@ bool Check(CPI& cpi, graph_t const& graph, Gfd const& gfd, std::set<vertex_t> co
                 continue;
             }
             if (!Satisfied(graph, query, seq, match, gfd.GetConclusion())) {
-                std::cout << "Checked embeddings: " << amount << std::endl;
+                LOG(DEBUG) << "Checked embeddings: " << amount;
                 return false;
             }
             continue;
@@ -981,7 +986,7 @@ bool Check(CPI& cpi, graph_t const& graph, Gfd const& gfd, std::set<vertex_t> co
             return false;
         }
     }
-    std::cout << "total number of embeddings: " << amount << std::endl;
+    LOG(DEBUG) << "total number of embeddings: " << amount;
     return true;
 }
 
@@ -1021,8 +1026,8 @@ bool Validate(graph_t const& graph, Gfd const& gfd) {
     BottomUpRefinement(cpi, graph, pat, levels, parent, candidates);
     auto elapsed_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now() - start_time);
-    std::cout << "CPI constructed in " << elapsed_milliseconds.count() << ". Matching..."
-              << std::endl;
+
+    LOG(DEBUG) << "CPI constructed in " << elapsed_milliseconds.count() << ". Matching...";
     return Check(cpi, graph, gfd, core, forest, parent, nte);
 }
 

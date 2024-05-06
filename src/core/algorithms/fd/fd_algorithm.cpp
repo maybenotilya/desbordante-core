@@ -4,20 +4,22 @@
 #include <thread>
 #include <vector>
 
-#include "config/equal_nulls/option.h"
-#include "config/tabular_data/input_table/option.h"
+#include "config/max_lhs/option.h"
 
 namespace algos {
 
 FDAlgorithm::FDAlgorithm(std::vector<std::string_view> phase_names)
     : Algorithm(std::move(phase_names)) {
     RegisterOptions();
-    MakeOptionsAvailable({config::TableOpt.GetName(), config::EqualNullsOpt.GetName()});
 }
 
 void FDAlgorithm::RegisterOptions() {
-    RegisterOption(config::TableOpt(&input_table_));
-    RegisterOption(config::EqualNullsOpt(&is_null_equal_null_));
+    RegisterOption(config::kMaxLhsOpt(&max_lhs_));
+}
+
+void FDAlgorithm::MakeExecuteOptsAvailable() {
+    MakeOptionsAvailable({config::kMaxLhsOpt.GetName()});
+    MakeExecuteOptsAvailableFDInternal();
 }
 
 void FDAlgorithm::ResetState() {

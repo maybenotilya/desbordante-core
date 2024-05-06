@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+#include "config/equal_nulls/option.h"
+#include "config/tabular_data/input_table/option.h"
 #include "model/table/column_layout_relation_data.h"
 
 // #ifndef PRINT_FDS
@@ -10,7 +12,14 @@
 
 namespace algos {
 
-FDep::FDep() : FDAlgorithm({kDefaultPhaseName}) {}
+FDep::FDep() : FDAlgorithm({kDefaultPhaseName}) {
+    RegisterOptions();
+    MakeOptionsAvailable({config::kTableOpt.GetName()});
+}
+
+void FDep::RegisterOptions() {
+    RegisterOption(config::kTableOpt(&input_table_));
+}
 
 void FDep::LoadDataInternal() {
     number_attributes_ = input_table_->GetNumberOfColumns();
@@ -56,7 +65,7 @@ unsigned long long FDep::ExecuteInternal() {
     std::bitset<FDTreeElement::kMaxAttrNum> active_path;
     CalculatePositiveCover(*this->neg_cover_tree_, active_path);
 
-    pos_cover_tree_->FillFdCollection(*this->schema_, FdList());
+    pos_cover_tree_->FillFdCollection(*this->schema_, FdList(), max_lhs_);
 
     auto elapsed_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now() - start_time);

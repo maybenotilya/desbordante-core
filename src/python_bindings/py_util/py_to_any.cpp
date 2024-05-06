@@ -5,12 +5,16 @@
 #include <easylogging++.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl/filesystem.h>
 
 #include "algorithms/algebraic_constraints/bin_operation_enum.h"
+#include "algorithms/cfd/enums.h"
 #include "algorithms/metric/enums.h"
 #include "association_rules/ar_algorithm_enums.h"
+#include "config/error_measure/type.h"
 #include "config/exceptions.h"
 #include "config/tabular_data/input_table_type.h"
+#include "config/tabular_data/input_tables_type.h"
 #include "parser/csv_parser/csv_parser.h"
 #include "py_util/create_dataframe_reader.h"
 #include "util/enum_to_available_values.h"
@@ -42,14 +46,21 @@ config::InputTable CreateCsvParser(std::string_view option_name, py::tuple const
             CastAndReplaceCastError<bool>(option_name, arguments[2]));
 }
 
+config::InputTable PythonObjToInputTable(std::string_view option_name, py::handle obj) {
+    if (py::isinstance<py::tuple>(obj)) {
+        return CreateCsvParser(option_name, py::cast<py::tuple>(obj));
+    }
+    return python_bindings::CreateDataFrameReader(obj);
+}
+
 template <typename Type>
-std::pair<std::type_index, ConvFunc> const NormalConvPair{
+std::pair<std::type_index, ConvFunc> const kNormalConvPair{
         std::type_index(typeid(Type)), [](std::string_view option_name, py::handle value) {
             return CastAndReplaceCastError<Type>(option_name, value);
         }};
 
 template <typename EnumType>
-std::pair<std::type_index, ConvFunc> const EnumConvPair{
+std::pair<std::type_index, ConvFunc> const kEnumConvPair{
         std::type_index(typeid(EnumType)), [](std::string_view option_name, py::handle value) {
             auto string = CastAndReplaceCastError<std::string>(option_name, value);
             better_enums::optional<EnumType> enum_holder =
@@ -63,7 +74,7 @@ std::pair<std::type_index, ConvFunc> const EnumConvPair{
         }};
 
 template <typename EnumType>
-std::pair<std::type_index, ConvFunc> const CharEnumConvPair{
+std::pair<std::type_index, ConvFunc> const kCharEnumConvPair{
         std::type_index(typeid(EnumType)), [](std::string_view option_name, py::handle value) {
             using EnumValueType = typename EnumType::_integral;
             // May be applicable to other types.
@@ -88,26 +99,35 @@ std::pair<std::type_index, ConvFunc> const CharEnumConvPair{
         }};
 
 boost::any InputTableToAny(std::string_view option_name, py::handle obj) {
-    if (py::isinstance<py::tuple>(obj)) {
-        return CreateCsvParser(option_name, py::cast<py::tuple>(obj));
-    }
-    return python_bindings::CreateDataFrameReader(obj);
+    return PythonObjToInputTable(option_name, obj);
 }
 
-std::unordered_map<std::type_index, ConvFunc> const converters{
-        NormalConvPair<bool>,
-        NormalConvPair<double>,
-        NormalConvPair<unsigned int>,
-        NormalConvPair<long double>,
-        NormalConvPair<std::vector<unsigned int>>,
-        NormalConvPair<ushort>,
-        NormalConvPair<int>,
-        NormalConvPair<size_t>,
-        EnumConvPair<algos::metric::Metric>,
-        EnumConvPair<algos::metric::MetricAlgo>,
-        EnumConvPair<algos::InputFormat>,
-        CharEnumConvPair<algos::Binop>,
+boost::any InputTablesToAny(std::string_view option_name, py::handle obj) {
+    auto tables = CastAndReplaceCastError<std::vector<py::handle>>(option_name, obj);
+    std::vector<config::InputTable> parsers;
+    for (auto const& table : tables) parsers.push_back(PythonObjToInputTable(option_name, table));
+    return parsers;
+}
+
+std::unordered_map<std::type_index, ConvFunc> const kConverters{
+        kNormalConvPair<bool>,
+        kNormalConvPair<double>,
+        kNormalConvPair<unsigned int>,
+        kNormalConvPair<long double>,
+        kNormalConvPair<std::vector<unsigned int>>,
+        kNormalConvPair<ushort>,
+        kNormalConvPair<int>,
+        kNormalConvPair<size_t>,
+        kEnumConvPair<algos::metric::Metric>,
+        kEnumConvPair<algos::metric::MetricAlgo>,
+        kEnumConvPair<config::ErrorMeasureType>,
+        kEnumConvPair<algos::InputFormat>,
+        kEnumConvPair<algos::cfd::Substrategy>,
+        kCharEnumConvPair<algos::Binop>,
         {typeid(config::InputTable), InputTableToAny},
+        {typeid(config::InputTables), InputTablesToAny},
+        kNormalConvPair<std::filesystem::path>,
+        kNormalConvPair<std::vector<std::filesystem::path>>,
 };
 
 }  // namespace
@@ -115,7 +135,7 @@ std::unordered_map<std::type_index, ConvFunc> const converters{
 namespace python_bindings {
 
 boost::any PyToAny(std::string_view option_name, std::type_index index, py::handle obj) {
-    return converters.at(index)(option_name, obj);
+    return kConverters.at(index)(option_name, obj);
 }
 
 }  // namespace python_bindings

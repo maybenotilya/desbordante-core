@@ -9,6 +9,7 @@
 #include "algorithms/fd/fdep/fdep.h"
 #include "algorithms/fd/fun/fun.h"
 #include "algorithms/fd/hyfd/hyfd.h"
+#include "algorithms/fd/pfdtane/pfdtane.h"
 #include "algorithms/fd/pyro/pyro.h"
 #include "algorithms/fd/tane/tane.h"
 #include "model/table/relational_schema.h"
@@ -102,30 +103,62 @@ TYPED_TEST_P(AlgorithmTest, WorksOnWideDataset) {
 }
 
 TYPED_TEST_P(AlgorithmTest, LightDatasetsConsistentHash) {
-    TestFixture::PerformConsistentHashTestOn(TestFixture::light_datasets_);
+    TestFixture::PerformConsistentHashTestOn(TestFixture::kLightDatasets);
 }
 
 TYPED_TEST_P(AlgorithmTest, HeavyDatasetsConsistentHash) {
-    TestFixture::PerformConsistentHashTestOn(TestFixture::heavy_datasets_);
+    TestFixture::PerformConsistentHashTestOn(TestFixture::kHeavyDatasets);
 }
 
 TYPED_TEST_P(AlgorithmTest, ConsistentRepeatedExecution) {
-    auto algorithm = TestFixture::CreateAlgorithmInstance(kWDC_astronomical);
+    auto algorithm = TestFixture::CreateAlgorithmInstance(kWdcAstronomical);
     algorithm->Execute();
     auto first_res = FDsToSet(algorithm->FdList());
     for (int i = 0; i < 3; ++i) {
-        algos::ConfigureFromMap(*algorithm, TestFixture::GetParamMap(kWDC_astronomical));
+        algos::ConfigureFromMap(*algorithm, TestFixture::GetParamMap(kWdcAstronomical));
         algorithm->Execute();
         ASSERT_TRUE(CheckFdListEquality(first_res, algorithm->FdList()));
     }
 }
 
+namespace {
+void MaxLhsTestFun(CSVConfig config, std::list<FD> const& fds_list, config::MaxLhsType max_lhs) {
+    using namespace config::names;
+    algos::StdParamsMap verify_params = {
+            {kCsvConfig, config},
+            {kError, config::ErrorType{0.0}},
+            {kMaximumLhs, max_lhs},
+    };
+    auto verify_algo = algos::CreateAndLoadAlgorithm<algos::Pyro>(verify_params);
+    verify_algo->Execute();
+    auto verify_list = FDsToSet(verify_algo->FdList());
+    ASSERT_TRUE(CheckFdListEquality(verify_list, fds_list));
+    for (auto& fd : fds_list) {
+        ASSERT_TRUE(fd.GetLhs().GetArity() <= max_lhs);
+    }
+}
+}  // namespace
+
+TYPED_TEST_P(AlgorithmTest, MaxLHSOptionWork) {
+    config::MaxLhsType max_lhs = 2;
+
+    auto algo = TestFixture::CreateAlgorithmInstance(kTestFD, max_lhs);
+    algo->Execute();
+    MaxLhsTestFun(kTestFD, algo->FdList(), max_lhs);
+
+    auto algo_large = TestFixture::CreateAlgorithmInstance(kCIPublicHighway700, max_lhs);
+    algo_large->Execute();
+    MaxLhsTestFun(kCIPublicHighway700, algo_large->FdList(), max_lhs);
+}
+
 REGISTER_TYPED_TEST_SUITE_P(AlgorithmTest, ThrowsOnEmpty, ReturnsEmptyOnSingleNonKey,
                             WorksOnLongDataset, WorksOnWideDataset, LightDatasetsConsistentHash,
-                            HeavyDatasetsConsistentHash, ConsistentRepeatedExecution);
+                            HeavyDatasetsConsistentHash, ConsistentRepeatedExecution,
+                            MaxLHSOptionWork);
 
-using Algorithms = ::testing::Types<algos::Tane, algos::Pyro, algos::FastFDs, algos::DFD,
-                                    algos::Depminer, algos::FDep, algos::FUN, algos::hyfd::HyFD>;
+using Algorithms =
+        ::testing::Types<algos::Tane, algos::Pyro, algos::FastFDs, algos::DFD, algos::Depminer,
+                         algos::FDep, algos::FUN, algos::hyfd::HyFD, algos::PFDTane>;
 INSTANTIATE_TYPED_TEST_SUITE_P(AlgorithmTest, AlgorithmTest, Algorithms);
 
 }  // namespace tests

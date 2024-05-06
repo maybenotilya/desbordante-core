@@ -6,6 +6,7 @@
 
 #include <boost/dynamic_bitset.hpp>
 
+#include "config/tabular_data/input_table_type.h"
 #include "fd/fd_algorithm.h"
 #include "model/table/column.h"
 #include "model/table/relational_schema.h"
@@ -18,6 +19,8 @@ class Aid : public FDAlgorithm {
 private:
     using Cluster = std::vector<size_t>;
 
+    config::InputTable input_table_;
+
     std::unique_ptr<RelationalSchema> schema_{};
     std::vector<std::vector<size_t>> tuples_;
 
@@ -26,9 +29,9 @@ private:
 
     std::unordered_set<boost::dynamic_bitset<>> neg_cover_{};
 
-    constexpr static double const growth_threshold_ = 0.01;
-    constexpr static size_t const window_size_ = 10;
-    constexpr static size_t const prime_ = 10619863;
+    constexpr static double const kGrowthThreshold = 0.01;
+    constexpr static size_t const kWindowSize = 10;
+    constexpr static size_t const kPrime = 10619863;
 
     std::vector<double> prev_ratios_;
     double sum_{};
@@ -37,6 +40,8 @@ private:
     std::vector<std::vector<size_t>> indices_in_clusters_;
 
     boost::dynamic_bitset<> constant_columns_;
+
+    void RegisterOptions();
 
     void ResetStateFd() final;
 
