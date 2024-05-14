@@ -1,5 +1,6 @@
 #include "algorithms/md/hymd/validator.h"
 
+#include <atomic>
 #include <cassert>
 #include <functional>
 #include <vector>
@@ -39,6 +40,8 @@ std::vector<ElementType> GetAllocatedVector(std::size_t size) {
 }  // namespace
 
 namespace algos::hymd {
+
+std::atomic<std::size_t> validations = 0;
 
 RecSet const* Validator::GetSimilarRecords(ValueIdentifier value_id, model::Index lhs_ccv_id,
                                            Index column_match_index) const {
@@ -403,6 +406,7 @@ public:
 
 void Validator::Validate(lattice::ValidationInfo& info, Result& result,
                          std::vector<WorkingInfo>& working) const {
+    ++validations;
     MdLhs const& lhs = info.messenger->GetLhs();
     switch (lhs.Cardinality()) {
         [[unlikely]] case 0:
@@ -506,5 +510,4 @@ auto Validator::ValidateAll(std::vector<lattice::ValidationInfo>& validation_inf
     }
     return results_;
 }
-
 }  // namespace algos::hymd

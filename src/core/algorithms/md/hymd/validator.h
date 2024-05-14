@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <unordered_set>
 #include <vector>
@@ -15,7 +16,7 @@
 #include "util/worker_thread_pool.h"
 
 namespace algos::hymd {
-
+extern std::atomic<std::size_t> validations;
 class Validator {
 public:
     using RecommendationVector = std::vector<Recommendation>;
