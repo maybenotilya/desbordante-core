@@ -16,7 +16,9 @@
 #include "util/worker_thread_pool.h"
 
 namespace algos::hymd {
-extern std::atomic<std::size_t> validations;
+extern std::atomic<std::size_t> validations; // minimize this
+extern std::atomic<std::size_t> confirmed; // awesome
+extern std::atomic<std::size_t> unsupported; // minimize this (low priority)
 class Validator {
 public:
     using RecommendationVector = std::vector<Recommendation>;

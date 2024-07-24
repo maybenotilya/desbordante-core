@@ -52,6 +52,9 @@ RecSet const* Validator::GetSimilarRecords(ValueIdentifier value_id, model::Inde
     return mapping.GetUpperSet(lhs_ccv_id);
 }
 
+std::atomic<std::size_t> confirmed = 0;
+std::atomic<std::size_t> unsupported = 0;
+
 template <typename PairProvider>
 class Validator::SetPairProcessor {
     Validator const* const validator_;
@@ -90,13 +93,17 @@ class Validator::SetPairProcessor {
     void MakeOutOfClustersResult(std::size_t support) {
         if (!Supported(support)) {
             result_.is_unsupported = true;
+            ++unsupported;
             return;
         }
         result_.is_unsupported = false;
         for (WorkingInfo const& working_info : working_) {
             ColumnClassifierValueId const new_ccv_id = working_info.current_ccv_id;
             MdElement old_rhs = working_info.old_rhs;
-            if (new_ccv_id == old_rhs.ccv_id) continue;
+            if (new_ccv_id == old_rhs.ccv_id) {
+                ++confirmed;
+                continue;
+            }
             result_.invalidated.PushBack(old_rhs, new_ccv_id);
         }
     }
@@ -116,6 +123,7 @@ class Validator::SetPairProcessor {
             }
         }
         result_.is_unsupported = true;
+        ++unsupported;
     }
 
 public:
@@ -476,6 +484,7 @@ inline void Validator::Initialize(std::vector<lattice::ValidationInfo>& validati
                     result.invalidated.PushBack({index, old_cc_value_id}, kLowestCCValueId);
                 });
                 result.is_unsupported = !Supported(GetTotalPairsNum());
+                if (result.is_unsupported) ++unsupported;
             } break;
             case 1: {
                 Index const non_zero_index = lhs.begin()->child_array_index;

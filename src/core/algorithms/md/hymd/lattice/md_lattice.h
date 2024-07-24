@@ -38,6 +38,23 @@ struct LevelStats {
     LevelStats(std::size_t col_matches) : child_thresholds(col_matches) {}
 };
 
+extern std::size_t pair_inference_not_minimal; // ok
+extern std::size_t pair_inference_trivial; // good
+extern std::size_t pair_inference_lowered_to_zero; // good
+extern std::size_t pair_inference_lowered_non_zero; // minimize this
+extern std::size_t pair_inference_accepted; // minimize this
+
+extern std::size_t traversal_lowered; // minimize this (after the others)
+extern std::size_t traversal_deleted; // minimize this
+
+extern std::unique_ptr<std::atomic<unsigned int>[]> interestingness_indices_requested;
+extern std::unique_ptr<std::atomic<unsigned int>[]> interestingness_indices_hit;
+extern std::unique_ptr<std::atomic<unsigned int>[]> interestingness_indices_max_started;
+extern std::atomic<unsigned int> get_interestingness_ccv_ids_called;
+extern std::atomic<unsigned int> raising_stopped;
+extern std::atomic<unsigned int> interestingness_stopped_immediately;
+extern std::size_t column_matches_size;
+
 class MdLattice {
 private:
     template <typename T>

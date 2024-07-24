@@ -38,8 +38,7 @@ void MdLattice::AddLevelStats(MdNode const& cur_node, std::vector<LevelStats>& l
             std::count_if(children.begin(), children.end(), std::mem_fn(&MdOptionalMap::HasValue));
     cur_stats.set_lhss += set_lhss;
     if (!set_lhss) ++cur_stats.childless_nodes;
-    auto is_rhs_set = [](ColumnClassifierValueId ccv_id) { return ccv_id != kLowestCCValueId; };
-    std::size_t set_rhss = std::count_if(rhs.begin(), rhs.end(), is_rhs_set);
+    std::size_t set_rhss = rhs.non_zero_count;
     cur_stats.set_rhss += set_rhss;
     if (!set_rhss) ++cur_stats.empty_nodes;
     if (!set_lhss && !set_rhss) ++cur_stats.empty_and_childless_nodes;
@@ -60,6 +59,11 @@ std::vector<LevelStats> MdLattice::CountLevelStats() const {
     return level_stats;
 }
 
+std::size_t column_matches_size = 0;
+std::unique_ptr<std::atomic<unsigned int>[]> interestingness_indices_hit;
+std::unique_ptr<std::atomic<unsigned int>[]> interestingness_indices_requested;
+std::unique_ptr<std::atomic<unsigned int>[]> interestingness_indices_max_started;
+
 // TODO: remove recursion
 MdLattice::MdLattice(SingleLevelFunc single_level_func,
                      std::vector<LhsCCVIdsInfo> const& lhs_ccv_id_info, bool prune_nondisjoint,
@@ -72,6 +76,10 @@ MdLattice::MdLattice(SingleLevelFunc single_level_func,
       prune_nondisjoint_(prune_nondisjoint),
       max_cardinality_(max_cardinality) {
     enabled_rhs_indices_.resize(column_matches_size_, true);
+    interestingness_indices_hit = std::make_unique<std::atomic<unsigned int>[]>(column_matches_size_);
+    interestingness_indices_requested = std::make_unique<std::atomic<unsigned int>[]>(column_matches_size_);
+    interestingness_indices_max_started = std::make_unique<std::atomic<unsigned int>[]>(column_matches_size_);
+    column_matches_size = column_matches_size_;
 }
 
 inline void MdLattice::Specialize(MdLhs const& lhs,
@@ -491,6 +499,9 @@ inline void MdLattice::AddIfMinimalInsert(MdInfoType md) {
                  &MdSpecGenChecker<MdInfoType>::HasGeneralizationInChildrenNonReplace);
 }
 
+std::size_t pair_inference_not_minimal = 0;
+std::size_t pair_inference_accepted = 0;
+
 std::size_t MdLattice::MdRefiner::Refine() {
     std::size_t removed = 0;
     for (auto new_rhs : invalidated_.GetUpdateView()) {
@@ -504,16 +515,22 @@ std::size_t MdLattice::MdRefiner::Refine() {
         }
         bool const not_minimal = lattice_->HasGeneralization({GetLhs(), new_rhs});
         if (not_minimal) {
+            ++pair_inference_not_minimal;
             ++removed;
             continue;
         }
         DESBORDANTE_ASSUME(node_info_.rhs->begin[rhs_index] == kLowestCCValueId &&
                            new_ccv_id != kLowestCCValueId);
         node_info_.rhs->Set(rhs_index, new_ccv_id);
+        ++pair_inference_accepted;
     }
     lattice_->Specialize(GetLhs(), *pair_comparison_result_, invalidated_.GetInvalidated());
     return removed;
 }
+
+std::size_t pair_inference_trivial = 0;
+std::size_t pair_inference_lowered_to_zero = 0;
+std::size_t pair_inference_lowered_non_zero = 0;
 
 void MdLattice::TryAddRefiner(std::vector<MdRefiner>& found, Rhs& rhs,
                               PairComparisonResult const& pair_comparison_result,
@@ -525,6 +542,8 @@ void MdLattice::TryAddRefiner(std::vector<MdRefiner>& found, Rhs& rhs,
         ColumnClassifierValueId pair_ccv_id = pair_comparison_result.rhss[rhs_index];
         ColumnClassifierValueId rhs_ccv_id = rhs[rhs_index];
         if (pair_ccv_id < rhs_ccv_id) {
+            if (pair_ccv_id == kLowestCCValueId) ++pair_inference_lowered_to_zero;
+            else ++pair_inference_lowered_non_zero;
             invalidated.PushBack({rhs_index, rhs_ccv_id}, pair_ccv_id);
         }
     };
@@ -541,9 +560,12 @@ void MdLattice::TryAddRefiner(std::vector<MdRefiner>& found, Rhs& rhs,
             ColumnClassifierValueId cur_lhs_triviality_bound =
                     (*lhs_ccv_id_info_)[cur_lhs_index].lhs_to_rhs_map[lhs_ccv_id];
             if (cur_lhs_triviality_bound == pair_ccv_id) {
+                ++pair_inference_trivial;
                 invalidated.PushBack(invalid, kLowestCCValueId);
             } else {
                 DESBORDANTE_ASSUME(pair_ccv_id > cur_lhs_triviality_bound);
+                if (pair_ccv_id == kLowestCCValueId) ++pair_inference_lowered_to_zero;
+                else ++pair_inference_lowered_non_zero;
                 invalidated.PushBack(invalid, pair_ccv_id);
             }
         }
@@ -614,12 +636,17 @@ void MdLattice::MdVerificationMessenger::MarkUnsupported() {
     lattice_->MarkUnsupported(GetLhs());
 }
 
+std::size_t traversal_lowered = 0;
+std::size_t traversal_deleted = 0;
+
 void MdLattice::MdVerificationMessenger::LowerAndSpecialize(
         utility::InvalidatedRhss const& invalidated) {
     Rhs& rhs = GetRhs();
     for (auto [rhs_index, new_ccv_id] : invalidated.GetUpdateView()) {
         DESBORDANTE_ASSUME(rhs[rhs_index] != kLowestCCValueId);
         rhs.Set(rhs_index, new_ccv_id);
+        if (new_ccv_id == kLowestCCValueId) ++traversal_deleted;
+        else ++traversal_lowered;
     }
     lattice_->Specialize(GetLhs(), invalidated.GetInvalidated());
 }
@@ -640,6 +667,8 @@ void MdLattice::PrintStats() const {
     }
 }
 
+std::atomic<unsigned int> raising_stopped = 0;
+
 void MdLattice::RaiseInterestingnessCCVIds(
         MdNode const& cur_node, MdLhs const& lhs,
         std::vector<ColumnClassifierValueId>& cur_interestingness_ccv_ids,
@@ -656,7 +685,9 @@ void MdLattice::RaiseInterestingnessCCVIds(
                     cur_interestingness_ccv_id = cur_node_rhs_ccv_id;
                     if (cur_interestingness_ccv_id == ccv_id_bounds[i]) {
                         max_count++;
+                        ++interestingness_indices_hit[indices[i]];
                         if (max_count == indices_size) {
+                            ++raising_stopped;
                             return;
                         }
                     }
@@ -687,9 +718,16 @@ void MdLattice::RaiseInterestingnessCCVIds(
     }
 }
 
+std::atomic<unsigned int> interestingness_stopped_immediately = 0;
+std::atomic<unsigned int> get_interestingness_ccv_ids_called = 0;
+
 std::vector<ColumnClassifierValueId> MdLattice::GetInterestingnessCCVIds(
         MdLhs const& lhs, std::vector<Index> const& indices,
         std::vector<ColumnClassifierValueId> const& ccv_id_bounds) const {
+    ++get_interestingness_ccv_ids_called;
+    for (Index index : indices) {
+        ++interestingness_indices_requested[index];
+    }
     std::vector<ColumnClassifierValueId> interestingness_ccv_ids;
     std::size_t indices_size = indices.size();
     if (prune_nondisjoint_) {
@@ -727,10 +765,12 @@ std::vector<ColumnClassifierValueId> MdLattice::GetInterestingnessCCVIds(
     std::size_t max_count = 0;
     for (Index i = 0; i < indices_size; ++i) {
         if (interestingness_ccv_ids[i] == ccv_id_bounds[i]) {
+            ++interestingness_indices_max_started[indices[i]];
             max_count++;
         }
     }
     if (max_count == indices_size) {
+        ++interestingness_stopped_immediately;
         return interestingness_ccv_ids;
     }
     RaiseInterestingnessCCVIds(md_root_, lhs, interestingness_ccv_ids, lhs.begin(), indices,

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <limits>
 
+#define ELPP_STL_LOGGING
 #include <easylogging++.h>
 
 #include "algorithms/md/hymd/lattice/cardinality/min_picking_level_getter.h"
@@ -148,6 +149,7 @@ unsigned long long HyMD::ExecuteInternal() {
     auto [similarity_data, short_sampling_enable] =
             SimilarityData::CreateFrom(records_info_.get(), column_matches_option_, pool_ptr);
     LOG(DEBUG) << "Finished similarity calculation";
+    LOG(DEBUG) << "Original column matches: " << similarity_data.GetIndexMapping();
     lattice::MdLattice lattice{[](...) { return 1; }, similarity_data.GetLhsIdsInfo(),
                                prune_nondisjoint_, max_cardinality_,
                                similarity_data.CreateMaxRhs()};
