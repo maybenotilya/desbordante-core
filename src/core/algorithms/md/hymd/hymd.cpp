@@ -153,9 +153,21 @@ unsigned long long HyMD::ExecuteInternal() {
     lattice::MdLattice lattice{[](...) { return 1; }, similarity_data.GetLhsIdsInfo(),
                                prune_nondisjoint_, max_cardinality_,
                                similarity_data.CreateMaxRhs()};
+    /*char ack[5];
+    LOG(DEBUG) << "Lattice created";
+    LOG(DEBUG) << getenv("ctl_fd");
+    int perf_ctl_fd = atoi(getenv("ctl_fd"));
+    LOG(DEBUG) << "CTL FD: " << perf_ctl_fd;
+    int perf_ctl_ack_fd = atoi(getenv("ctl_fd_ack"));
+    LOG(DEBUG) << "CTL_FDs: " << perf_ctl_fd << perf_ctl_ack_fd;
+    write(perf_ctl_fd, "enable\n", 8);
+    read(perf_ctl_ack_fd, ack, 5);
+    LOG(DEBUG) << "started";*/
     auto [record_pair_inferrer, done] = RecordPairInferrer::Create(
             &lattice, records_info_.get(), &similarity_data.GetColumnMatchesInfo(),
             similarity_data.GetLhsIdsInfo(), std::move(short_sampling_enable), pool_ptr);
+    /*write(perf_ctl_fd, "disable\n", 9);
+    read(perf_ctl_ack_fd, ack, 5);*/
     LOG(DEBUG) << "Inferrer initialization finished";
     LatticeTraverser lattice_traverser{
             std::make_unique<lattice::cardinality::MinPickingLevelGetter>(&lattice),
