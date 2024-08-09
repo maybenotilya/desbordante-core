@@ -28,6 +28,9 @@ using MdSpecGenChecker = SpecGeneralizationChecker<MdNode, MdInfoType>;
 
 namespace algos::hymd::lattice {
 
+std::atomic<unsigned> empty_and_childless = 0;
+std::atomic<unsigned> total_nodes_checked = 0;
+
 void MdLattice::AddLevelStats(MdNode const& cur_node, std::vector<LevelStats>& level_stats,
                               std::size_t level) const {
     LevelStats& cur_stats = level_stats.at(level);
