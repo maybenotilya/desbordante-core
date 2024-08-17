@@ -13,6 +13,7 @@
 #include "algorithms/md/hymd/lowest_bound.h"
 #include "algorithms/md/hymd/lowest_cc_value_id.h"
 #include "algorithms/md/hymd/preprocessing/similarity_measure/levenshtein_similarity_measure.h"
+#include "algorithms/md/hymd/preprocessing/similarity_measure/monge_elkan_similarity_measure.h"
 #include "algorithms/md/hymd/record_pair_inferrer.h"
 #include "algorithms/md/hymd/similarity_data.h"
 #include "algorithms/md/hymd/utility/md_less.h"
@@ -63,7 +64,7 @@ void HyMD::RegisterOptions() {
             for (Index i = 0; i != num_columns; ++i) {
                 column_matches_option.push_back(
                         std::make_shared<
-                                preprocessing::similarity_measure::LevenshteinSimilarityMeasure>(
+                                preprocessing::similarity_measure::MongeElkanSimilarityMeasure>(
                                 i, i, 0.7));
             }
         } else {
@@ -73,8 +74,9 @@ void HyMD::RegisterOptions() {
             for (Index i = 0; i != num_columns_left; ++i) {
                 for (Index j = 0; j != num_columns_right; ++j) {
                     column_matches_option.push_back(
-                            std::make_shared<preprocessing::similarity_measure::
-                                                     LevenshteinSimilarityMeasure>(i, j, 0.7));
+                            std::make_shared<
+                                    preprocessing::similarity_measure::MongeElkanSimilarityMeasure>(
+                                    i, j, 0.7));
                 }
             }
         }
