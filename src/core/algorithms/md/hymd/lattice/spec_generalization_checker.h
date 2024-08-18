@@ -83,12 +83,6 @@ public:
 
     bool HasGeneralizationInChildrenReplace(NodeType const& node, MdLhs::iterator next_node_iter,
                                             model::Index child_array_index = 0) {
-        ++total_nodes_checked;
-        if constexpr (std::is_same_v<NodeType, MdNode>)
-            if (std::all_of(node.children.begin(), node.children.end(),
-                            [](auto const& v) { return !v.HasValue(); }) &&
-                node.rhs.IsEmpty())
-                ++empty_and_childless;
         return HasGeneralizationInChildren(
                 node, next_node_iter, child_array_index,
                 &SpecGeneralizationChecker::HasGeneralizationInChildrenReplace,
@@ -97,12 +91,6 @@ public:
 
     bool HasGeneralizationInChildrenNonReplace(NodeType const& node, MdLhs::iterator next_node_iter,
                                                model::Index child_array_index = 0) {
-        ++total_nodes_checked;
-        if constexpr (std::is_same_v<NodeType, MdNode>)
-            if (std::all_of(node.children.begin(), node.children.end(),
-                            [](auto const& v) { return !v.HasValue(); }) &&
-                node.rhs.IsEmpty())
-                ++empty_and_childless;
         return HasGeneralizationInChildren(
                 node, next_node_iter, child_array_index,
                 &SpecGeneralizationChecker::HasGeneralizationInChildrenNonReplace,

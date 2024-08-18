@@ -4,20 +4,19 @@
 #include <easylogging++.h>
 
 #include "algorithms/md/hymd/hymd.h"
-#include "algorithms/md/hymd/lattice/md_lattice.h"
-#include "algorithms/md/hymd/lattice/total_generalization_checker.h"
 #include "algorithms/md/hymd/preprocessing/similarity_measure/levenshtein_similarity_measure.h"
 #include "algorithms/md/hymd/validator.h"
+#include "algorithms/md/hymd/lattice/md_lattice.h"
 #include "parser/csv_parser/csv_parser.h"
 
 INITIALIZE_EASYLOGGINGPP
 
-// std::string const kPath =
-//         "/home/buyt/Projects/desb_forks/buyt-1/Desbordante/flights.tsv";
-//  constexpr char kSeparator = ',';
-//  constexpr bool kHasHeader = true;
+//std::string const kPath =
+//        "/home/buyt/Projects/desb_forks/buyt-1/Desbordante/flights.tsv";
+// constexpr char kSeparator = ',';
+// constexpr bool kHasHeader = true;
 
-std::string MaxHitToString(auto&& arr, std::size_t column_matches) {
+std::string MaxHitToString(auto && arr, std::size_t column_matches) {
     std::stringstream ss;
     for (model::Index i = 0; i != column_matches; ++i) {
         ss << arr[i] << " ";
@@ -76,8 +75,6 @@ int main(int argc, char** argv) {
     std::cout << "Interestingness CCV ID requested for every column match: " << MaxHitToString(algos::hymd::lattice::interestingness_indices_requested, algos::hymd::lattice::column_matches_size) << std::endl;
     std::cout << "Max CCV ID hit for every column match: " << MaxHitToString(algos::hymd::lattice::interestingness_indices_hit, algos::hymd::lattice::column_matches_size) << std::endl;
     std::cout << "Started with max CCV ID for every column match: " << MaxHitToString(algos::hymd::lattice::interestingness_indices_max_started, algos::hymd::lattice::column_matches_size) << std::endl;
-    std::cout << std::endl;
-    std::cout << "Useless nodes in generalizations: " << algos::hymd::lattice::empty_and_childless << "/" << algos::hymd::lattice::total_nodes_checked << std::endl;
     std::cout << std::endl;
     std::cout << "Found " << md_list.size() << " MDs" << std::endl;
     for (auto const& md : md_list) {
