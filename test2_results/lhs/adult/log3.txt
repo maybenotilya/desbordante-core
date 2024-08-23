@@ -1,0 +1,153 @@
+2024-06-13 00:08:14,005 DEBUG [default] [root@unknown-host] [int main(int, char**)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/main.cpp:22] Started
+2024-06-13 00:08:14,006 DEBUG [default] [root@unknown-host] [virtual void algos::hymd::HyMD::LoadDataInternal()] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/hymd.cpp:111] Started loading
+2024-06-13 00:08:14,085 DEBUG [default] [root@unknown-host] [virtual void algos::hymd::HyMD::LoadDataInternal()] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/hymd.cpp:132] Finished loading
+2024-06-13 00:08:14,085 DEBUG [default] [root@unknown-host] [virtual long long unsigned int algos::hymd::HyMD::ExecuteInternal()] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/hymd.cpp:137] Started execution
+2024-06-13 00:08:20,399 DEBUG [default] [root@unknown-host] [virtual long long unsigned int algos::hymd::HyMD::ExecuteInternal()] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/hymd.cpp:151] Finished similarity calculation
+2024-06-13 00:08:20,399 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:20,412 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:20,418 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:20,421 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:20,422 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:20,426 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:20,429 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:20,432 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:20,451 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:20,466 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:20,546 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:20,565 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:20,596 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:20,606 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:20,636 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:20,640 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:20,806 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:20,826 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:20,949 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:20,980 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:21,019 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:21,020 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:21,193 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:21,210 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:21,515 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:21,526 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:21,562 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:21,563 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:21,869 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:21,880 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:22,064 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:22,075 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:22,133 DEBUG [default] [root@unknown-host] [bool algos::hymd::RecordPairInferrer::InferFromRecordPairs(algos::hymd::Recommendations)] [../buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/record_pair_inferrer.cpp:38] Inferring from pairs
+2024-06-13 00:08:22,137 DEBUG [default] [root@unknown-host] [bool algos::hymd::LatticeTraverser::TraverseLattice(bool)] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/lattice_traverser.cpp:13] Traversing lattice
+2024-06-13 00:08:22,139 DEBUG [default] [root@unknown-host] [virtual long long unsigned int algos::hymd::HyMD::ExecuteInternal()] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/hymd.cpp:166] Done!
+2024-06-13 00:08:22,140 DEBUG [default] [root@unknown-host] [virtual long long unsigned int algos::hymd::HyMD::ExecuteInternal()] [/home/buyt/Projects/desb_forks/buyt-1/Desbordante/src/core/algorithms/md/hymd/hymd.cpp:169] Registered MDs.
+Found 111 MDs
+[,,,,1,,,,,,,,,,]->3@1
+[,,,1,,,,,,,,,,,]->4@1
+[1,,0.857143,,,,,1,,,,,,1,]->9@1
+[1,,0.857143,,,,,1,,,,,1,,]->9@1
+[1,,0.857143,,,,,1,1,,,,,,]->9@1
+[1,,0.857143,,,,1,,,,,,,,1]->8@1
+[1,,0.857143,,,,1,1,,,,,,,]->8@1
+[1,,0.857143,,,,1,1,,,,,,,]->9@1
+[1,,0.857143,,,0.833333,1,,,,,,,,]->8@1
+[1,,0.857143,,,0.833333,1,,,,,,,,]->9@1
+[1,,0.857143,,1,,,,,,,,,,1]->8@1
+[1,,0.857143,,1,,,,,,,,,1,]->8@1
+[1,,0.857143,,1,,,,,,,,1,,]->8@1
+[1,,0.857143,,1,,,1,,,,,,,]->8@1
+[1,,0.857143,,1,,,1,,,,,,,]->9@1
+[1,,0.857143,,1,0.833333,,,,,,,,,]->8@1
+[1,,0.857143,,1,0.833333,,,,,,,,,]->9@1
+[1,,0.857143,0.714286,,,,,,,,,,,1]->8@1
+[1,,0.857143,0.714286,,,,,,,,,,1,]->8@1
+[1,,0.857143,0.714286,,,,,,,,,1,,]->8@1
+[1,,0.857143,0.714286,,,,1,,,,,,,]->8@1
+[1,,0.857143,0.714286,,,,1,,,,,,,]->9@1
+[1,,0.857143,0.714286,,0.833333,,,,,,,,,]->8@1
+[1,,0.857143,1,,0.833333,,,,,,,,,]->9@1
+[,,0.857143,,,,1,1,,,,,1,1,]->8@1
+[,,0.857143,,,0.833333,1,,,,,,1,1,]->8@1
+[,,0.857143,,1,,1,,,1,,,,1,]->8@1
+[,,0.857143,,1,,1,1,,,,,,,1]->8@1
+[,,0.857143,,1,,1,1,,,,,,,1]->9@1
+[,,0.857143,,1,,1,1,,,,,,1,]->8@1
+[,,0.857143,,1,,1,1,,,,,1,,]->8@1
+[,,0.857143,,1,,1,1,,,,,1,,]->9@1
+[,,0.857143,,1,,1,1,,,,0.75,,,]->8@1
+[,,0.857143,,1,,1,1,,,0.75,,,,]->8@1
+[,,0.857143,,1,0.833333,1,1,,,,,,,]->9@1
+[,,0.857143,0.714286,,,1,,,1,,,,1,]->8@1
+[,,0.857143,0.714286,,,1,1,,,,,,,1]->8@1
+[,,0.857143,0.714286,,,1,1,,,,,,,1]->9@1
+[,,0.857143,0.714286,,,1,1,,,,,,1,]->8@1
+[,,0.857143,0.714286,,,1,1,,,,,1,,]->8@1
+[,,0.857143,0.714286,,,1,1,,,,,1,,]->9@1
+[,,0.857143,0.714286,,,1,1,,,,0.75,,,]->8@1
+[,,0.857143,0.714286,,,1,1,,,0.75,,,,]->8@1
+[,,0.857143,0.714286,,0.833333,1,1,,,,,,,]->9@1
+[,0.75,0.857143,,1,,1,1,,,,,,,]->9@1
+[,0.75,0.857143,0.714286,,,1,1,,,,,,,]->9@1
+[1,,0.714286,0.714286,,,1,,,,,,1,,]->4@1
+[1,,0.857143,0.714286,,0.833333,,,,,,,1,,]->9@1
+[1,0.75,0.857143,,,,1,,,,,,,1,]->8@1
+[1,0.75,0.857143,,,,1,,,,,,1,,]->8@1
+[1,0.75,0.857143,,,0.833333,,,,,,,,1,]->8@1
+[1,0.75,0.857143,0.714286,,0.833333,,,,,,,,,]->9@1
+[,,0.857143,0.714286,,,1,,,,,0.75,1,1,]->4@1
+[,,0.857143,0.75,,,1,,1,,,0.75,1,,]->4@1
+[,,0.857143,0.75,,,1,1,,,,0.75,1,,]->4@1
+[,,0.857143,0.75,,0.833333,1,,,,,0.75,1,,]->4@1
+[,,1,,,,1,,,1,,,1,1,1]->8@1
+[,0.75,0.857143,,,,1,,,1,,,1,1,]->8@1
+[,0.75,0.857143,,1,0.833333,,1,,,,,1,,]->9@1
+[,0.75,0.857143,0.714286,,0.833333,,1,,,,,1,,]->9@1
+[1,,0.714286,,1,,1,1,,,,,1,,]->8@1
+[1,,0.714286,,1,0.833333,1,,,,,,1,,]->8@1
+[1,,0.714286,0.714286,,,1,1,,,,,1,,]->8@1
+[1,,0.714286,0.714286,,0.833333,1,,,,,,1,,]->8@1
+[1,,0.857143,,,,1,1,,,0.75,,1,,]->5@1
+[1,,0.857143,,1,,1,1,,,,,1,,]->5@1
+[1,,0.857143,0.714286,,,1,1,,,,,1,,]->5@1
+[1,0.75,0.857143,,1,,1,,,,,,1,,]->11@1
+[1,0.75,0.857143,0.714286,,,1,,,,,,1,,]->11@1
+[,,0.857143,,1,0.833333,,1,,,0.75,,1,1,]->8@1
+[,,0.857143,0.714286,,,1,,1,,,0.75,1,,1]->4@1
+[,,0.857143,0.714286,,,1,,1,,0.75,0.75,1,,]->4@1
+[,,0.857143,0.714286,,,1,1,,,,0.75,1,,1]->4@1
+[,,0.857143,0.714286,,,1,1,,,0.75,0.75,1,,]->4@1
+[,,0.857143,0.714286,,0.833333,,1,,,0.75,,1,1,]->8@1
+[,,0.857143,0.714286,,0.833333,1,,,,,0.75,1,,1]->4@1
+[,,0.857143,0.714286,,0.833333,1,,,,0.75,0.75,1,,]->4@1
+[,0.75,0.857143,,1,,,1,,,0.75,,1,,1]->9@1
+[,0.75,0.857143,,1,,,1,,,0.75,0.75,1,,]->9@1
+[,0.75,0.857143,,1,,,1,1,,0.75,,1,,]->9@1
+[,0.75,0.857143,,1,0.833333,,1,,,,,1,,1]->8@1
+[,0.75,0.857143,,1,0.833333,,1,,,,,1,1,]->8@1
+[,0.75,0.857143,0.714286,,,,1,,,0.75,,1,,1]->9@1
+[,0.75,0.857143,0.714286,,,,1,,,0.75,0.75,1,,]->9@1
+[,0.75,0.857143,0.714286,,,,1,1,,0.75,,1,,]->9@1
+[,0.75,0.857143,0.714286,,0.833333,,1,,,,,1,,1]->8@1
+[,0.75,0.857143,0.714286,,0.833333,,1,,,,,1,1,]->8@1
+[1,,0.714286,,,,1,1,,,,,1,1,1]->8@1
+[1,,0.714286,,1,,1,,,,0.75,,1,1,]->8@1
+[1,,0.714286,0.714286,,,1,,,,0.75,,1,1,]->8@1
+[1,0.75,0.714286,,,,1,1,,,,,1,1,]->8@1
+[1,0.75,0.714286,,1,,1,1,,,,,1,,]->11@1
+[1,0.75,0.714286,,1,0.833333,1,,,,,,1,,]->11@1
+[1,0.75,0.714286,0.714286,,,1,1,,,,,1,,]->11@1
+[1,0.75,0.714286,0.714286,,0.833333,1,,,,,,1,,]->11@1
+[,,0.714286,0.714286,,,1,1,,1,,0.75,1,1,]->4@1
+[,,0.714286,0.714286,,0.833333,1,,,1,,0.75,1,1,]->4@1
+[,,0.857143,,1,0.833333,,1,,,0.75,0.75,1,,1]->8@1
+[,,0.857143,0.714286,,0.833333,,1,,,0.75,0.75,1,,1]->8@1
+[,0.75,0.857143,,1,0.833333,,1,,1,,,,1,1]->8@1
+[,0.75,0.857143,,1,0.833333,,1,,1,,0.75,,,1]->8@1
+[,0.75,0.857143,,1,0.833333,,1,,1,,0.75,,1,]->8@1
+[,0.75,0.857143,0.714286,,0.833333,,1,,1,,,,1,1]->8@1
+[,0.75,0.857143,0.714286,,0.833333,,1,,1,,0.75,,,1]->8@1
+[,0.75,0.857143,0.714286,,0.833333,,1,,1,,0.75,,1,]->8@1
+[1,,0.714286,,,,1,1,,1,0.75,,1,,1]->5@1
+[1,,0.714286,,1,,1,1,,1,,,1,,1]->5@1
+[1,,0.714286,0.714286,,,1,1,,1,,,1,,1]->5@1
+[1,0.75,0.714286,,,,1,1,,,0.75,,1,,1]->5@1
+[1,0.75,0.714286,,1,,1,1,,,,,1,,1]->5@1
+[1,0.75,0.714286,0.714286,,,1,1,,,,,1,,1]->5@1
