@@ -180,6 +180,8 @@ TypedColumnData TypedColumnDataFactory::CreateMixedFromTypeMap(std::unique_ptr<T
 
         buf_index = GetNextAlignedOffset(buf_index, mixed_type->GetAlignment(type_id));
         std::byte* next = buf.get() + buf_index;
+        auto t = new int();
+        (void)t;
 
         assert(next + value_size <= buf.get() + buf_size);
 
