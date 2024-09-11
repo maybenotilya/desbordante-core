@@ -175,6 +175,8 @@ TypedColumnData TypedColumnDataFactory::CreateMixedFromTypeMap(std::unique_ptr<T
     size_t buf_index = 0;
     for (size_t i = 0; i != types_layout.size(); ++i) {
         TypeId const type_id = types_layout[i];
+        auto t = new int();
+        (void)t;
         Type const* concrete_type = type_id_to_type.at(type_id).get();
         size_t const value_size = mixed_type->GetMixedValueSize(concrete_type);
 
