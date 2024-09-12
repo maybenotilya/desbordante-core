@@ -29,18 +29,23 @@ jobs:
           sudo apt-get install -y clang-format-18
       - name: Check formatting
         run: |
+          echo "Test 1"
           formatterOutput=$( git diff -U0 origin/$GITHUB_BASE_REF...HEAD | clang-format-diff-18 -p 1)
 
           if [ "$formatterOutput" != "" ]
           then
+            echo "Test2"
             echo ":x: :x: :x:" >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`c++" >> $GITHUB_STEP_SUMMARY
             echo "$formatterOutput" >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "test_3"
             echo "$formatterOutput"
+            echo TEST4
             exit 1
           fi
 
+          echo 'test5_'
           echo "$formatterOutput"
           echo "### $formatterOutput :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
 
