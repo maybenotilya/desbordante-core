@@ -31,6 +31,7 @@ jobs:
         shell: bash
         run: |
           echo "Test 1"
+          set +e
           formatterOutput=$( git diff -U0 origin/$GITHUB_BASE_REF...HEAD | clang-format-diff-18 -p 1)
 
           if [ "$formatterOutput" != "" ]
