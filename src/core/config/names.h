@@ -69,4 +69,8 @@ constexpr auto kMinSupport = "min_support";
 constexpr auto kColumnMatches = "column_matches";
 constexpr auto kMaxCardinality = "max_cardinality";
 constexpr auto kLevelDefinition = "level_definition";
+constexpr auto KMDLhsThresholds = "lhs_thresholds";
+constexpr auto KMDRhsThresholds = "rhs_thresholds";
+constexpr auto KMDLhsMetrics = "lhs_metrics";
+constexpr auto KMDRhsMetrics = "rhs_metrics";
 }  // namespace config::names
