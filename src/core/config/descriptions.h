@@ -122,8 +122,8 @@ constexpr auto kDMinSupport = "minimum support for a dependency's LHS";
 constexpr auto kDColumnMatches = "column matches to examine";
 constexpr auto kDMaxCardinality = "maximum number of MD matching classifiers";
 auto const kDLevelDefinition = details::kDLevelDefinitionString.c_str();
-constexpr auto kDMDRhsThresholds = "MD left-hand side thresholds";
-constexpr auto kDMDLhsThresholds = "MD right-hand side thresholds";
+constexpr auto kDMDRhsDecisionBoundaries = "MD left-hand side decision boundaries";
+constexpr auto kDMDLhsDecisionBoundaries = "MD right-hand side decision boundaries";
 constexpr auto kDMDLhsSimilarityMeasures = "MD left-hand side similarity measures";
 constexpr auto kDMDRhsSimilarityMeasures = "MD right-hand side similarity measures";
 }  // namespace config::descriptions
