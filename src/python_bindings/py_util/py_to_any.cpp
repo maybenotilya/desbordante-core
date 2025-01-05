@@ -12,6 +12,7 @@
 #include "algorithms/dd/dd.h"
 #include "algorithms/md/hymd/enums.h"
 #include "algorithms/md/hymd/hymd.h"
+#include "algorithms/md/md_verifier/similarities/similarities.h"
 #include "algorithms/metric/enums.h"
 #include "association_rules/ar_algorithm_enums.h"
 #include "config/custom_random_seed/type.h"
@@ -124,6 +125,9 @@ std::unordered_map<std::type_index, ConvFunc> const kConverters{
         kNormalConvPair<size_t>,
         kNormalConvPair<algos::hymd::HyMD::ColumnMatches>,
         kNormalConvPair<std::optional<int>>,
+        kNormalConvPair<algos::hymd::HyMD::Measures>,
+        kNormalConvPair<std::vector<model::md::DecisionBoundary>>,
+        kNormalConvPair<std::vector<std::shared_ptr<algos::md::SimilarityMeasure>>>,
         kEnumConvPair<algos::metric::Metric>,
         kEnumConvPair<algos::metric::MetricAlgo>,
         kEnumConvPair<config::PfdErrorMeasureType>,
