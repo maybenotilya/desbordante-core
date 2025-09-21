@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <variant>
 #include <vector>
 
@@ -37,38 +36,35 @@ private:
 
     model::md::DecisionBoundary true_rhs_decision_boundary_;
 
-    ViolatingRecordsSet violating_records_;
+    ViolatingRecordsPairsSet violating_records_;
     RecordsPairToSimilarityMap rhs_records_pair_to_similarity_;
 
     ColumnInfoView GetColumnInfo(hymd::ColumnMatchInfo const& column_match_info);
 
-    void ProcessSimilarityMatrix(
+    void ProcessUnmatchedPairs(hymd::ColumnMatchInfo const& column_match_info,
+                               model::md::DecisionBoundary decision_boundary,
+                               auto&& for_each_cluster_pair);
+
+    void RemoveNonMatchedLhsPairs(hymd::ColumnMatchInfo const& column_match_info,
+                                  model::md::DecisionBoundary decision_boundary);
+    void RemoveNonMatchedLhsPairsTrivial(model::md::Similarity similarity,
+                                         model::md::DecisionBoundary decision_boundary);
+
+    void InsertNonMatchedRhsPairsAndProcessViolations(
             hymd::ColumnMatchInfo const& column_match_info,
-            model::md::DecisionBoundary decision_boundary,
-            std::function<void(hymd::indexes::PliCluster, hymd::indexes::PliCluster)>&& lam);
+            model::md::DecisionBoundary decision_boundary);
+    void InsertNonMatchedRhsPairsAndProcessViolationsTrivial(
+            model::md::Similarity similarity, model::md::DecisionBoundary decision_boundary);
 
-    void InitRecords(hymd::ColumnMatchInfo const& column_match_info,
-                     model::md::DecisionBoundary decision_boundary);
-
-    void UpdateRecordsWithLhs(hymd::ColumnMatchInfo const& column_match_info,
-                              model::md::DecisionBoundary decision_boundary);
-    void UpdateRecordsWithTrivialLhs(model::md::Similarity similarity,
-                                     model::md::DecisionBoundary decision_boundary);
-
-    void UpdateRecordsWithRhs(hymd::ColumnMatchInfo const& column_match_info,
-                              model::md::DecisionBoundary decision_boundary);
-    void UpdateRecordsWithTrivialRhs(model::md::Similarity similarity,
-                                     model::md::DecisionBoundary decision_boundary);
-
-    void UpdateRhsSimilarities(hymd::indexes::PliCluster const& left_cluster,
+    void InsertRhsSimilarities(hymd::indexes::PliCluster const& left_cluster,
                                hymd::indexes::PliCluster const& right_cluster,
                                model::md::Similarity rhs_similarity);
 
-    bool TryValidateOrPrepare(
-            std::vector<OneOfColumnMatchInfo> const& column_matches_similarity_infos);
-
-    void ValidateAllLhsTrivial(
-            std::vector<OneOfColumnMatchInfo> const& column_matches_similarity_infos);
+    void FindRhsUnmatchedPairs(std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos);
+    void FindAllLhsUnmatchedPairs(
+            std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos);
+    void ConstructResults();
+    void FindTrueRhsDecisionBoundary();
 
 public:
     MDValidationCalculator(

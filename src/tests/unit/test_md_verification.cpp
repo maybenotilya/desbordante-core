@@ -99,11 +99,6 @@ TEST_P(TestMDVerifierHighlights, DefaultCase) {
     ASSERT_EQ(GetParam().expected, md_result);
     std::vector<Highlight> highlights = verifier->GetHighlights();
     ASSERT_EQ(highlights.size(), GetParam().highlights.size());
-    std::cout << "{";
-    for (Highlight const& highlight : highlights) {
-        std::cout << "\"" << highlight.ToString() << "\"" << ", ";
-    }
-    std::cout << "}" << std::endl;
     for (Highlight const& highlight : highlights) {
         ASSERT_TRUE(GetParam().highlights.contains(highlight.ToString()));
     }

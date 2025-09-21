@@ -13,7 +13,7 @@ MDHighlights MDHighlights::CreateFrom(model::RhsSimilarityClassifierDesctription
     highlights.reserve(total_highlights_count);
 
     for (auto const& [left_record_index, right_records_set] : records_pairs) {
-        for (model::Index right_record_index : right_records_set) {
+        for (hymd::RecordIdentifier right_record_index : right_records_set) {
             highlights.emplace_back(
                     left_record_index, right_record_index, rhs_desc,
                     records_to_similarity.at({left_record_index, right_record_index}));

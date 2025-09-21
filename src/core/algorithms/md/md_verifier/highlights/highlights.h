@@ -12,12 +12,12 @@ namespace algos::md {
 class MDHighlights {
 public:
     struct Highlight {
-        model::Index left_table_row;
-        model::Index right_table_row;
+        hymd::RecordIdentifier left_table_row;
+        hymd::RecordIdentifier right_table_row;
         model::md::Similarity similarity;
         model::RhsSimilarityClassifierDesctription rhs_desc;
 
-        Highlight(model::Index left_table_row, model::Index right_table_row,
+        Highlight(hymd::RecordIdentifier left_table_row, hymd::RecordIdentifier right_table_row,
                   model::RhsSimilarityClassifierDesctription rhs_desc,
                   model::md::Similarity similarity)
             : left_table_row(left_table_row),
