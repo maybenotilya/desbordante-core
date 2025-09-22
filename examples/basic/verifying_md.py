@@ -13,10 +13,42 @@ RED_CODE = "\033[1;41m"
 BLUE_CODE = "\033[1;46m"
 DEFAULT_COLOR_CODE = "\033[1;49m"
 
+FLOATING_POINT_DIGITS = 2
+
 
 class MDParams(TypedDict):
     lhs: list[ColumnSimilarityClassifier]
     rhs: ColumnSimilarityClassifier
+
+
+def print_md(md):
+    md_desc = md.get_description()
+    lhs, rhs = md_desc.lhs, md_desc.rhs
+
+    lhs_strings = []
+
+    for lhs_classifier in lhs:
+        decision_boundary = round(
+            lhs_classifier.decision_boundary, FLOATING_POINT_DIGITS
+        )
+        column_match_desc = lhs_classifier.column_match_description
+        left_column_name = column_match_desc.left_column_description.column_name
+        right_column_name = column_match_desc.right_column_description.column_name
+        column_match_name = column_match_desc.column_match_name
+
+        lhs_strings.append(
+            f"{column_match_name}({left_column_name}, {right_column_name})>={decision_boundary}"
+        )
+
+    rhs_decision_boundary = round(rhs.decision_boundary, FLOATING_POINT_DIGITS)
+    rhs_column_match_desc = rhs.column_match_description
+    rhs_left_column_name = rhs_column_match_desc.left_column_description.column_name
+    rhs_right_column_name = rhs_column_match_desc.right_column_description.column_name
+    rhs_column_match_name = rhs_column_match_desc.column_match_name
+
+    rhs_string = f"{rhs_column_match_name}({rhs_left_column_name}, {rhs_right_column_name})>={rhs_decision_boundary}"
+
+    print(f'\t[ {" | ".join(lhs_strings)} ] -> {rhs_string}')
 
 
 def print_results(verifier):
@@ -27,7 +59,9 @@ def print_results(verifier):
     highlights = verifier.get_highlights()
     # Also verifier.get_highlights_copy() if you're planning to use highlights separately from verifier
 
-    print(f"{RED_CODE}MD does not hold due to the following items:{DEFAULT_COLOR_CODE}")
+    print(
+        f"{RED_CODE}MD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:{DEFAULT_COLOR_CODE}"
+    )
     for i, highlight in enumerate(highlights, start=1):
         rhs_desc = highlight.rhs_desc
         column_match_name = rhs_desc.column_match_description.column_match_name
@@ -37,24 +71,23 @@ def print_results(verifier):
         right_column_name = (
             rhs_desc.column_match_description.right_column_description.column_name
         )
-        decision_boundary = rhs_desc.decision_boundary
+        similarity = round(highlight.similarity, FLOATING_POINT_DIGITS)
+        decision_boundary = round(rhs_desc.decision_boundary, FLOATING_POINT_DIGITS)
 
         print(
-            f"{i}. Rows {highlight.left_table_row} of the left table and "
-            f"{highlight.right_table_row} of the right table "
-            f"have similarity {highlight.similarity} and, therefore, "
-            f"violate right-hand side column similarity classifier "
-            f"{column_match_name}({left_column_name}, {right_column_name})>={decision_boundary}"
+            f"{i}. Rows ({highlight.left_table_row}, {highlight.right_table_row}) have similarity {similarity}, while dependency states {column_match_name}({left_column_name}, {right_column_name})>={decision_boundary}"
         )
 
         # Alternative way: print(f"{i}.", highlight.to_string())
         # Or even print(highlight)
     print(
-        f"Desbordante suggests to use the following right-hand side decision boundary: {verifier.get_true_rhs_decision_boundary()}\n"
+        f"\nDesbordante suggests to use the following right-hand side decision boundary: {round(verifier.get_true_rhs_decision_boundary(), FLOATING_POINT_DIGITS)}.\n"
     )
-    print(f"Thus, the following MD was provided:\n  {verifier.get_input_md()}")
-    print("and the following MD is suggested:")
-    print(f"  {verifier.get_md_suggestion()}")
+    print("Thus, the following MD was provided:\n")
+    print_md(verifier.get_input_md())
+    print("\nand the following MD is suggested:\n")
+    print_md(verifier.get_md_suggestion())
+    print()
 
 
 def check_md(table: pd.DataFrame, params: MDParams):
@@ -66,15 +99,15 @@ def check_md(table: pd.DataFrame, params: MDParams):
 
 
 def animals_beverages_example():
-    print("As the first example, let's look at the animals_beverages.csv dataset\n")
+    print("As the first example, let's look at the animals_beverages.csv dataset.\n")
 
     table_path = "examples/datasets/animals_beverages.csv"
     table = pd.read_csv(table_path)
-    print(table)
+    print(table, "\n")
 
     print(
-        "\nLet's try to check if the Matching Dependency [ levenshtein(animal, animal)>=1.0 ] -> levenshtein(diet, diet)>=1.0 holds.\n"
-        "Levenshtein similarity with the decision boundary equal to 1.0 means that values must be equal.\n"
+        "Let's try to check if the Matching Dependency\n\n\t[ levenshtein(animal, animal)>=1.0 ] -> levenshtein(diet, diet)>=1.0\n\nholds. "
+        "Here, Levenshtein similarity with a decision boundary of 1.0 means values must be exactly equal.\n"
     )
 
     params = {
@@ -83,13 +116,15 @@ def animals_beverages_example():
     }
 
     check_md(table, params)
-
     print(
-        "\nThe checked Matching Dependency had the column similarity classifier with a 1.0 decision boundary on the right side. "
-        "However, records with a 0.75 similarity, which is less than the specified decision boundary, were found. Therefore checked Matching Dependency doesn't hold.\n\n"
-        "The Matching Dependency may not hold due to some sort of typo in the original dataset. "
-        "Let's relax both left and right constraints (i.e. say that if the similarity between the values in the column is at least 0.75, then values are similar enough) and check this dependency:"
-        "\n\n[ levenshtein(animal, animal)>=0.75 ] -> levenshtein(diet, diet)>=0.75.\n"
+        "The checked matching dependency used a column similarity classifier with a 1.0 decision boundary on the right side. "
+        "However, records with similarity 0.75 — which is below the specified boundary - were found. "
+        "Therefore, the checked matching dependency does not hold.\n"
+    )
+    print(
+        "The matching dependency may fail because of typos in the original dataset. "
+        "Let's relax both left and right constraints (i.e., require similarity => 0.75) and check the resulting dependency:\n"
+        "\t[ levenshtein(animal, animal)>=0.75 ] -> levenshtein(diet, diet)>=0.75\n"
     )
 
     params = {
@@ -100,13 +135,13 @@ def animals_beverages_example():
     check_md(table, params)
 
     print(
-        "We can see that the Matching Dependency [ levenshtein(animal, animal)>=0.75 ] -> levenshtein(diet, diet)>=0.75 holds.\n"
+        "We can see that the matching dependency\n\n\t[ levenshtein(animal, animal)>=0.75 ] -> levenshtein(diet, diet)>=0.75\n\nholds.\n"
     )
 
     print(
-        "Now let's take a look at what happens if we increase the decision boundary in the left-hand side and the right-hand side. "
-        "For example, we will set it to 0.76 instead of 0.75. "
-        "First, let's raise the left-hand side decision boundary:\n"
+        "Now let's look at what happens if we increase the decision boundary on both the left-hand side and the right-hand side. "
+        "For example, we'll raise it from 0.75 to 0.76. "
+        "First, let's increase the left-hand side decision boundary:\n"
     )
 
     params = {
@@ -128,17 +163,18 @@ def animals_beverages_example():
     check_md(table, params)
 
     print(
-        '\nThe values "meat" and "mead" have a similarity of 0.75 according to the Levenshtein similarity measure, but we require the similarity to be at least 0.76, so the Matching Dependency doesn\'t hold.\n'
+        'The values "meat" and "mead" have a Levenshtein similarity of 0.75, which is below the required 0.76; '
+        "therefore the matching dependency does not hold.\n"
     )
 
-    print("Let's check if that changes if we correct typos in the dataset")
+    print("Let's see whether correcting typos in the dataset changes that.\n")
 
     table["animal"] = table["animal"].replace({"beer": "bear"})
     table["diet"] = table["diet"].replace({"mead": "meat"})
 
     print(f"Corrected dataset:\n\n{table}\n")
     print(
-        "Now let's check the original Matching Dependency (with 1.0 decision boundaries) again"
+        "Now let's re-check the original matching dependency with decision boundaries set to 1.0.\n"
     )
 
     params = {
@@ -155,50 +191,48 @@ def typos_example():
     table = pd.read_csv(table_path)
     print(table)
 
-    print("\nWe already know some facts about this dataset:")
     print(
-        "1. There is only single office in every city, i. e. there is a Functional Dependency [City] -> Office Location."
-    )
-    print(
-        "2. Only managers and chiefs have high level access. For us it means that there is a Functional Dependency [Position] -> High Level Access.\n"
+        "Suppose we already know the following facts about this dataset:\n"
+        "1. Each city has a single office, i.e. there is a functional dependency [City] -> OfficeLocation.\n"
+        "2. Only managers and chiefs have high-level access, i.e. there is a functional dependency [Position] -> HighLevelAccess.\n"
     )
 
     print(
-        "As we see, this dataset contains some typos we'll try to discover and fix.\n"
+        "As we can see, this dataset contains several typos that we will attempt to detect and correct.\n"
     )
 
     print(
-        "Let's start from [City] -> Office Location dependency. For such purpose we'll examine Matching Dependency [ levenshtein(City, City)>=1.0 ] -> levenshtein(Office Location, Office Location)>=1.0:\n"
+        "Let's start with the functional dependency [City] -> OfficeLocation. "
+        "To check it, we examine the following matching dependency:\n\n\t[levenshtein(City, City)>=1.0] -> levenshtein(Office Location, Office Location)>=1.0\n"
     )
 
     params = {
         "lhs": [ColumnSimilarityClassifier(Levenshtein("City", "City", 0.0), 1.0)],
         "rhs": ColumnSimilarityClassifier(
-            Levenshtein("Office Location", "Office Location", 0.0), 1.0
+            Levenshtein("OfficeLocation", "OfficeLocation", 0.0), 1.0
         ),
     }
 
     check_md(table, params)
 
-    print(
-        "\nFrom the output we see that there are issues in records pairs (0, 1) and (2, 3). Let's take a look at values:"
-    )
+    print("The output shows issues in record pairs (0, 1) and (2, 3). Values:")
 
     for i, (left_index, right_index) in enumerate([(0, 1), (2, 3)], start=1):
         print(
-            f"{i}. record {left_index}: \"{table['Office Location'].loc[left_index]}\", record {right_index}: \"{table['Office Location'].loc[right_index]}\""
+            f"{i}. record {left_index}: \"{table['OfficeLocation'].loc[left_index]}\" - record {right_index}: \"{table['OfficeLocation'].loc[right_index]}\""
         )
 
-    print("\nNow we can see all typos:")
-
-    print('1. In record 0 there is a missing space in value "Main St.17"')
-    print('2. In record 2 there is a missing dot in value "Third St 34"\n')
+    print(
+        "\nNow we can see the typos:\n"
+        '1. Record 0: missing space in "Main St.17" (should be "Main St. 17").\n'
+        '2. Record 2: missing period in "Third St 34" (should be "Third St. 34").\n'
+    )
 
     print("Now let's fix the typos and try again:\n")
 
     fixed_table = table.copy()
 
-    fixed_table["Office Location"] = fixed_table["Office Location"].replace(
+    fixed_table["OfficeLocation"] = fixed_table["OfficeLocation"].replace(
         {"Third St 34": "Third St. 34", "Main St.17": "Main St. 17"}
     )
 
@@ -207,22 +241,22 @@ def typos_example():
     check_md(fixed_table, params)
 
     print(
-        "Also, there is another approach. If we suppose that such typos don't affect clarity of our data a lot, we can just ignore them. "
-        "As Desbordante suggests, we can use new decision boundary and examine Matching Dependency [ levenshtein(City, City)>=1.0 ] -> levenshtein(Office Location, Office Location)>=0.9:\n"
+        "Alternatively, if we consider these typos insignificant for our purposes, we can ignore them. "
+        "As Desbordante suggests, we can relax the right-hand decision boundary and check:\n\n\t[levenshtein(City, City)>=1.0] -> levenshtein(Office Location, Office Location)>=0.9\n"
     )
 
     params = {
         "lhs": [ColumnSimilarityClassifier(Levenshtein("City", "City", 0.0), 1.0)],
         "rhs": ColumnSimilarityClassifier(
-            Levenshtein("Office Location", "Office Location", 0.0), 0.9
+            Levenshtein("OfficeLocation", "OfficeLocation", 0.0), 0.9
         ),
     }
 
     check_md(table, params)
 
     print(
-        "\nLet's move onward and repeat this procedure for Functional Dependency [Position] -> High Level Access. "
-        "For such purpose we'll examine Matching Dependency [ levenshtein(Position, Position)>=1.0 ] -> levenshtein(High Level Access, High Level Access)>=1.0:\n"
+        "Let's move on and repeat the procedure for the functional dependency [Position] -> HighLevelAccess. "
+        "To check it, we examine the following matching dependency:\n\n\t[levenshtein(Position, Position)>=1.0] -> levenshtein(High Level Access, High Level Access)>=1.0\n"
     )
 
     params = {
@@ -230,64 +264,93 @@ def typos_example():
             ColumnSimilarityClassifier(Levenshtein("Position", "Position", 0.0), 1.0)
         ],
         "rhs": ColumnSimilarityClassifier(
-            Levenshtein("High Level Access", "High Level Access", 0.0), 1.0
+            Levenshtein("HighLevelAccess", "HighLevelAccess", 0.0), 1.0
         ),
     }
 
     check_md(fixed_table, params)
 
-    print("\nAs we see, there is a problem in records 1 and 4:")
     print(
-        f"1. record 1: \"{fixed_table['High Level Access'].loc[1]}\", record 4: \"{fixed_table['High Level Access'].loc[4]}\"\n"
+        "As we can see, there is a discrepancy in records 1 and 4:\n"
+        '1. record 1: "yes" - record 4: "Yes"\n'
     )
 
     print(
-        "Now we see the problem. Let's fix it and take a look at the dataset and the Matching Dependency again:\n"
+        "Now we see the problem. Let's fix it and re-check the dataset and the matching dependency:\n"
     )
 
-    fixed_table.loc[1, "High Level Access"] = "Yes"
+    fixed_table.loc[1, "HighLevelAccess"] = "Yes"
 
     print(fixed_table, "\n")
 
     check_md(fixed_table, params)
 
     print(
-        "\nIf you're attentive enough, you can see that there are still some typos in the dataset:"
-    )
-    print('1. In record 0 value "manager" should be replaced with "Manager"')
-    print('2. In record 5 value "yes" was not found during our procedure')
-
-    print("\nAs a result, we can see problems of our approach:")
-    print("1. Typos in left-hand side of dependency cannot be found")
-    print("2. Typos in records with unique left-hand side cannot be found\n")
-
-    print(
-        "There is another procedure for searching typos in the dataset. "
-        'For example, let\'s examine column "Position". '
-        "We'll start from verifying Matching Dependency [ levenshtein(Position, Position)>=1.0 ] -> levenshtein(Position, Position)>=1.0 and step by step decrease left-hand side decision bondary "
-        "until we'll find all the typos."
+        "If you look closely, there are still some typos in the dataset:\n"
+        '1. Record 0: "manager" should be "Manager".\n'
+        '2. Record 5: "yes" was missed during our procedure and should be fixed.\n'
     )
 
-    for lam in [1.0, 0.8, 0.2]:
-        print(
-            f"\nVerifying Matching Dependency [ levenshtein(Position, Position)>={lam} ] -> levenshtein(Position, Position)>=1.0:\n"
-        )
-        params = {
-            "lhs": [
-                ColumnSimilarityClassifier(
-                    Levenshtein("Position", "Position", 0.0), lam
-                )
-            ],
-            "rhs": ColumnSimilarityClassifier(
-                Levenshtein("Position", "Position", 0.0), 1.0
-            ),
-        }
-
-        check_md(fixed_table, params)
+    print(
+        "As a result, we can observe two limitations of our approach:\n"
+        "1. Typos on the left-hand side of a dependency may go undetected.\n"
+        "2. Typos in records with a unique left-hand-side value cannot be detected.\n"
+    )
 
     print(
-        "Decision boundary of 0.8 helped us to find problems in records pairs (0, 1) and (0, 4). "
-        'Record 0 has value "manager" in column "Position", so we can fix it:\n'
+        "There is an alternative approach to finding typos with MDs. "
+        'We will demonstrate it on the "Position" column: '
+        "first verify the matching dependency [levenshtein(Position, Position)>=1.0] -> levenshtein(Position, Position)>=1.0, then gradually lower the left-hand side decision boundary until all typos are discovered.\n"
+    )
+
+    print(
+        "\nVerifying the matching dependency [ levenshtein(Position, Position)>=1.0 ] -> levenshtein(Position, Position)>=1.0:\n"
+    )
+    params = {
+        "lhs": [
+            ColumnSimilarityClassifier(Levenshtein("Position", "Position", 0.0), 1.0)
+        ],
+        "rhs": ColumnSimilarityClassifier(
+            Levenshtein("Position", "Position", 0.0), 1.0
+        ),
+    }
+    check_md(fixed_table, params)
+
+    print(
+        "\nVerifying Matching Dependency [ levenshtein(Position, Position)>=0.8 ] -> levenshtein(Position, Position)>=1.0:\n"
+    )
+    params = {
+        "lhs": [
+            ColumnSimilarityClassifier(Levenshtein("Position", "Position", 0.0), 0.8)
+        ],
+        "rhs": ColumnSimilarityClassifier(
+            Levenshtein("Position", "Position", 0.0), 1.0
+        ),
+    }
+    check_md(fixed_table, params)
+
+    print("Here, with decision boundary 0.8, the first typos were found.\n")
+
+    print(
+        "Let's decrease the threshold further and see how it affects the algorithm's output.\n"
+    )
+
+    print(
+        "Verifying Matching Dependency [ levenshtein(Position, Position)>=0.2 ] -> levenshtein(Position, Position)>=1.0:\n"
+    )
+    params = {
+        "lhs": [
+            ColumnSimilarityClassifier(Levenshtein("Position", "Position", 0.0), 0.2)
+        ],
+        "rhs": ColumnSimilarityClassifier(
+            Levenshtein("Position", "Position", 0.0), 1.0
+        ),
+    }
+    check_md(fixed_table, params)
+
+    print(
+        "Invoking the algorithm with a decision boundary of 0.8 helped us locate issues in the record pairs (0, 1) and (0, 4). "
+        'Record 0 has the value "manager" (uncapitalized) in the "Position" column, so we can fix it as follows:\n'
     )
 
     fixed_table.loc[0, "Position"] = "Manager"
@@ -295,13 +358,12 @@ def typos_example():
     print(fixed_table, "\n")
 
     print(
-        "Algorithm with decision boundary of 0.2 found some wrong patterns. "
-        'For example, it counted that values "Clerk" in record 2 and "Chief" in record 5 are similar enough.\n'
+        "Invoking the algorithm with a decision boundary of 0.2 revealed some additional, but meaningless, patterns. "
+        'For example, it considered the value "Clerk" in record 2 and "Chief" in record 5 similar enough.\n'
     )
 
     print(
-        "As a result we can conclude that such approach allows to find typos without information about any dependency between columns in data, "
-        "but requires accuracy in selecting decision boundaries and analyzing the results of the algorithm.\n"
+        "As a result, we can conclude that this approach allows locating typos without prior knowledge of column dependencies, but requires care in selecting decision boundaries and in analyzing the algorithm's results.\n"
     )
 
 
@@ -312,33 +374,31 @@ def flights_example():
 
     table_path = "examples/datasets/flights_dd.csv"
     table = pd.read_csv(table_path)
-    print(table)
+    print(table, "\n")
 
     print(
-        "\nLet's imagine we want to check that if the departure city and the arrival city are the same, flight times don't differ a lot. "
-        "\nWe want to consider all Moscow's airports as similar. We need to find a decision boundary for this purpose.\n"
+        "Imagine we want to check that when the departure city and the arrival city are the same, flight times do not differ significantly. "
+        "We will treat all Moscow airports as equivalent and need to determine a decision boundary for this purpose."
     )
 
     print(
-        "Let's create copy of our table and remove the airport's literals from the Departure and Arrival columns:\n"
+        "Let's create a copy of our table and add new Departure and Arrival columns with airport codes removed:\n"
     )
 
     cities_table = table.copy()
-    cities_table["Departure_new"] = cities_table["Departure"].apply(lambda s: s[:-6])
-    cities_table["Arrival_new"] = cities_table["Arrival"].apply(lambda s: s[:-6])
-    cities_table = cities_table[
-        ["Departure", "Departure_new", "Arrival", "Arrival_new"]
-    ]
+    cities_table["NewDeparture"] = cities_table["Departure"].apply(lambda s: s[:-6])
+    cities_table["NewArrival"] = cities_table["Arrival"].apply(lambda s: s[:-6])
+    cities_table = cities_table[["Departure", "NewDeparture", "Arrival", "NewArrival"]]
 
-    print(cities_table)
+    print(cities_table, "\n")
 
     print(
-        "\nNow let's check [ equality(Departure_new, Departure_new)>=1.0 ] -> levenshtein(Departure, Departure)>=1.0:\n"
+        "Now let's check the following matching dependency:\n\n\t[ equality(Departure_new, Departure_new)>=1.0 ] -> levenshtein(Departure, Departure)>=1.0:\n"
     )
 
     params = {
         "lhs": [
-            ColumnSimilarityClassifier(Equality("Departure_new", "Departure_new"), 1.0)
+            ColumnSimilarityClassifier(Equality("NewDeparture", "NewDeparture"), 1.0)
         ],
         "rhs": ColumnSimilarityClassifier(
             Levenshtein("Departure", "Departure", 0.0), 1.0
@@ -348,15 +408,19 @@ def flights_example():
     check_md(cities_table, params)
 
     print(
-        "As we see, Desbordante suggests to use the decision boundary of 0.75 for the Departure column. For the Arrival column everything is similar.\n"
+        "As we can see, Desbordante suggests a decision boundary of 0.75 for the Departure column. For the Arrival column, all values are similar.\n"
     )
 
     print(
-        "For duration similarity measure in our example we'll use normalized_distance. normalized_distance(Duration, Duration) is a custom similarity measure we provided to the verification algorithm. "
-        "It is equal to 1 - abs(duration_1 - duration_2) / max(Duration), where duration_1 and duration_2 are the values from the Duration column. "
-        "You can see more examples of custom similarity measures in examples/basic/mining_md.py.\n\n"
-        "We will try to verify the Matching Dependency [ levenshtein(Departure, Departure)>=0.75 | levenshtein(Arrival, Arrival)>=0.75 ] -> normalized_distance(Duration, Duration)>=1.0\n"
+        "For duration similarity we use the custom measure normalized_distance, defined as normalized_distance = 1 - |duration_1 - duration_2| / max(Duration), "
+        "where duration_1 and duration_2 are values from the Duration column. "
+        "This similarity measure is supplied to the verification algorithm. "
+        "You can find more examples of custom similarity measures in examples/basic/mining_md.py.\n"
     )
+    print(
+        "We will try to verify the following matching dependency:\n\n\t[ levenshtein(Departure, Departure)>=0.75 | levenshtein(Arrival, Arrival)>=0.75 ] -> normalized_distance(Duration, Duration)>=1.0\n"
+    )
+
     max_duration = max(table["Duration"])
 
     params = {
@@ -383,63 +447,36 @@ def flights_example():
     check_md(table, params)
 
     print(
-        "The algorithm provided us with a new decision boundary for a right-hand side. Let's relax it to 0.895:\n"
-    )
-
-    params = {
-        "lhs": [
-            ColumnSimilarityClassifier(
-                Levenshtein("Departure", "Departure", 0.0), 0.75
-            ),
-            ColumnSimilarityClassifier(Levenshtein("Arrival", "Arrival", 0.0), 0.75),
-        ],
-        "rhs": ColumnSimilarityClassifier(
-            Custom(
-                lambda d1, d2: 1 - abs(int(d1) - int(d2)) / max_duration,
-                "Duration",
-                "Duration",
-                symmetrical=True,
-                equality_is_max=True,
-                measure_name="normalized_distance",
-                min_sim=0.0,
-            ),
-            0.895,
-        ),
-    }
-
-    check_md(table, params)
-
-    print(
-        "As a result, we can conclude that duration differs about 10 percent for flights with the same departure/arrival cities."
+        "As a result, we can conclude that durations differ by about 10% for flights with the same departure and arrival cities.\n"
     )
 
 
 if __name__ == "__main__":
     print(DEFAULT_COLOR_CODE)
     print(
-        "This example demonstrates how to verify Matching dependencies (MD) which are defined in 'Efficient Discovery of Matching Dependencies' "
-        "by Schirmer et al. published in ACM Transactions on Database Systems (TODS), Volume 45, Issue 3 Article No.: 13, Pages 1 - 33 using the Desbordante library.\n"
+        "This example demonstrates how to verify matching dependencies (MDs) using the Desbordante library. "
+        'Matching dependencies are defined in "Efficient Discovery of Matching Dependencies" by Schirmer et al., ACM Transactions on Database Systems (TODS), Vol. 45, No. 3, Article 13, pp. 1–33.\n'
     )
     print(
-        "The Matching Dependency verification algorithm accepts the left-hand side and right-hand side and determines if the specified dependency holds. "
-        "Also, in case the dependency doesn't hold, the algorithm returns a list of exceptions (tuples that violate the given MD) and suggests how to adjust the dependency.\n"
+        "The matching dependency verification algorithm accepts a dependency and determines whether it holds over the specified dataset. "
+        "If the dependency does not hold, the algorithm returns a list of exceptions (tuples that violate the MD) and suggests adjustments to the dependency to make it hold.\n"
     )
     print(
-        "You can also read about mining Matching Dependencies in examples/basic/mining_md.py\n"
+        "You can also read about mining matching dependencies in examples/basic/mining_md.py.\n"
     )
-
     print(
-        "To verify a Matching Dependency, we must first define Column Similarity Classifiers for the data. "
-        "A Column Similarity Classifier consists of a Column Match and a decision boundary. "
-        "A Column Match consists of two column identifiers (index or name) for the columns in the left and right tables and a similarity measure (Levenshtein Similarity, for example).\n\n"
-        "We will use the notation [measure(i, j) >= lambda] for a Column Similarity Classifier that specifies the i-th column of the left table, the j-th column of the right table, the similarity measure 'measure' and the decision boundary 'lambda'. "
-        'Notation like [measure("left_col_name", "right_col_name") >= lambda] is also valid for a Column Match specifying the columns "left_col_name" and "right_col_name" of the left and right tables respectively.\n'
+        "To verify a matching dependency, first define column similarity classifiers (CSCs). "
+        "A CSC consists of a column match (CM) and a decision boundary. "
+        "A CM specifies two column identifiers (index or name) - one from the left table and one from the right - and a similarity measure (for example, Levenshtein similarity).\n"
     )
-
     print(
-        "Also, the algorithm is defined over two tables: the left table and the right table. "
-        "For simplicity of the example, we will use only one table (right table = left table). "
-        "You can read more about the two tables in the original article."
+        'We use the notation [measure(i, j)>=lambda] for a column similarity classifier that specifies the i-th column of the left table, the j-th column of the right table, the similarity measure "measure", and the decision boundary lambda. '
+        'The notation [measure("left_col_name", "right_col_name")>=lambda] is also valid for a column match that specifies the columns "left_col_name" and "right_col_name" of the left and right tables, respectively.\n'
+    )
+    print(
+        "Finally, the algorithm is defined over two tables: the left table and the right table. "
+        "For simplicity in this example we use a single table (right table = left table). "
+        "See the original paper for details on the two-table setting.\n"
     )
 
     animals_beverages_example()
@@ -449,6 +486,6 @@ if __name__ == "__main__":
     flights_example()
 
     print(
-        "In conclusion, Matching Dependencies verification algorithm can be helpful in analyzing data, extracting facts and searching typos. "
-        "It is powerful primitive, but requires to experiment with decision boundaries and similarity measures."
+        "In conclusion, the matching dependency verification algorithm can be helpful for analyzing data, extracting facts, and finding typos. "
+        "It is a powerful pattern but requires experimentation with decision boundaries and similarity measures.\n"
     )
