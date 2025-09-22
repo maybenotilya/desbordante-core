@@ -41,9 +41,9 @@ private:
 
     ColumnInfoView GetColumnInfo(hymd::ColumnMatchInfo const& column_match_info);
 
-    void ProcessUnmatchedPairs(hymd::ColumnMatchInfo const& column_match_info,
-                               model::md::DecisionBoundary decision_boundary,
-                               auto&& for_each_cluster_pair);
+    void ProcessNonMatchedPairs(hymd::ColumnMatchInfo const& column_match_info,
+                                model::md::DecisionBoundary decision_boundary,
+                                auto&& for_each_cluster_pair);
 
     void RemoveNonMatchedLhsPairs(hymd::ColumnMatchInfo const& column_match_info,
                                   model::md::DecisionBoundary decision_boundary);
@@ -60,8 +60,8 @@ private:
                                hymd::indexes::PliCluster const& right_cluster,
                                model::md::Similarity rhs_similarity);
 
-    void FindRhsUnmatchedPairs(std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos);
-    void FindAllLhsUnmatchedPairs(
+    void FindRhsNonMatchedPairs(std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos);
+    void FindAllLhsNonMatchedPairs(
             std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos);
     void ConstructResults();
     void FindTrueRhsDecisionBoundary();

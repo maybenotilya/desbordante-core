@@ -51,9 +51,9 @@ ColumnInfoView MDValidationCalculator::GetColumnInfo(
             column_match_info.similarity_info.similarity_matrix};
 }
 
-void MDValidationCalculator::ProcessUnmatchedPairs(hymd::ColumnMatchInfo const& column_match_info,
-                                                   model::md::DecisionBoundary decision_boundary,
-                                                   auto&& for_each_unmatched) {
+void MDValidationCalculator::ProcessNonMatchedPairs(hymd::ColumnMatchInfo const& column_match_info,
+                                                    model::md::DecisionBoundary decision_boundary,
+                                                    auto&& for_each_non_matched) {
     auto const& [left_clusters, right_clusters, similarity_matrix] =
             GetColumnInfo(column_match_info);
     for (hymd::ValueIdentifier left_value_id : hymd::utility::IndexRange(left_clusters.size())) {
@@ -68,8 +68,8 @@ void MDValidationCalculator::ProcessUnmatchedPairs(hymd::ColumnMatchInfo const& 
                 similarity = column_match_info.similarity_info.classifier_values[ccv_id];
             }
             if (similarity < decision_boundary) {
-                for_each_unmatched(left_clusters[left_value_id], right_clusters[right_value_id],
-                                   similarity);
+                for_each_non_matched(left_clusters[left_value_id], right_clusters[right_value_id],
+                                     similarity);
             }
         }
     }
@@ -78,13 +78,13 @@ void MDValidationCalculator::ProcessUnmatchedPairs(hymd::ColumnMatchInfo const& 
 void MDValidationCalculator::RemoveNonMatchedLhsPairs(
         hymd::ColumnMatchInfo const& column_match_info,
         model::md::DecisionBoundary decision_boundary) {
-    auto remove_unmatched = [this](hymd::indexes::PliCluster left_cluster,
-                                   hymd::indexes::PliCluster right_cluster,
-                                   [[maybe_unused]] model::md::Similarity similarity) {
+    auto remove_non_matched = [this](hymd::indexes::PliCluster left_cluster,
+                                     hymd::indexes::PliCluster right_cluster,
+                                     model::md::Similarity) {
         violating_records_.DeleteClusters(left_cluster, right_cluster);
     };
 
-    ProcessUnmatchedPairs(column_match_info, decision_boundary, remove_unmatched);
+    ProcessNonMatchedPairs(column_match_info, decision_boundary, remove_non_matched);
 }
 
 void MDValidationCalculator::RemoveNonMatchedLhsPairsTrivial(
@@ -99,14 +99,14 @@ void MDValidationCalculator::RemoveNonMatchedLhsPairsTrivial(
 void MDValidationCalculator::InsertNonMatchedRhsPairsAndProcessViolations(
         hymd::ColumnMatchInfo const& column_match_info,
         model::md::DecisionBoundary decision_boundary) {
-    auto add_unmatched = [this](hymd::indexes::PliCluster left_cluster,
-                                hymd::indexes::PliCluster right_cluster,
-                                model::md::Similarity similarity) {
+    auto add_non_matched = [this](hymd::indexes::PliCluster left_cluster,
+                                  hymd::indexes::PliCluster right_cluster,
+                                  model::md::Similarity similarity) {
         violating_records_.InsertClusters(left_cluster, right_cluster);
         InsertRhsSimilarities(left_cluster, right_cluster, similarity);
     };
 
-    ProcessUnmatchedPairs(column_match_info, decision_boundary, add_unmatched);
+    ProcessNonMatchedPairs(column_match_info, decision_boundary, add_non_matched);
 }
 
 void MDValidationCalculator::InsertNonMatchedRhsPairsAndProcessViolationsTrivial(
@@ -152,7 +152,7 @@ void MDValidationCalculator::FindTrueRhsDecisionBoundary() {
     }
 }
 
-void MDValidationCalculator::FindRhsUnmatchedPairs(
+void MDValidationCalculator::FindRhsNonMatchedPairs(
         std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos) {
     OneOfColumnMatchInfo const& rhs_column_match_info =
             column_matches_similarity_infos[rhs_column_similarity_classifier_
@@ -172,7 +172,7 @@ void MDValidationCalculator::FindRhsUnmatchedPairs(
                rhs_column_match_info);
 }
 
-void MDValidationCalculator::FindAllLhsUnmatchedPairs(
+void MDValidationCalculator::FindAllLhsNonMatchedPairs(
         std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos) {
     for (model::Index lhs_index = 0; lhs_index < lhs_column_similarity_classifiers_.size();
          ++lhs_index) {
@@ -204,8 +204,8 @@ void MDValidationCalculator::Validate(util::WorkerThreadPool* thread_pool) {
     std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos =
             CreateColumnMatchesSimilarityInfos(similarity_data);
 
-    FindRhsUnmatchedPairs(column_matches_similarity_infos);
-    FindAllLhsUnmatchedPairs(column_matches_similarity_infos);
+    FindRhsNonMatchedPairs(column_matches_similarity_infos);
+    FindAllLhsNonMatchedPairs(column_matches_similarity_infos);
 
     ConstructResults();
 }
