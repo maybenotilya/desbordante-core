@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "algorithms/md/hymd/table_identifiers.h"
 #include "algorithms/md/md.h"
 #include "algorithms/md/similarity.h"
 #include "config/indices/type.h"
