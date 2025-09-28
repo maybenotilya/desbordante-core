@@ -19,8 +19,8 @@ using namespace algos::hymd::preprocessing;
 
 void BindHighlights(py::module& md_module) {
     py::class_<MDHighlights::Highlight>(md_module, "Highlight")
-            .def_readonly("left_table_row", &MDHighlights::Highlight::left_table_row)
-            .def_readonly("right_table_row", &MDHighlights::Highlight::right_table_row)
+            .def_readonly("left_record_id", &MDHighlights::Highlight::left_record_id)
+            .def_readonly("right_record_id", &MDHighlights::Highlight::right_record_id)
             .def_readonly("similarity", &MDHighlights::Highlight::similarity)
             .def_property_readonly(
                     "rhs_desc",

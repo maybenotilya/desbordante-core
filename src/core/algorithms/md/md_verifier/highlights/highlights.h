@@ -3,7 +3,6 @@
 #include <sstream>
 
 #include "algorithms/md/md.h"
-#include "algorithms/md/md_verifier/validation/records_pairs.h"
 #include "algorithms/md/similarity.h"
 #include "config/indices/type.h"
 #include "model/index.h"

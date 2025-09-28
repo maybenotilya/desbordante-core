@@ -78,7 +78,7 @@ def print_results(verifier):
         decision_boundary = round(rhs_desc.decision_boundary, FLOATING_POINT_DIGITS)
 
         print(
-            f"{i}. Rows ({highlight.left_table_row}, {highlight.right_table_row}) have similarity {similarity}, while dependency states {column_match_name}({left_column_name}, {right_column_name})>={decision_boundary}"
+            f"{i}. Records ({highlight.left_record_id}, {highlight.right_record_id}) have similarity {similarity}, while dependency states {column_match_name}({left_column_name}, {right_column_name})>={decision_boundary}"
         )
 
         # Alternative way: print(f"{i}.", highlight.to_string())

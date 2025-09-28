@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <variant>
 #include <vector>
 
@@ -7,12 +8,11 @@
 #include "algorithms/md/column_similarity_classifier.h"
 #include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/hymd/column_match_info.h"
+#include "algorithms/md/hymd/similarity_data.h"
 #include "algorithms/md/md_verifier/cmptr.h"
 #include "algorithms/md/md_verifier/highlights/highlights.h"
-#include "algorithms/md/md_verifier/validation/records_pairs.h"
 #include "algorithms/md/similarity.h"
 #include "config/tabular_data/input_table_type.h"
-#include "model/table/column_layout_typed_relation_data.h"
 
 namespace algos::md {
 
@@ -27,8 +27,8 @@ private:
     // Column Matches and Column Similarity Classifiers for both rhs and lhs are being stored in the
     // same vector. Last elements of such vectors reffers to rhs, others to lhs
     std::vector<CMPtr> column_matches_;
-    std::vector<bool> non_informative_lhs_classifiers;  // Indicates whenever lhs classifier is non
-                                                        // informative
+    std::vector<bool> non_informative_lhs_classifiers_;  // Indicates whenever lhs classifier is non
+                                                         // informative
     std::vector<model::md::ColumnSimilarityClassifier> column_similarity_classifiers_;
     std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos_;
 
@@ -41,6 +41,9 @@ private:
     std::shared_ptr<MDHighlights> highlights_;
 
     model::Index GetStartingLhsClassifierIndex() {
+        if (starting_lhs_classifier_index_ >= column_similarity_classifiers_.size() - 1) {
+            throw std::logic_error("Incorrect Lhs Classifier index");
+        }
         return starting_lhs_classifier_index_;
     }
 
@@ -77,7 +80,7 @@ public:
             model::Index starting_lhs_classifier_index,
             std::shared_ptr<MDHighlights> const& highlights)
         : column_matches_(std::move(column_matches)),
-          non_informative_lhs_classifiers(column_similarity_classifiers.size() - 1, false),
+          non_informative_lhs_classifiers_(column_similarity_classifiers.size() - 1, false),
           column_similarity_classifiers_(std::move(column_similarity_classifiers)),
           starting_lhs_classifier_index_(starting_lhs_classifier_index),
           true_rhs_decision_boundary_(column_similarity_classifiers.back().GetDecisionBoundary()),

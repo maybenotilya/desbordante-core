@@ -7,7 +7,6 @@
 #include "algorithms/md/hymd/indexes/records_info.h"
 #include "algorithms/md/hymd/similarity_data.h"
 #include "algorithms/md/hymd/utility/index_range.h"
-#include "algorithms/md/md_verifier/validation/records_pairs.h"
 #include "util/worker_thread_pool.h"
 
 namespace algos::md {
@@ -117,7 +116,7 @@ void MDValidationCalculator::ValidateAllLhsForRecordsPair(hymd::RecordIdentifier
                                                           hymd::RecordIdentifier right_record_id) {
     auto validate_fn = [&](model::Index lhs_classifier_index) {
         if (lhs_classifier_index == GetStartingLhsClassifierIndex() ||
-            non_informative_lhs_classifiers[lhs_classifier_index]) {
+            non_informative_lhs_classifiers_[lhs_classifier_index]) {
             return true;
         }
         return ValidateLhsClassifierForPair(left_record_id, right_record_id, lhs_classifier_index);
@@ -190,7 +189,7 @@ bool MDValidationCalculator::ValidateLhsClassifierForPair(hymd::RecordIdentifier
                                                           hymd::RecordIdentifier right_record_id,
                                                           model::Index lhs_classifier_index) {
     auto on_lesser_boundary = [&]() {
-        non_informative_lhs_classifiers[lhs_classifier_index] = true;
+        non_informative_lhs_classifiers_[lhs_classifier_index] = true;
         return true;
     };
 
