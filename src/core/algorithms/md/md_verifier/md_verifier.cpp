@@ -149,13 +149,14 @@ MDValidationCalculator MDVerifier::CreateValidator() const {
 
     MDValidationCalculator validator(left_table_, right_table_, std::move(column_matches),
                                      std::move(lhs_column_similarity_classifiers),
-                                     std::move(rhs_column_similarity_classifier));
+                                     std::move(rhs_column_similarity_classifier), 0, highlights_);
 
     return validator;
 }
 
 void MDVerifier::VerifyMD() {
     input_md_ = BuildMD(lhs_, rhs_);
+    highlights_ = std::make_shared<MDHighlights>(input_md_->GetDescription().rhs);
 
     std::optional<util::WorkerThreadPool> pool;
     if (threads_ > 1) {
@@ -171,10 +172,6 @@ void MDVerifier::VerifyMD() {
 
     md_suggestion_ = BuildMD(
             lhs_, ColumnSimilarityClassifier(rhs_.GetColumnMatch(), true_rhs_decision_boundary_));
-
-    highlights_ = MDHighlights::CreateFrom(input_md_->GetDescription().rhs,
-                                           validator.GetViolatingRecordsPairs(),
-                                           validator.GetRhsPairsToSimilarityMapping());
 }
 
 }  // namespace algos::md

@@ -8,6 +8,7 @@
 #include "algorithms/md/decision_boundary.h"
 #include "algorithms/md/hymd/column_match_info.h"
 #include "algorithms/md/md_verifier/cmptr.h"
+#include "algorithms/md/md_verifier/highlights/highlights.h"
 #include "algorithms/md/md_verifier/validation/records_pairs.h"
 #include "algorithms/md/similarity.h"
 #include "config/tabular_data/input_table_type.h"
@@ -27,56 +28,82 @@ using OneOfColumnMatchInfo = std::variant<hymd::ColumnMatchInfo, TrivialColumnMa
 class MDValidationCalculator {
 private:
     std::unique_ptr<hymd::indexes::RecordsInfo> records_info_;
+    std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos_;
 
     std::vector<CMPtr> column_matches_;
+    std::vector<bool> non_informative_lhs_classifiers;  // Indicates whenever lhs classifier is non
+                                                        // informative
     std::vector<model::md::ColumnSimilarityClassifier> lhs_column_similarity_classifiers_;
     model::md::ColumnSimilarityClassifier rhs_column_similarity_classifier_;
+    model::Index starting_lhs_classifier_index_ = 0;
 
-    bool holds_;
+    bool holds_ = true;
+    bool validation_finished_ = false;
 
     model::md::DecisionBoundary true_rhs_decision_boundary_;
+    std::shared_ptr<MDHighlights> highlights_;
 
-    ViolatingRecordsPairsSet violating_records_;
-    RecordsPairToSimilarityMap rhs_records_pair_to_similarity_;
+    void FindAllNonMatchedPairs();
 
-    ColumnInfoView GetColumnInfo(hymd::ColumnMatchInfo const& column_match_info);
+    model::Index GetStartingLhsClassifierIndex() {
+        return starting_lhs_classifier_index_;
+    }
 
-    void ProcessNonMatchedPairs(hymd::ColumnMatchInfo const& column_match_info,
-                                model::md::DecisionBoundary decision_boundary,
-                                auto&& for_each_cluster_pair);
+    void ExecuteValidationFrom(hymd::ColumnMatchInfo column_match_info,
+                               model::md::DecisionBoundary decision_boundary);
+    void ExecuteValidationFromTrivial(model::md::Similarity similarity,
+                                      model::md::DecisionBoundary decision_boundary);
 
-    void RemoveNonMatchedLhsPairs(hymd::ColumnMatchInfo const& column_match_info,
-                                  model::md::DecisionBoundary decision_boundary);
-    void RemoveNonMatchedLhsPairsTrivial(model::md::Similarity similarity,
-                                         model::md::DecisionBoundary decision_boundary);
+    void ValidateAllLhsForRecordsPair(hymd::RecordIdentifier left_record_id,
+                                      hymd::RecordIdentifier right_record_id);
+    void ValidateRhsForRecordsPair(hymd::RecordIdentifier left_record_id,
+                                   hymd::RecordIdentifier right_record_id);
 
-    void InsertNonMatchedRhsPairsAndProcessViolations(
-            hymd::ColumnMatchInfo const& column_match_info,
-            model::md::DecisionBoundary decision_boundary);
-    void InsertNonMatchedRhsPairsAndProcessViolationsTrivial(
-            model::md::Similarity similarity, model::md::DecisionBoundary decision_boundary);
+    bool ValidateClassifierForPair(hymd::RecordIdentifier left_record_id,
+                                   hymd::RecordIdentifier right_record_id,
+                                   hymd::ColumnMatchInfo column_match_info,
+                                   model::md::DecisionBoundary decision_boundary,
+                                   auto&& on_lesser_boundary, auto&& on_greater_boundary);
+    bool ValidateClassifierForPairTrivial(model::md::Similarity similarity,
+                                          model::md::DecisionBoundary decision_boundary,
+                                          auto&& on_lesser_boundary, auto&& on_greater_boundary);
 
-    void InsertRhsSimilarities(hymd::indexes::PliCluster const& left_cluster,
-                               hymd::indexes::PliCluster const& right_cluster,
-                               model::md::Similarity rhs_similarity);
+    bool ValidateLhsClassifierForPair(hymd::RecordIdentifier left_record_id,
+                                      hymd::RecordIdentifier right_record_id,
+                                      hymd::ColumnMatchInfo column_match_info,
+                                      model::md::DecisionBoundary decision_boundary);
+    bool ValidateLhsClassifierForPairTrivial(model::md::Similarity similarity,
+                                             model::md::DecisionBoundary decision_boundary);
 
-    void FindRhsNonMatchedPairs(std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos);
-    void FindAllLhsNonMatchedPairs(
-            std::vector<OneOfColumnMatchInfo> column_matches_similarity_infos);
-    void ConstructResults();
-    void FindTrueRhsDecisionBoundary();
+    bool ValidateRhsClassifierForPair(hymd::RecordIdentifier left_record_id,
+                                      hymd::RecordIdentifier right_record_id,
+                                      hymd::ColumnMatchInfo column_match_info,
+                                      model::md::DecisionBoundary decision_boundary);
+    bool ValidateRhsClassifierForPairTrivial(model::md::Similarity similarity,
+                                             model::md::DecisionBoundary decision_boundary);
+
+    void CreateColumnMatchesSimilarityInfos(hymd::SimilarityData const& similarity_data);
+
+    model::md::Similarity GetRecordsPairSimilarity(hymd::RecordIdentifier left_record_id,
+                                                   hymd::RecordIdentifier right_record_id,
+                                                   OneOfColumnMatchInfo column_match_info);
 
 public:
     MDValidationCalculator(
             config::InputTable const& left_table, config::InputTable const& right_table,
-            std::vector<CMPtr> column_matches,
-            std::vector<model::md::ColumnSimilarityClassifier> lhs_column_similarity_classifiers,
-            model::md::ColumnSimilarityClassifier rhs_column_similarity_classifier)
+            std::vector<CMPtr> const& column_matches,
+            std::vector<model::md::ColumnSimilarityClassifier> const&
+                    lhs_column_similarity_classifiers,
+            model::md::ColumnSimilarityClassifier const& rhs_column_similarity_classifier,
+            model::Index starting_lhs_classifier_index,
+            std::shared_ptr<MDHighlights> const& highlights)
         : column_matches_(std::move(column_matches)),
+          non_informative_lhs_classifiers(lhs_column_similarity_classifiers.size(), false),
           lhs_column_similarity_classifiers_(std::move(lhs_column_similarity_classifiers)),
           rhs_column_similarity_classifier_(std::move(rhs_column_similarity_classifier)),
-          holds_(true),
-          true_rhs_decision_boundary_(rhs_column_similarity_classifier_.GetDecisionBoundary()) {
+          starting_lhs_classifier_index_(starting_lhs_classifier_index),
+          true_rhs_decision_boundary_(rhs_column_similarity_classifier_.GetDecisionBoundary()),
+          highlights_(highlights) {
         if (right_table == nullptr) {
             records_info_ = hymd::indexes::RecordsInfo::CreateFrom(*left_table);
         } else {
@@ -92,14 +119,6 @@ public:
 
     model::md::DecisionBoundary GetTrueRhsDecisionBoundary() const {
         return true_rhs_decision_boundary_;
-    }
-
-    RecordsPairsSet const& GetViolatingRecordsPairs() const {
-        return violating_records_.GetPairs();
-    }
-
-    RecordsPairToSimilarityMap const& GetRhsPairsToSimilarityMapping() const {
-        return rhs_records_pair_to_similarity_;
     }
 };
 }  // namespace algos::md

@@ -33,7 +33,7 @@ private:
     bool md_holds_ = false;
     model::md::DecisionBoundary true_rhs_decision_boundary_;
 
-    MDHighlights highlights_;
+    std::shared_ptr<MDHighlights> highlights_;
 
     config::ThreadNumType threads_;
 
@@ -80,11 +80,11 @@ public:
     }
 
     std::vector<MDHighlights::Highlight> const& GetHighlights() const {
-        return highlights_.GetHighlights();
+        return highlights_->GetHighlights();
     }
 
     std::vector<MDHighlights::Highlight> GetHighlightsCopy() const {
-        return highlights_.GetHighlights();
+        return highlights_->GetHighlights();
     }
 };
 

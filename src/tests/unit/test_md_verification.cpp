@@ -98,6 +98,13 @@ TEST_P(TestMDVerifierHighlights, DefaultCase) {
 
     ASSERT_EQ(GetParam().expected, md_result);
     std::vector<Highlight> highlights = verifier->GetHighlights();
+    for (Highlight const& highlight : highlights) {
+        std::cout << highlight.ToString() << std::endl;
+    }
+    std::cout << "-------------------" << std::endl;
+    for (auto const& highlight : GetParam().highlights) {
+        std::cout << highlight << std::endl;
+    }
     ASSERT_EQ(highlights.size(), GetParam().highlights.size());
     for (Highlight const& highlight : highlights) {
         ASSERT_TRUE(GetParam().highlights.contains(highlight.ToString()));
@@ -302,11 +309,9 @@ INSTANTIATE_TEST_SUITE_P(
                                         0.0),
                                 0.5),
                         false,
-                        {"Rows 2 of the left table and 3 of the right table have similarity 0.2 "
-                         "and violate right-hand side column similarity classifier "
+                        {"Rows (2, 3) have similarity 0.2, while dependency states "
                          "levenshtein(name, name)>=0.5",
-                         "Rows 3 of the left table and 2 of the right table have similarity 0.2 "
-                         "and violate right-hand side column similarity classifier "
+                         "Rows (3, 2) have similarity 0.2, while dependency states "
                          "levenshtein(name, name)>=0.5"}),
                 MDVerifierHighlightsParams(
                         kAnimalsBeverages,
@@ -338,11 +343,9 @@ INSTANTIATE_TEST_SUITE_P(
                                         0.0),
                                 0.75 + kEps),
                         false,
-                        {"Rows 0 of the left table and 1 of the right table have similarity 0.75 "
-                         "and violate right-hand side column similarity classifier "
+                        {"Rows (0, 1) have similarity 0.75, while dependency states "
                          "levenshtein(diet, diet)>=0.75",
-                         "Rows 1 of the left table and 0 of the right table have similarity 0.75 "
-                         "and violate right-hand side column similarity classifier "
+                         "Rows (1, 0) have similarity 0.75, while dependency states "
                          "levenshtein(diet, diet)>=0.75"}),
                 MDVerifierHighlightsParams(
                         kMDTrivial,
@@ -374,9 +377,8 @@ INSTANTIATE_TEST_SUITE_P(
                                         0.0),
                                 1.0),
                         false,
-                        {"Rows 0 of the left table and 0 of the right table have similarity 0 and "
-                         "violate right-hand side column similarity classifier levenshtein(animal, "
-                         "diet)>=1"})));
+                        {"Rows (0, 0) have similarity 0, while dependency states "
+                         "levenshtein(animal, diet)>=1"})));
 
 INSTANTIATE_TEST_SUITE_P(
         TestMDVerifierSuggestionsSuite, TestMDVerifierSuggestions,
