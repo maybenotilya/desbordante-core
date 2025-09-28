@@ -135,21 +135,19 @@ MDValidationCalculator MDVerifier::CreateValidator() const {
                            &ColumnSimilarityClassifier::GetColumnMatch);
     column_matches.emplace_back(rhs_.GetColumnMatch());
 
-    std::vector<model::md::ColumnSimilarityClassifier> lhs_column_similarity_classifiers;
-    lhs_column_similarity_classifiers.reserve(lhs_.size());
+    std::vector<model::md::ColumnSimilarityClassifier> column_similarity_classifiers;
+    column_similarity_classifiers.reserve(lhs_.size() + 1);
 
     model::Index column_match_current_index = 0;
     for (ColumnSimilarityClassifier const& classifier : lhs_) {
-        lhs_column_similarity_classifiers.emplace_back(column_match_current_index++,
-                                                       classifier.GetDecisionBoundary());
+        column_similarity_classifiers.emplace_back(column_match_current_index++,
+                                                   classifier.GetDecisionBoundary());
     }
-
-    model::md::ColumnSimilarityClassifier rhs_column_similarity_classifier(
-            column_match_current_index, rhs_.GetDecisionBoundary());
+    column_similarity_classifiers.emplace_back(column_match_current_index,
+                                               rhs_.GetDecisionBoundary());
 
     MDValidationCalculator validator(left_table_, right_table_, std::move(column_matches),
-                                     std::move(lhs_column_similarity_classifiers),
-                                     std::move(rhs_column_similarity_classifier), 0, highlights_);
+                                     std::move(column_similarity_classifiers), 0, highlights_);
 
     return validator;
 }
