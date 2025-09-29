@@ -18,8 +18,8 @@ void MDValidationCalculator::Validate(util::WorkerThreadPool* thread_pool) {
 
     CreateColumnMatchesSimilarityInfos(similarity_data);
 
-    model::Index starting_classifier_index = GetStartingLhsClassifierIndex();
-    ExecuteValidationFrom(starting_classifier_index);
+    SelectStartingLhsClassifierIndex();
+    ExecuteValidationFrom(starting_lhs_classifier_index_);
 
     validation_finished_ = true;
 }
@@ -115,7 +115,7 @@ void MDValidationCalculator::ExecuteValidationFrom(model::Index lhs_classifier_i
 void MDValidationCalculator::ValidateAllLhsForRecordsPair(hymd::RecordIdentifier left_record_id,
                                                           hymd::RecordIdentifier right_record_id) {
     auto validate_fn = [&](model::Index lhs_classifier_index) {
-        if (lhs_classifier_index == GetStartingLhsClassifierIndex() ||
+        if (lhs_classifier_index == starting_lhs_classifier_index_ ||
             non_informative_lhs_classifiers_[lhs_classifier_index]) {
             return true;
         }

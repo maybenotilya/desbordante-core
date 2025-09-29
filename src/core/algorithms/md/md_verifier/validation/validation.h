@@ -40,11 +40,9 @@ private:
     model::md::DecisionBoundary true_rhs_decision_boundary_;
     std::shared_ptr<MDHighlights> highlights_;
 
-    model::Index GetStartingLhsClassifierIndex() {
-        if (starting_lhs_classifier_index_ >= column_similarity_classifiers_.size() - 1) {
-            throw std::logic_error("Incorrect Lhs Classifier index");
-        }
-        return starting_lhs_classifier_index_;
+    void SelectStartingLhsClassifierIndex() {
+        // For now, it just select the first classifier
+        starting_lhs_classifier_index_ = 0;
     }
 
     void ExecuteValidationFrom(model::Index lhs_classifier_index);
@@ -77,12 +75,10 @@ public:
             config::InputTable const& left_table, config::InputTable const& right_table,
             std::vector<CMPtr> const& column_matches,
             std::vector<model::md::ColumnSimilarityClassifier> const& column_similarity_classifiers,
-            model::Index starting_lhs_classifier_index,
             std::shared_ptr<MDHighlights> const& highlights)
         : column_matches_(std::move(column_matches)),
           non_informative_lhs_classifiers_(column_similarity_classifiers.size() - 1, false),
           column_similarity_classifiers_(std::move(column_similarity_classifiers)),
-          starting_lhs_classifier_index_(starting_lhs_classifier_index),
           true_rhs_decision_boundary_(column_similarity_classifiers.back().GetDecisionBoundary()),
           highlights_(highlights) {
         if (right_table == nullptr) {

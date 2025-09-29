@@ -147,7 +147,7 @@ MDValidationCalculator MDVerifier::CreateValidator() const {
                                                rhs_.GetDecisionBoundary());
 
     MDValidationCalculator validator(left_table_, right_table_, std::move(column_matches),
-                                     std::move(column_similarity_classifiers), 0, highlights_);
+                                     std::move(column_similarity_classifiers), highlights_);
 
     return validator;
 }
