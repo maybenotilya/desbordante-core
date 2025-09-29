@@ -24,6 +24,23 @@ void MDValidationCalculator::Validate(util::WorkerThreadPool* thread_pool) {
     validation_finished_ = true;
 }
 
+void MDValidationCalculator::SelectStartingLhsClassifierIndex() {
+    // Heuristic: select first non trivial column match
+    auto predicate = [](OneOfColumnMatchInfo const& column_match_info) {
+        return std::holds_alternative<hymd::ColumnMatchInfo>(column_match_info);
+    };
+    auto it = std::find_if(column_matches_similarity_infos_.begin(),
+                           column_matches_similarity_infos_.end() - 1, predicate);
+
+    if (it == column_matches_similarity_infos_.end() - 1) {
+        // If none found, then first classifier
+        starting_lhs_classifier_index_ = 0;
+        return;
+    }
+
+    starting_lhs_classifier_index_ = std::distance(column_matches_similarity_infos_.begin(), it);
+}
+
 void MDValidationCalculator::CreateColumnMatchesSimilarityInfos(
         hymd::SimilarityData const& similarity_data) {
     std::vector<hymd::ColumnMatchInfo> const& non_trivial_column_matches_info =

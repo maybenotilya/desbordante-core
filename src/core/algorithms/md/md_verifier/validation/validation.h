@@ -40,10 +40,7 @@ private:
     model::md::DecisionBoundary true_rhs_decision_boundary_;
     std::shared_ptr<MDHighlights> highlights_;
 
-    void SelectStartingLhsClassifierIndex() {
-        // For now, it just select the first classifier
-        starting_lhs_classifier_index_ = 0;
-    }
+    void SelectStartingLhsClassifierIndex();
 
     void ExecuteValidationFrom(model::Index lhs_classifier_index);
 
