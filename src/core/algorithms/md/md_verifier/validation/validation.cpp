@@ -267,7 +267,7 @@ model::md::Similarity MDValidationCalculator::GetRecordsPairSimilarity(
 
         model::md::Similarity similarity = 0.0;
         if (auto it = sim_matrix_row.find(right_value_id); it != sim_matrix_row.end()) {
-            hymd::ColumnClassifierValueId ccv_id = (*it).second;
+            hymd::ColumnClassifierValueId ccv_id = it->second;
             similarity = column_match_info.similarity_info.classifier_values[ccv_id];
         }
 
