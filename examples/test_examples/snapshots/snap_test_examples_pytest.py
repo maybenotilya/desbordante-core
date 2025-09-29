@@ -3947,7 +3947,7 @@ Typo candidates and context:
 7  ddba9118-ec89-472d-9f3f-bebd919f0e3a  William Robinson      Galen Calella  Yogatacular    975            Store Manager
 '''
 
-snapshots['test_example[basic/verifying_md.py-None-verifying_md_output] verifying_md_output'] = '''\x1b1;49m
+snapshots['test_example[basic/verifying_md.py-None-verifying_md_output] verifying_md_output'] = '''\x1b[1;49m
 This example demonstrates how to verify matching dependencies (MDs) using the Desbordante library. Matching dependencies are defined in "Efficient Discovery of Matching Dependencies" by Schirmer et al., ACM Transactions on Database Systems (TODS), Vol. 45, No. 3, Article 13, pp. 1–33.
 
 The matching dependency verification algorithm accepts a dependency and determines whether it holds over the specified dataset. If the dependency does not hold, the algorithm returns a list of exceptions (tuples that violate the MD) and suggests adjustments to the dependency to make it hold.
@@ -3974,7 +3974,7 @@ Let's try to check if the Matching Dependency
 
 holds. Here, Levenshtein similarity with a decision boundary of 1.0 means values must be exactly equal.
 
-\x1b1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b1;49m
+\x1b[1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b[1;49m
 1. Records (0, 1) have similarity 0.75, while dependency states levenshtein(diet, diet)>=1.0
 2. Records (1, 0) have similarity 0.75, while dependency states levenshtein(diet, diet)>=1.0
 
@@ -3994,7 +3994,7 @@ The matching dependency may fail because of typos in the original dataset. Let's
 
 	[ levenshtein(animal, animal)>=0.75 ] -> levenshtein(diet, diet)>=0.75
 
-\x1b1;42mMD holds\x1b1;49m
+\x1b[1;42mMD holds\x1b[1;49m
 
 We can see that the matching dependency
 
@@ -4004,11 +4004,11 @@ holds.
 
 Now let's look at what happens if we increase the decision boundary on both the left-hand side and the right-hand side. For example, we'll raise it from 0.75 to 0.76. First, let's increase the left-hand side decision boundary:
 
-\x1b1;42mMD holds\x1b1;49m
+\x1b[1;42mMD holds\x1b[1;49m
 
 As we can see, nothing changed. Now let's raise the right-hand side decision boundary:
 
-\x1b1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b1;49m
+\x1b[1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b[1;49m
 1. Records (0, 1) have similarity 0.75, while dependency states levenshtein(diet, diet)>=0.76
 2. Records (1, 0) have similarity 0.75, while dependency states levenshtein(diet, diet)>=0.76
 
@@ -4036,7 +4036,7 @@ Corrected dataset:
 
 Now let's re-check the original matching dependency with decision boundaries set to 1.0.
 
-\x1b1;42mMD holds\x1b1;49m
+\x1b[1;42mMD holds\x1b[1;49m
 
 ---------------------------------------------------------------------------------------------------- 
 
@@ -4060,7 +4060,7 @@ Let's start with the functional dependency [City] -> OfficeLocation. To check it
 
 	[levenshtein(City, City)>=1.0] -> levenshtein(Office Location, Office Location)>=1.0
 
-\x1b1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b1;49m
+\x1b[1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b[1;49m
 1. Records (0, 1) have similarity 0.909, while dependency states levenshtein(OfficeLocation, OfficeLocation)>=1.0
 2. Records (1, 0) have similarity 0.909, while dependency states levenshtein(OfficeLocation, OfficeLocation)>=1.0
 3. Records (2, 3) have similarity 0.917, while dependency states levenshtein(OfficeLocation, OfficeLocation)>=1.0
@@ -4096,7 +4096,7 @@ Now let's fix the typos:
 
 Let's try again:
 
-\x1b1;42mMD holds\x1b1;49m
+\x1b[1;42mMD holds\x1b[1;49m
 
 Alternatively, if we consider these typos insignificant for our purposes, we can ignore them. As Desbordante suggests, we can relax the right-hand decision boundary and check the dependency
 
@@ -4104,13 +4104,13 @@ Alternatively, if we consider these typos insignificant for our purposes, we can
 
 over the unmodified table.
 
-\x1b1;42mMD holds\x1b1;49m
+\x1b[1;42mMD holds\x1b[1;49m
 
 Let's move on and repeat the procedure for the functional dependency [Position] -> HighLevelAccess. To check it, we examine the following matching dependency:
 
 	[levenshtein(Position, Position)>=1.0] -> levenshtein(High Level Access, High Level Access)>=1.0
 
-\x1b1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b1;49m
+\x1b[1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b[1;49m
 1. Records (1, 4) have similarity 0.667, while dependency states levenshtein(HighLevelAccess, HighLevelAccess)>=1.0
 2. Records (4, 1) have similarity 0.667, while dependency states levenshtein(HighLevelAccess, HighLevelAccess)>=1.0
 
@@ -4139,7 +4139,7 @@ Now we see the problem. Let's fix it:
 
 Let's re-check the matching dependency again:
 
-\x1b1;42mMD holds\x1b1;49m
+\x1b[1;42mMD holds\x1b[1;49m
 
 If you look closely, there are still some typos in the dataset:
 1. Record 0: "manager" should be "Manager".
@@ -4154,12 +4154,12 @@ There is an alternative approach to finding typos with MDs. We will demonstrate 
 
 Verifying the matching dependency [ levenshtein(Position, Position)>=1.0 ] -> levenshtein(Position, Position)>=1.0:
 
-\x1b1;42mMD holds\x1b1;49m
+\x1b[1;42mMD holds\x1b[1;49m
 
 
 Verifying Matching Dependency [ levenshtein(Position, Position)>=0.8 ] -> levenshtein(Position, Position)>=1.0:
 
-\x1b1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b1;49m
+\x1b[1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b[1;49m
 1. Records (0, 4) have similarity 0.857, while dependency states levenshtein(Position, Position)>=1.0
 2. Records (0, 1) have similarity 0.857, while dependency states levenshtein(Position, Position)>=1.0
 3. Records (1, 0) have similarity 0.857, while dependency states levenshtein(Position, Position)>=1.0
@@ -4181,7 +4181,7 @@ Let's decrease the threshold further and see how it affects the algorithm's outp
 
 Verifying Matching Dependency [ levenshtein(Position, Position)>=0.2 ] -> levenshtein(Position, Position)>=1.0:
 
-\x1b1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b1;49m
+\x1b[1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b[1;49m
 1. Records (0, 4) have similarity 0.857, while dependency states levenshtein(Position, Position)>=1.0
 2. Records (0, 1) have similarity 0.857, while dependency states levenshtein(Position, Position)>=1.0
 3. Records (0, 3) have similarity 0.286, while dependency states levenshtein(Position, Position)>=1.0
@@ -4259,7 +4259,7 @@ Now let's check the following matching dependency:
 
 	[ equality(Departure_new, Departure_new)>=1.0 ] -> levenshtein(Departure, Departure)>=1.0:
 
-\x1b1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b1;49m
+\x1b[1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b[1;49m
 1. Records (3, 4) have similarity 0.833, while dependency states levenshtein(Departure, Departure)>=1.0
 2. Records (3, 5) have similarity 0.75, while dependency states levenshtein(Departure, Departure)>=1.0
 3. Records (3, 7) have similarity 0.833, while dependency states levenshtein(Departure, Departure)>=1.0
@@ -4301,7 +4301,7 @@ We will try to verify the following matching dependency:
 
 	[ levenshtein(Departure, Departure)>=0.75 | levenshtein(Arrival, Arrival)>=0.75 ] -> normalized_distance(Duration, Duration)>=1.0
 
-\x1b1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b1;49m
+\x1b[1;41mMD does not hold. The following rows selected by the dependency's left-hand side do not satisfy the condition of the right-hand side:\x1b[1;49m
 1. Records (0, 2) have similarity 0.986, while dependency states normalized_distance(Duration, Duration)>=1.0
 2. Records (0, 1) have similarity 0.993, while dependency states normalized_distance(Duration, Duration)>=1.0
 3. Records (0, 6) have similarity 0.958, while dependency states normalized_distance(Duration, Duration)>=1.0
