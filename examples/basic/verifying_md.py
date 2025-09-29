@@ -6,8 +6,8 @@ from typing import TypedDict
 from desbordante.md import ColumnSimilarityClassifier
 from desbordante.md.column_matches import Levenshtein, Custom, Equality
 
-# This options allow to print pandas dataframes without skipping columns and wrapping columns to the next line
-# Feel free to modify this options if you have issues with output format
+# These options allow to print pandas dataframes without skipping columns and wrapping columns to the next line
+# Feel free to modify these options if you have issues with the output format
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", None)
 
@@ -247,9 +247,9 @@ def typos_example():
 
     print(
         "Alternatively, if we consider these typos insignificant for our purposes, we can ignore them. "
-        "As Desbordante suggests, we can relax the right-hand decision boundary and check dependency"
+        "As Desbordante suggests, we can relax the right-hand decision boundary and check the dependency"
         "\n\n\t[levenshtein(City, City)>=1.0] -> levenshtein(Office Location, Office Location)>=0.9\n\n"
-        "over unmodified table.\n"
+        "over the unmodified table.\n"
     )
 
     params = {

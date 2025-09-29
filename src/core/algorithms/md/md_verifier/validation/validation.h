@@ -16,7 +16,7 @@
 
 namespace algos::md {
 
-using TrivialColumnMatchInfo = model::md::Similarity;
+using TrivialColumnMatchInfo = model::md::DecisionBoundary;
 
 using OneOfColumnMatchInfo = std::variant<hymd::ColumnMatchInfo, TrivialColumnMatchInfo>;
 
@@ -47,22 +47,21 @@ private:
 
     void ExecuteValidationFrom(model::Index lhs_classifier_index);
 
-    void ValidateAllLhsForRecordsPair(hymd::RecordIdentifier left_record_id,
-                                      hymd::RecordIdentifier right_record_id);
+    void ValidateMdConstraint(hymd::RecordIdentifier left_record_id,
+                              hymd::RecordIdentifier right_record_id);
     void ValidateRhsForRecordsPair(hymd::RecordIdentifier left_record_id,
                                    hymd::RecordIdentifier right_record_id);
 
-    bool ValidateClassifierForPair(hymd::RecordIdentifier left_record_id,
-                                   hymd::RecordIdentifier right_record_id,
-                                   model::Index classifier_index, auto&& on_lesser_boundary,
-                                   auto&& on_greater_boundary);
+    bool MatchedByClassifier(hymd::RecordIdentifier left_record_id,
+                             hymd::RecordIdentifier right_record_id, model::Index classifier_index,
+                             auto&& on_lesser_boundary, auto&& on_greater_boundary);
 
-    bool ValidateLhsClassifierForPair(hymd::RecordIdentifier left_record_id,
-                                      hymd::RecordIdentifier right_record_id,
-                                      model::Index lhs_classifier_index);
+    bool MatchedByLhsClassifier(hymd::RecordIdentifier left_record_id,
+                                hymd::RecordIdentifier right_record_id,
+                                model::Index lhs_classifier_index);
 
-    bool ValidateRhsClassifierForPair(hymd::RecordIdentifier left_record_id,
-                                      hymd::RecordIdentifier right_record_id);
+    bool MatchedByRhsClassifier(hymd::RecordIdentifier left_record_id,
+                                hymd::RecordIdentifier right_record_id);
 
     void CreateColumnMatchesSimilarityInfos(hymd::SimilarityData const& similarity_data);
 
