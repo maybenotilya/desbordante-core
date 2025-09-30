@@ -67,9 +67,9 @@ void MDValidationCalculator::CreateColumnMatchesSimilarityInfos(
 }
 
 void MDValidationCalculator::ExecuteValidationFrom(model::Index lhs_classifier_index) {
-    OneOfColumnMatchInfo const& starting_column_match_info =
+    OneOfColumnMatchInfo const& column_match_info =
             column_matches_similarity_infos_[lhs_classifier_index];
-    model::md::DecisionBoundary starting_decision_boundary =
+    model::md::DecisionBoundary provided_decision_boundary =
             column_similarity_classifiers_[lhs_classifier_index].GetDecisionBoundary();
 
     auto on_non_trivial = [&](hymd::ColumnMatchInfo const& column_match_info) {
@@ -77,7 +77,7 @@ void MDValidationCalculator::ExecuteValidationFrom(model::Index lhs_classifier_i
                 column_match_info.similarity_info.similarity_index;
 
         auto it = std::ranges::lower_bound(column_match_info.similarity_info.classifier_values,
-                                           starting_decision_boundary);
+                                           provided_decision_boundary);
         if (it == column_match_info.similarity_info.classifier_values.end()) {
             // No pairs are matched by LHS, dependency holds
             return;
@@ -109,8 +109,8 @@ void MDValidationCalculator::ExecuteValidationFrom(model::Index lhs_classifier_i
         }
     };
 
-    auto on_trivial = [&](model::md::DecisionBoundary provided_decision_boundary) {
-        if (provided_decision_boundary < starting_decision_boundary) {
+    auto on_trivial = [&](model::md::DecisionBoundary decision_boundary) {
+        if (decision_boundary < provided_decision_boundary) {
             return;
         }
 
@@ -128,7 +128,7 @@ void MDValidationCalculator::ExecuteValidationFrom(model::Index lhs_classifier_i
         }
     };
 
-    std::visit(boost::hof::first_of(on_non_trivial, on_trivial), starting_column_match_info);
+    std::visit(boost::hof::first_of(on_non_trivial, on_trivial), column_match_info);
 }
 
 void MDValidationCalculator::ValidateMdConstraint(hymd::RecordIdentifier left_record_id,
@@ -158,12 +158,12 @@ bool MDValidationCalculator::MatchedByClassifier(hymd::RecordIdentifier left_rec
                                                  auto&& on_greater_boundary) {
     OneOfColumnMatchInfo const& column_match_info =
             column_matches_similarity_infos_[classifier_index];
-    model::md::DecisionBoundary decision_boundary =
+    model::md::DecisionBoundary provided_decision_boundary =
             column_similarity_classifiers_[classifier_index].GetDecisionBoundary();
 
     auto on_non_trivial = [&](hymd::ColumnMatchInfo const& column_match_info) {
         auto it = std::ranges::lower_bound(column_match_info.similarity_info.classifier_values,
-                                           decision_boundary);
+                                           provided_decision_boundary);
         if (it == column_match_info.similarity_info.classifier_values.end()) {
             return on_greater_boundary();
         }
@@ -194,8 +194,8 @@ bool MDValidationCalculator::MatchedByClassifier(hymd::RecordIdentifier left_rec
         return false;
     };
 
-    auto on_trivial = [&](model::md::DecisionBoundary provided_decision_boundary) {
-        if (provided_decision_boundary >= decision_boundary) {
+    auto on_trivial = [&](model::md::DecisionBoundary decision_boundary) {
+        if (decision_boundary >= provided_decision_boundary) {
             return on_lesser_boundary();
         }
         return on_greater_boundary();
